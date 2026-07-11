@@ -57,3 +57,7 @@ html[data-theme="dark"] .invite-user{background:#252a40}html[data-theme="dark"] 
 
 /* Login is outside the authenticated sidebar layout. */
 main.login-minimal{margin-left:0;width:100%;min-height:100vh}
+
+.loader{background:#062c2b;color:#e7b329;font-weight:700;letter-spacing:.02em}
+
+html[data-theme='teal'] .form select,html[data-theme='teal'] .form select option{background:#0c4140;color:#edf5ef}html[data-theme='teal'] .form select option:checked{background:#164f4d;color:#f5cf63}

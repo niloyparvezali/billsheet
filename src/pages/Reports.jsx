@@ -8,7 +8,7 @@ import {
   FiTrendingUp,
 } from "react-icons/fi";
 import { db } from "../firebase/config";
-import useCollection from "../hooks/useCollection";
+import useOwnedCollection from "../hooks/useOwnedCollection";
 import { exportExcel, exportPdf } from "../utils/exports";
 import { money } from "../utils/date";
 

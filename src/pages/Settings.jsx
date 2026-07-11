@@ -56,7 +56,7 @@ import {
 import toast from "react-hot-toast";
 import { db, storage } from "../firebase/config";
 import { useAuth } from "../context/AuthContext";
-import useCollection from "../hooks/useCollection";
+import useOwnedCollection from "../hooks/useOwnedCollection";
 import Modal from "../components/Modal";
 import AppGuide from "../components/AppGuide";
 import { money } from "../utils/date";
@@ -158,7 +158,7 @@ export default function Settings() {
   });
   const [showPassword, setShowPassword] = useState(false);
   const [isProfileEditing, setIsProfileEditing] = useState(false);
-  const [theme, setTheme] = useState(localStorage.theme || "teal");
+  const [theme, setTheme] = useState(localStorage.theme || "light");
   const [guideOpen, setGuideOpen] = useState(false);
   const [sidebar, setSidebar] = useState(
     localStorage.settingsSidebar || "Rounded",

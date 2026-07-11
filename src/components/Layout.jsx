@@ -22,7 +22,7 @@ export default function Layout() {
   const { user, logout } = useAuth();
   const [open, setOpen] = useState(false);
   useEffect(() => {
-    const theme = localStorage.theme || "teal";
+    const theme = localStorage.theme || "light";
     document.documentElement.dataset.theme = theme;
     document.documentElement.classList.toggle("dark", theme === "dark");
   }, []);
