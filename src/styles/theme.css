@@ -1,0 +1,29 @@
+/* Theme polish and compact phone controls. */
+html { background: #f8f6f1; }
+header { background: rgba(255, 253, 249, .92); border-color: #e7e2d9; }
+html.dark { background: #10141d; }
+html.dark .page, html.dark .login { background: #10141d; }
+html.dark header, html.dark .panel, html.dark .modal, html.dark .stat, html.dark .summary div, html.dark .filters input, html.dark .filters select, html.dark .search, html.dark .login section { background: #191f2b; border-color: #30394a; color: #e7eaf5; }
+html.dark th { background: #202736; color: #b8c0d4; }
+html.dark td { border-color: #30394a; }
+html.dark tr:hover { background: #202736; }
+html.dark .form label, html.dark .form input, html.dark .form textarea, html.dark .form select, html.dark .login input { color: #e7eaf5; background: #141a25; border-color: #3a4355; }
+html.dark .paid-row { background: #133427; }
+html.dark .pending-row { background: #39242a; }
+.field-error { color: #d54858; font-weight: 500; line-height: 1.35; }
+.app-error { min-height: 100vh; display: grid; place-items: center; padding: 20px; background: #f8f6f1; }
+.app-error section { width: min(420px, 100%); padding: 32px; border-radius: 16px; background: #fff; box-shadow: 0 18px 45px #232a3d1c; }
+.app-error h1 { margin: 0; font-size: 22px; }.app-error p { color: #687083; margin: 10px 0 22px; }
+.error-detail { display: block; margin: -8px 0 20px; padding: 10px; border-radius: 8px; color: #bd3142; background: #fff0f2; font-size: 12px; overflow-wrap: anywhere; }
+html.dark .app-error { background: #10141d; }.app-error section { color: #172033; }html.dark .app-error section { color: #e7eaf5; background: #191f2b; }
+.modal { width: min(520px, calc(100% - 32px)); }
+@media (max-width: 700px) {
+  .page { padding: 20px 14px; }
+  .modal-wrap { padding: 12px; align-items: end; }
+  .modal { width: 100%; max-height: 88vh; border-radius: 18px 18px 12px 12px; padding: 24px 20px; }
+  .row { align-items: stretch; }
+  .row select { min-width: 0; }
+  .row .secondary { padding: 10px 12px; white-space: nowrap; }
+  .form input, .form select, .form textarea { font-size: 16px; }
+  .primary, .secondary, .google { min-height: 44px; }
+}

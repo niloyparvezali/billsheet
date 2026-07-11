@@ -1,0 +1,1 @@
+export default function Modal({ title, children, onClose }) { return <div className="modal-wrap" onMouseDown={onClose}><section className="modal" onMouseDown={e=>e.stopPropagation()}><button className="modal-close" onClick={onClose}>×</button><h2>{title}</h2>{children}</section></div> }
