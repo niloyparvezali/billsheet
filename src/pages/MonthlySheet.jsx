@@ -52,7 +52,7 @@ export default function MonthlySheet() {
     try {
       const saved = signedInUser && db ? await getDoc(doc(db, 'settings', signedInUser.uid)) : null
       const template = saved?.data()?.smsTemplate?.trim() || defaultSmsTemplate
-      const dueDate = new Date(year, month - 1, 10).toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' })
+      const dueDate = new Date(year, month - 1, 14).toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' })
       const message = createSms(template, { name: user.name, bill: user.monthlyBill, dueDate })
       window.location.href = `sms:${phone}?body=${encodeURIComponent(message)}`
     } catch (error) { toast.error(error.message || 'Could not prepare the SMS') }

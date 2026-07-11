@@ -162,7 +162,7 @@ export default function Settings() {
   });
   const [showPassword, setShowPassword] = useState(false);
   const [isProfileEditing, setIsProfileEditing] = useState(false);
-  const [theme, setTheme] = useState(localStorage.theme || "light");
+  const [theme, setTheme] = useState(localStorage.theme || "teal");
   const [guideOpen, setGuideOpen] = useState(false);
   const [sidebar, setSidebar] = useState(
     localStorage.settingsSidebar || "Rounded",
@@ -202,7 +202,7 @@ export default function Settings() {
         month: "short",
         year: "numeric",
       })
-    : "—";
+    : "Not available"
   const lastLogin = user?.metadata?.lastSignInTime
     ? new Date(user.metadata.lastSignInTime).toLocaleString("en-GB", {
         day: "2-digit",
@@ -210,7 +210,7 @@ export default function Settings() {
         hour: "2-digit",
         minute: "2-digit",
       })
-    : "—";
+    : "Not available"
   useEffect(() => {
     const load = async () => {
       if (!user || !db) return;
@@ -468,7 +468,7 @@ export default function Settings() {
           <span className="eyebrow">
             <FiSettings /> Workspace settings
           </span>
-          <h2>⚙ Settings</h2>
+          <h2>Settings</h2>
           <p>
             Manage your profile, security, appearance, notifications, and
             application preferences.
@@ -613,7 +613,7 @@ export default function Settings() {
           <div className="security-row">
             <div>
               <b>Two Factor Authentication</b>
-              <span>OFF · Add a second layer of protection.</span>
+              <span>OFF - Add a second layer of protection.</span>
             </div>
             <button
               className="secondary"
@@ -644,8 +644,8 @@ export default function Settings() {
           <div className="device">
             <FiMonitor />
             <div>
-              <b>Windows PC · Chrome</b>
-              <span>Dhaka, Bangladesh · Active now</span>
+              <b>Windows PC - Chrome</b>
+              <span>Dhaka, Bangladesh - Active now</span>
             </div>
             <button
               className="text-danger"
@@ -659,8 +659,8 @@ export default function Settings() {
           <div className="device">
             <FiSmartphone />
             <div>
-              <b>iPhone · Safari</b>
-              <span>Dhaka, Bangladesh · Last active today</span>
+              <b>iPhone - Safari</b>
+              <span>Dhaka, Bangladesh - Last active today</span>
             </div>
             <button
               className="text-danger"
@@ -867,7 +867,7 @@ export default function Settings() {
 
       <Card
         icon={FiTrash2}
-        title="⚠ Danger Zone"
+        title="Danger Zone"
         subtitle="These actions are permanent and require confirmation."
         className="danger-zone"
       >
