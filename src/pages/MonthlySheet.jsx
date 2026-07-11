@@ -45,8 +45,8 @@ export default function MonthlySheet() {
   return <div className="page">
     <div className="page-title"><div><h2>Monthly Sheet</h2><p>Record and review every payment.</p></div></div>
     <div className="toolbar filters"><select value={month} onChange={e => setMonth(+e.target.value)}>{monthNames.map((name, i) => <option value={i + 1} key={name}>{name}</option>)}</select><input type="number" min="2024" value={year} onChange={e => setYear(+e.target.value)} />{rows.length > 0 && <span className="customer-count"><FiUsers /> {rows.length} {rows.length === 1 ? 'customer' : 'customers'}</span>}</div>
-    <div className="toolbar"><label className="search"><FiSearch /><input placeholder="Search name, category, or phone" value={search} onChange={e => setSearch(e.target.value)} /></label></div>
     <div className="summary sheet-summary"><div>Total Users<b>{rows.length}</b></div><div>Paid Users<b>{paid.length}</b></div><div>Pending Users<b>{rows.length - paid.length}</b></div><div>Total Bill<b>{money(totalBill)}</b></div><div>Total Collection<b>{money(total)}</b></div><div>Total Due<b>{money(totalDue)}</b></div></div>
+    <div className="toolbar"><label className="search"><FiSearch /><input placeholder="Search name, category, or phone" value={search} onChange={e => setSearch(e.target.value)} /></label></div>
     <section className={rows.length ? 'panel table-wrap' : 'panel sheet-empty'}>
       {rows.length ? <table className="monthly-table"><thead><tr><th>SL</th><th>Name</th><th>Category</th><th>Bill</th><th>Paid</th><th>Due</th><th>Status</th><th>Payment date</th><th>Time</th><th /></tr></thead><tbody>{filteredRows.map(({ user, payment, openingDue, due }, i) => {
         const isPaid = Number(payment?.amount) > 0
