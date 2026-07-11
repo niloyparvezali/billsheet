@@ -1,3 +1,21 @@
 import { useEffect, useState } from 'react'
 import { onSnapshot } from 'firebase/firestore'
-export default function useCollection(queryRef) { const [data, setData] = useState([]); const [loading, setLoading] = useState(true); const [error, setError] = useState(null); useEffect(() => { if (!queryRef) { setLoading(false); return } setError(null); const unsub = onSnapshot(queryRef, s => { setData(s.docs.map(d => ({ id: d.id, ...d.data() }))); setLoading(false) }, e => { setError(e); setLoading(false) }); return unsub }, []); return { data, loading, error } }
+import { auth } from '../firebase/config'
+
+export default function useCollection(queryRef) {
+  const [data, setData] = useState([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState(null)
+  useEffect(() => {
+    if (!queryRef) { setData([]); setLoading(false); return }
+    setError(null)
+    const unsub = onSnapshot(queryRef, snapshot => {
+      const ownerId = auth?.currentUser?.uid
+      const records = snapshot.docs.map(item => ({ id: item.id, ...item.data() }))
+      setData(ownerId ? records.filter(record => record.ownerId === ownerId) : [])
+      setLoading(false)
+    }, reason => { setError(reason); setLoading(false) })
+    return unsub
+  }, [])
+  return { data, loading, error }
+}

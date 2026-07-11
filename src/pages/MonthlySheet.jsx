@@ -4,7 +4,7 @@ import { addDoc, collection, deleteDoc, doc, getDoc, serverTimestamp, updateDoc 
 import { FiEdit2, FiMessageCircle, FiSearch, FiTrash2, FiUsers } from 'react-icons/fi'
 import toast from 'react-hot-toast'
 import { db } from '../firebase/config'
-import useCollection from '../hooks/useCollection'
+import useOwnedCollection from '../hooks/useOwnedCollection'
 import Modal from '../components/Modal'
 import { useAuth } from '../context/AuthContext'
 import { monthNames, money, formatDate, formatTime } from '../utils/date'
@@ -20,8 +20,8 @@ export default function MonthlySheet() {
   const [year, setYear] = useState(today.getFullYear())
   const [search, setSearch] = useState('')
   const [editing, setEditing] = useState(null)
-  const { data: users } = useCollection(db ? collection(db, 'users') : null)
-  const { data: allPayments } = useCollection(db ? collection(db, 'payments') : null)
+  const { data: users } = useOwnedCollection('users')
+  const { data: allPayments } = useOwnedCollection('payments')
   const currentPeriod = period(month, year)
   const payments = allPayments.filter(payment => +payment.month === month && +payment.year === year)
   const activeUsers = users.filter(user => user.active !== false)
@@ -69,11 +69,11 @@ export default function MonthlySheet() {
         return <tr className={isPaid ? 'paid-row' : 'pending-row'} key={user.id}><td>{i + 1}</td><td><b>{user.name}</b></td><td>{user.category}</td><td>{money(user.monthlyBill)}</td><td>{money(payment?.amount)}</td><td><b className={due > 0 ? 'due-value' : ''}>{money(due)}</b></td><td><span className={isPaid ? 'status paid' : 'status pending'}>{isPaid ? '● Paid' : '● Pending'}</span></td><td>{formatDate(payment?.paymentDate)}</td><td>{formatTime(payment?.paymentDate)}</td><td className="actions"><button title="Send SMS" aria-label={`Send SMS to ${user.name}`} onClick={() => sendSms(user)}><FiMessageCircle /></button><button onClick={() => setEditing({ user, payment, openingDue })}><FiEdit2 /></button>{payment && <button className="danger" onClick={() => remove(payment.id)}><FiTrash2 /></button>}</td></tr>
       })}</tbody></table> : <div className="sheet-empty-content"><span><FiUsers /></span><h3>Start with your first customer</h3><p>Add customers from the Users page, then come back to record their payments for {monthNames[month - 1]} {year}.</p><Link className="primary" to="/users">Go to Users</Link></div>}{rows.length > 0 && !filteredRows.length && <p className="empty">No customers match your search.</p>}
     </section>
-    {editing && <PaymentModal data={editing} month={month} year={year} close={() => setEditing(null)} />}
+    {editing && <PaymentModal data={editing} month={month} year={year} ownerId={signedInUser?.uid} close={() => setEditing(null)} />}
   </div>
 }
 
-function PaymentModal({ data, month, year, close }) {
+function PaymentModal({ data, month, year, ownerId, close }) {
   const [amount, setAmount] = useState(data.payment?.amount || '')
   const [extraDue, setExtraDue] = useState(data.payment?.extraDue || '')
   const bill = Number(data.user.monthlyBill || 0)
@@ -81,7 +81,7 @@ function PaymentModal({ data, month, year, close }) {
     event.preventDefault()
     const paid = Number(amount || 0), addedDue = Number(extraDue || 0)
     const due = Math.max(0, Number(data.openingDue || 0) + addedDue - paid)
-    const base = { userId: data.user.id, userName: data.user.name, userCategory: data.user.category, monthlyBill: bill, month, year, amount: paid, extraDue: addedDue, due, status: paid > 0 ? 'paid' : 'pending' }
+    const base = { ownerId, userId: data.user.id, userName: data.user.name, userCategory: data.user.category, monthlyBill: bill, month, year, amount: paid, extraDue: addedDue, due, status: paid > 0 ? 'paid' : 'pending' }
     try { if (data.payment) await updateDoc(doc(db, 'payments', data.payment.id), { ...base, updatedAt: serverTimestamp() }); else await addDoc(collection(db, 'payments'), { ...base, paymentDate: serverTimestamp() }); toast.success('Payment saved'); close() } catch (error) { toast.error(error.message) }
   }
   return <Modal title={`Payment · ${data.user.name}`} onClose={close}><form className="form" onSubmit={save}><p className="payment-note">Monthly bill: <b>{money(bill)}</b> · Opening due: <b>{money(data.openingDue)}</b></p><label>Paid amount<input type="number" min="0" step="any" autoFocus value={amount} onChange={e => setAmount(e.target.value)} /></label><label>Additional due (optional)<input type="number" min="0" step="any" value={extraDue} onChange={e => setExtraDue(e.target.value)} /></label><button className="primary">Save payment</button></form></Modal>

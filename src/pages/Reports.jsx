@@ -16,9 +16,7 @@ export default function Reports() {
   const now = new Date();
   const [year, setYear] = useState(now.getFullYear());
   const [search, setSearch] = useState("");
-  const { data: payments } = useCollection(
-    db ? collection(db, "payments") : null,
-  );
+  const { data: payments } = useOwnedCollection('payments');
   const yearlyRows = useMemo(() => {
     const totals = new Map();
     payments

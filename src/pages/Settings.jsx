@@ -143,13 +143,9 @@ export default function Settings() {
   const restoreInput = useRef(null);
   const photoInput = useRef(null);
   const nameInput = useRef(null);
-  const { data: users } = useCollection(db ? collection(db, "users") : null);
-  const { data: payments } = useCollection(
-    db ? collection(db, "payments") : null,
-  );
-  const { data: categories } = useCollection(
-    db ? collection(db, "categories") : null,
-  );
+  const { data: users } = useOwnedCollection('users');
+  const { data: payments } = useOwnedCollection('payments');
+  const { data: categories } = useOwnedCollection('categories');
   const [profile, setProfile] = useState({
     name: user?.displayName || "Administrator",
     email: user?.email || "",

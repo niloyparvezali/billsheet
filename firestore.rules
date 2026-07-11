@@ -2,6 +2,26 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
     function signedIn() { return request.auth != null; }
-    match /{collection}/{id} { allow read, write: if signedIn() && collection in ['users', 'categories', 'payments', 'settings']; }
+    function ownsExisting() { return resource.data.ownerId == request.auth.uid; }
+    function ownsNew() { return request.resource.data.ownerId == request.auth.uid; }
+
+    match /users/{id} {
+      allow create: if signedIn() && ownsNew();
+      allow read, delete: if signedIn() && ownsExisting();
+      allow update: if signedIn() && ownsExisting() && ownsNew();
+    }
+    match /categories/{id} {
+      allow create: if signedIn() && ownsNew();
+      allow read, delete: if signedIn() && ownsExisting();
+      allow update: if signedIn() && ownsExisting() && ownsNew();
+    }
+    match /payments/{id} {
+      allow create: if signedIn() && ownsNew();
+      allow read, delete: if signedIn() && ownsExisting();
+      allow update: if signedIn() && ownsExisting() && ownsNew();
+    }
+    match /settings/{id} {
+      allow read, write: if signedIn() && id == request.auth.uid;
+    }
   }
 }
