@@ -42,6 +42,7 @@ import {
   FiRefreshCw,
   FiSave,
   FiSettings,
+  FiMessageCircle,
   FiShield,
   FiSmartphone,
   FiSun,
@@ -181,6 +182,9 @@ export default function Settings() {
   const [danger, setDanger] = useState(null);
   const [dangerText, setDangerText] = useState("");
   const [twoFactor, setTwoFactor] = useState(false);
+  const [smsTemplate, setSmsTemplate] = useState(
+    "Dear {name}, your monthly bill is {bill}. Please pay by {duedate}. Thank you.",
+  );
   const totalCollections = payments.reduce(
     (sum, payment) => sum + Number(payment.amount || 0),
     0,
@@ -219,6 +223,7 @@ export default function Settings() {
         if (data.preferences) setPreferences(data.preferences);
         if (data.billingPreferences)
           setBillingPreferences(data.billingPreferences);
+        if (typeof data.smsTemplate === "string") setSmsTemplate(data.smsTemplate);
         if (data.sidebar) setSidebar(data.sidebar);
         if (data.theme) changeTheme(data.theme);
       } catch (error) {
@@ -258,6 +263,7 @@ export default function Settings() {
       const saved = {
         profile,
         preferences,
+        smsTemplate,
         theme,
         updatedAt: new Date().toISOString(),
       };
@@ -707,6 +713,28 @@ export default function Settings() {
             This saves your preference. To send emails, deploy a scheduled Cloud
             Function that checks this setting and runs on the first day of each
             month.
+          </small>
+        </Card>
+      </div>
+
+      <div className="settings-grid">
+        <Card
+          icon={FiMessageCircle}
+          title="SMS Template"
+          subtitle="Personalize the message prepared for each customer"
+        >
+          <label className="sms-template-field">
+            Message
+            <textarea
+              value={smsTemplate}
+              onChange={(event) => setSmsTemplate(event.target.value)}
+              placeholder="Write your SMS message"
+              rows={4}
+            />
+          </label>
+          <small className="muted-line">
+            Available placeholders: <b>{"{name}"}</b>, <b>{"{bill}"}</b>, and{" "}
+            <b>{"{duedate}"}</b>. Use Save Changes to apply this template.
           </small>
         </Card>
       </div>
