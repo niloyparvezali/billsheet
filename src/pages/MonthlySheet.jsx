@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { addDoc, collection, deleteDoc, doc, getDoc, serverTimestamp, updateDoc } from 'firebase/firestore'
-import { FiEdit2, FiMessageCircle, FiSearch, FiTrash2, FiUsers } from 'react-icons/fi'
+import { FiEdit2, FiSearch, FiTrash2, FiUsers } from 'react-icons/fi'
 import toast from 'react-hot-toast'
 import { db } from '../firebase/config'
 import useOwnedCollection from '../hooks/useOwnedCollection'
@@ -43,7 +43,7 @@ export default function MonthlySheet() {
   const total = paid.reduce((sum, row) => sum + Number(row.payment.amount), 0)
   const totalDue = rows.reduce((sum, row) => sum + Number(row.due || 0), 0)
   const totalBill = rows.reduce((sum, row) => sum + Number(row.user.monthlyBill || 0), 0)
-  const filteredRows = rows.filter(row => [row.user.name, row.user.category, row.user.phone].some(value => String(value || '').toLowerCase().includes(search.toLowerCase())))
+  const filteredRows = [...rows].sort((a, b) => Number(a.payment?.amount > 0) - Number(b.payment?.amount > 0) || a.user.name.localeCompare(b.user.name)).filter(row => [row.user.name, row.user.category, row.user.phone].some(value => String(value || '').toLowerCase().includes(search.toLowerCase())))
   const remove = async id => { if (confirm('Delete this payment?')) { await deleteDoc(doc(db, 'payments', id)); toast.success('Payment deleted') } }
   const sendSms = async user => {
     const phone = String(user.phone || '').trim().replace(/[\s()-]/g, '')
@@ -64,9 +64,9 @@ export default function MonthlySheet() {
     <div className="summary sheet-summary"><div>Total Users<b>{rows.length}</b></div><div>Paid Users<b>{paid.length}</b></div><div>Pending Users<b>{rows.length - paid.length}</b></div><div>Total Bill<b>{money(totalBill)}</b></div><div>Total Collection<b>{money(total)}</b></div><div>Total Due<b>{money(totalDue)}</b></div></div>
     <div className="toolbar"><label className="search"><FiSearch /><input placeholder="Search name, category, or phone" value={search} onChange={e => setSearch(e.target.value)} /></label></div>
     <section className={rows.length ? 'panel table-wrap' : 'panel sheet-empty'}>
-      {rows.length ? <table className="monthly-table"><thead><tr><th>SL</th><th>Name</th><th>Category</th><th>Bill</th><th>Paid</th><th>Due</th><th>Status</th><th>Payment date</th><th>Time</th><th /></tr></thead><tbody>{filteredRows.map(({ user, payment, openingDue, due }, i) => {
+      {rows.length ? <table className="monthly-table"><thead><tr><th>SL</th><th>Name</th><th>Bill</th><th>Paid</th><th>Due</th><th>Status</th><th>Payment date</th><th>Time</th><th>Actions</th></tr></thead><tbody>{filteredRows.map(({ user, payment, openingDue, due }, i) => {
         const isPaid = Number(payment?.amount) > 0
-        return <tr className={isPaid ? 'paid-row' : 'pending-row'} key={user.id}><td>{i + 1}</td><td><b>{user.name}</b></td><td>{user.category}</td><td>{money(user.monthlyBill)}</td><td>{money(payment?.amount)}</td><td><b className={due > 0 ? 'due-value' : ''}>{money(due)}</b></td><td><span className={isPaid ? 'status paid' : 'status pending'}>{isPaid ? '● Paid' : '● Pending'}</span></td><td>{formatDate(payment?.paymentDate)}</td><td>{formatTime(payment?.paymentDate)}</td><td className="actions"><button title="Send SMS" aria-label={`Send SMS to ${user.name}`} onClick={() => sendSms(user)}><FiMessageCircle /></button><button onClick={() => setEditing({ user, payment, openingDue })}><FiEdit2 /></button>{payment && <button className="danger" onClick={() => remove(payment.id)}><FiTrash2 /></button>}</td></tr>
+        return <tr className={isPaid ? 'paid-row' : 'pending-row'} key={user.id}><td>{i + 1}</td><td><b>{user.name}</b></td><td>{money(user.monthlyBill)}</td><td>{money(payment?.amount)}</td><td><b className={due > 0 ? 'due-value' : ''}>{money(due)}</b></td><td><span className={isPaid ? 'status paid' : 'status pending'}>{isPaid ? '● Paid' : '● Pending'}</span></td><td>{formatDate(payment?.paymentDate)}</td><td>{formatTime(payment?.paymentDate)}</td><td className="actions"><button onClick={() => setEditing({ user, payment, openingDue })}><FiEdit2 /></button>{payment && <button className="danger" onClick={() => remove(payment.id)}><FiTrash2 /></button>}</td></tr>
       })}</tbody></table> : <div className="sheet-empty-content"><span><FiUsers /></span><h3>Start with your first customer</h3><p>Add customers from the Users page, then come back to record their payments for {monthNames[month - 1]} {year}.</p><Link className="primary" to="/users">Go to Users</Link></div>}{rows.length > 0 && !filteredRows.length && <p className="empty">No customers match your search.</p>}
     </section>
     {editing && <PaymentModal data={editing} month={month} year={year} ownerId={signedInUser?.uid} close={() => setEditing(null)} />}
