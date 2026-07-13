@@ -9,7 +9,6 @@
     "preview": "vite preview"
   },
   "dependencies": {
-    "@vitejs/plugin-react": "latest",
     "dayjs": "latest",
     "firebase": "latest",
     "framer-motion": "latest",
@@ -26,6 +25,7 @@
     "xlsx": "latest"
   },
   "devDependencies": {
+    "@vitejs/plugin-react": "latest",
     "autoprefixer": "latest",
     "postcss": "latest",
     "tailwindcss": "latest",
