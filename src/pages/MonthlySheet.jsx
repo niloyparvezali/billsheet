@@ -9,12 +9,7 @@ import {
   serverTimestamp,
   updateDoc,
 } from "firebase/firestore";
-import {
-  FiEdit2,
-  FiSearch,
-  FiTrash2,
-  FiUsers,
-} from "react-icons/fi";
+import { FiEdit2, FiSearch, FiTrash2, FiUsers } from "react-icons/fi";
 import toast from "react-hot-toast";
 import { db } from "../firebase/config";
 import useOwnedCollection from "../hooks/useOwnedCollection";
@@ -60,7 +55,8 @@ export default function MonthlySheet() {
   const payments = useMemo(
     () =>
       allPayments.filter(
-        (payment) => Number(payment.month) === month && Number(payment.year) === year,
+        (payment) =>
+          Number(payment.month) === month && Number(payment.year) === year,
       ),
     [allPayments, month, year],
   );
@@ -176,7 +172,9 @@ export default function MonthlySheet() {
 
     return rowsWithStatus.filter((row) =>
       [row.user.name, row.user.category, row.user.phone].some((value) =>
-        String(value || "").toLowerCase().includes(searchTerm),
+        String(value || "")
+          .toLowerCase()
+          .includes(searchTerm),
       ),
     );
   }, [rows, searchTerm, nameOrder, statusOrder]);
@@ -308,9 +306,8 @@ export default function MonthlySheet() {
                     setNameOrder(nameOrder === "asc" ? "desc" : "asc")
                   }
                 >
-                  Name {nameOrder === "asc" ? "▲" : "▼"}
+                  Customer {nameOrder === "asc" ? "▲" : "▼"}
                 </th>
-                <th>Actions</th>
                 <th>Bill</th>
                 <th>Paid</th>
                 <th>Due</th>
@@ -325,6 +322,7 @@ export default function MonthlySheet() {
                   Status {statusOrder === "pending" ? "▲" : "▼"}
                 </th>
                 <th>Payment Date & Time</th>
+                <th>Actions</th>
               </tr>
             </thead>
             <tbody>
@@ -340,7 +338,48 @@ export default function MonthlySheet() {
 
                     {/* Customer Name */}
                     <td data-label="Customer">
-                      <b>{user.name}</b>
+                      <strong className="customer-name">{user.name}</strong>
+                    </td>
+
+                    {/* Bill */}
+                    <td data-label="Bill">
+                      <strong className="bill-value">
+                        {money(user.monthlyBill)}
+                      </strong>
+                    </td>
+
+                    {/* Paid */}
+                    <td data-label="Paid">
+                      <strong className="paid-value">
+                        {money(payment?.amount)}
+                      </strong>
+                    </td>
+
+                    {/* Due */}
+                    <td data-label="Due">
+                      <b className={due > 0 ? "due-value" : ""}>{money(due)}</b>
+                    </td>
+
+                    {/* Status */}
+                    <td data-label="Status">
+                      <span
+                        className={isPaid ? "status paid" : "status pending"}
+                      >
+                        {isPaid ? "● Paid" : "● Pending"}
+                      </span>
+                    </td>
+
+                    {/* Payment Date & Time */}
+                    <td data-label="Payment Date">
+                      {payment?.paymentDate ? (
+                        <div className="payment-date">
+                          <strong>{formatDate(payment.paymentDate)}</strong>
+
+                          <small>{formatTime(payment.paymentDate)}</small>
+                        </div>
+                      ) : (
+                        "-"
+                      )}
                     </td>
 
                     {/* Actions */}
@@ -371,33 +410,6 @@ export default function MonthlySheet() {
                           <FiTrash2 />
                         </button>
                       )}
-                    </td>
-
-                    {/* Bill */}
-                    <td data-label="Bill">{money(user.monthlyBill)}</td>
-
-                    {/* Paid */}
-                    <td data-label="Paid">{money(payment?.amount)}</td>
-
-                    {/* Due */}
-                    <td data-label="Due">
-                      <b className={due > 0 ? "due-value" : ""}>{money(due)}</b>
-                    </td>
-
-                    {/* Status */}
-                    <td data-label="Status">
-                      <span
-                        className={isPaid ? "status paid" : "status pending"}
-                      >
-                        {isPaid ? "● Paid" : "● Pending"}
-                      </span>
-                    </td>
-
-                    {/* Payment Date & Time */}
-                    <td data-label="Payment Date">
-                      {payment?.paymentDate
-                        ? `${formatDate(payment.paymentDate)} ${formatTime(payment.paymentDate)}`
-                        : "-"}
                     </td>
                   </tr>
                 );

@@ -235,7 +235,29 @@ export default function Dashboard() {
           <div>Date</div>
         </div>
 
-        {!payments.length && <p className="empty">No payments recorded yet.</p>}
+        {recentPayments.length > 0 ? (
+          recentPayments.map((payment, index) => (
+            <div
+              key={payment.id || payment.userId || payment.paymentDate?.seconds || index}
+              className="payment-row payment-row-item"
+            >
+              <div className="payment-name">
+                <span className="payment-label">Customer</span>
+                <b>{payment.userName || payment.customerName || "Customer"}</b>
+              </div>
+              <div className="payment-amount">
+                <span className="payment-label">Amount</span>
+                {money(payment.amount)}
+              </div>
+              <div className="payment-date">
+                <span className="payment-label">Date</span>
+                {formatDate(payment.paymentDate)}
+              </div>
+            </div>
+          ))
+        ) : (
+          <p className="empty">No payments recorded yet.</p>
+        )}
       </section>
     </div>
   );
