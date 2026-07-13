@@ -1,29 +1,380 @@
-/* Theme polish and compact phone controls. */
-html { background: #f8f6f1; }
-header { background: rgba(255, 253, 249, .92); border-color: #e7e2d9; }
-html.dark { background: #10141d; }
-html.dark .page, html.dark .login { background: #10141d; }
-html.dark header, html.dark .panel, html.dark .modal, html.dark .stat, html.dark .summary div, html.dark .filters input, html.dark .filters select, html.dark .search, html.dark .login section { background: #191f2b; border-color: #30394a; color: #e7eaf5; }
-html.dark th { background: #202736; color: #b8c0d4; }
-html.dark td { border-color: #30394a; }
-html.dark tr:hover { background: #202736; }
-html.dark .form label, html.dark .form input, html.dark .form textarea, html.dark .form select, html.dark .login input { color: #e7eaf5; background: #141a25; border-color: #3a4355; }
-html.dark .paid-row { background: #133427; }
-html.dark .pending-row { background: #39242a; }
-.field-error { color: #d54858; font-weight: 500; line-height: 1.35; }
-.app-error { min-height: 100vh; display: grid; place-items: center; padding: 20px; background: #f8f6f1; }
-.app-error section { width: min(420px, 100%); padding: 32px; border-radius: 16px; background: #fff; box-shadow: 0 18px 45px #232a3d1c; }
-.app-error h1 { margin: 0; font-size: 22px; }.app-error p { color: #687083; margin: 10px 0 22px; }
-.error-detail { display: block; margin: -8px 0 20px; padding: 10px; border-radius: 8px; color: #bd3142; background: #fff0f2; font-size: 12px; overflow-wrap: anywhere; }
-html.dark .app-error { background: #10141d; }.app-error section { color: #172033; }html.dark .app-error section { color: #e7eaf5; background: #191f2b; }
-.modal { width: min(520px, calc(100% - 32px)); }
-@media (max-width: 700px) {
-  .page { padding: 20px 14px; }
-  .modal-wrap { padding: 12px; align-items: end; }
-  .modal { width: 100%; max-height: 88vh; border-radius: 18px 18px 12px 12px; padding: 24px 20px; }
-  .row { align-items: stretch; }
-  .row select { min-width: 0; }
-  .row .secondary { padding: 10px 12px; white-space: nowrap; }
-  .form input, .form select, .form textarea { font-size: 16px; }
-  .primary, .secondary, .google { min-height: 44px; }
+/* Workspace themes apply to every page, not just the Settings preview. */
+
+html[data-theme="light"] {
+  --bg: #f7f8fc;
+  --surface: #ffffff;
+  --card: #ffffff;
+  --text: #111827;
+  --text-muted: #6b7280;
+  --primary: #4f46e5;
+  --primary-hover: #6366f1;
+  --primary-shadow: rgba(79, 70, 229, 0.22);
+  --divider: #e5e7eb;
+  --input-bg: #ffffff;
+  --input-border: #dce0e9;
+  --sidebar-bg: #171b30;
+  --sidebar-text: #cfd3e6;
+  --sidebar-hover: rgba(99, 102, 241, 0.12);
+  --header-bg: rgba(255, 255, 255, 0.92);
+  --overlay: rgba(0, 0, 0, 0.45);
+  --success: #16a34a;
+  --success-bg: #dcfce7;
+  --warning: #d97706;
+  --warning-bg: #fef3c7;
+  --danger: #dc2626;
+  --danger-bg: #fee2e2;
+  --info: #0f6fff;
+  --status-paid-bg: #f0fff7;
+  --status-pending-bg: #fff5f5;
+  --status-paid-text: #14915f;
+  --status-pending-text: #dc4e55;
+  --due-text: #cf5159;
+  --chart1: #4f46e5;
+  --chart2: #06b6d4;
+  --chart3: #14b8a6;
+  --chart4: #f59e0b;
+  --chart5: #ef4444;
+  --theme-active: #4f46e5;
+  --theme-card-bg: #ffffff;
+  --theme-card-border: #dfe3ea;
+  --theme-card-text: #172033;
+  --theme-card-subtext: #6b7280;
+}
+
+html[data-theme="dark"] {
+  --bg: #111323;
+  --surface: #1a1d31;
+  --card: #1a1d31;
+  --text: #e7eaf5;
+  --text-muted: #aeb4c8;
+  --primary: #6b7cff;
+  --primary-hover: #8b9bff;
+  --primary-shadow: rgba(107, 124, 255, 0.22);
+  --divider: #30344b;
+  --input-bg: #161a2d;
+  --input-border: #30344b;
+  --sidebar-bg: #111323;
+  --sidebar-text: #cfd3e6;
+  --sidebar-hover: rgba(107, 124, 255, 0.12);
+  --header-bg: #111323;
+  --overlay: rgba(0, 0, 0, 0.55);
+  --success: #34d399;
+  --success-bg: #0f2e26;
+  --warning: #f59e0b;
+  --warning-bg: #3f2d0d;
+  --danger: #f97316;
+  --danger-bg: #4d1e0f;
+  --info: #38bdf8;
+  --status-paid-bg: #13242e;
+  --status-pending-bg: #2d1220;
+  --status-paid-text: #34d399;
+  --status-pending-text: #fb7185;
+  --due-text: #fb7185;
+  --chart1: #6b7cff;
+  --chart2: #34d399;
+  --chart3: #f97316;
+  --chart4: #a855f7;
+  --chart5: #38bdf8;
+  --theme-active: #6b7cff;
+  --theme-card-bg: #222936;
+  --theme-card-border: #3a4355;
+  --theme-card-text: #ffffff;
+  --theme-card-subtext: #b8c0d4;
+}
+
+html[data-theme="cyan"] {
+  --bg: #e9fbff;
+  --surface: #f4fdff;
+  --card: #ffffff;
+  --text: #123746;
+  --text-muted: #4d7f89;
+  --primary: #08a9c7;
+  --primary-hover: #16c7d4;
+  --primary-shadow: rgba(8, 169, 199, 0.22);
+  --divider: #cdeef4;
+  --input-bg: #ffffff;
+  --input-border: #cdeef4;
+  --sidebar-bg: #083b4c;
+  --sidebar-text: #d5f7ff;
+  --sidebar-hover: #0b6076;
+  --header-bg: rgba(245, 254, 255, 0.94);
+  --overlay: rgba(4, 26, 36, 0.35);
+  --success: #05949d;
+  --success-bg: #dff8fc;
+  --warning: #f59e0b;
+  --warning-bg: #fff6c7;
+  --danger: #ef4444;
+  --danger-bg: #fee2e2;
+  --info: #0f6fff;
+  --status-paid-bg: #dff8fc;
+  --status-pending-bg: #fff0f2;
+  --status-paid-text: #05949d;
+  --status-pending-text: #ef4444;
+  --due-text: #0b5f75;
+  --chart1: #08a9c7;
+  --chart2: #22c55e;
+  --chart3: #f97316;
+  --chart4: #7c3aed;
+  --chart5: #ec4899;
+  --theme-active: #08a9c7;
+  --theme-card-bg: #dff8fc;
+  --theme-card-border: #8bdce9;
+  --theme-card-text: #087995;
+  --theme-card-subtext: #4d7f89;
+}
+
+html[data-theme="teal"] {
+  --bg: #062c2b;
+  --surface: #0a3938;
+  --card: #104542;
+  --text: #edf5ef;
+  --text-muted: #b6cec8;
+  --primary: #f1c54d;
+  --primary-hover: #ffd966;
+  --primary-shadow: rgba(241, 197, 77, 0.22);
+  --divider: #1b5c58;
+  --input-bg: #0c4140;
+  --input-border: #1b5c58;
+  --sidebar-bg: #031c1d;
+  --sidebar-text: #c3dcd6;
+  --sidebar-hover: #0d4a48;
+  --header-bg: #082f30;
+  --overlay: rgba(0, 0, 0, 0.55);
+  --success: #65e3a9;
+  --success-bg: #083f33;
+  --warning: #ffb86f;
+  --warning-bg: #3b291b;
+  --danger: #ff7980;
+  --danger-bg: #3d171d;
+  --info: #7dd3fc;
+  --status-paid-bg: #0c4a42;
+  --status-pending-bg: #3b2026;
+  --status-paid-text: #65e3a9;
+  --status-pending-text: #ff7980;
+  --due-text: #ff9a9f;
+  --chart1: #65e3a9;
+  --chart2: #f1c54d;
+  --chart3: #ff7980;
+  --chart4: #7dd3fc;
+  --chart5: #8dd1c1;
+  --theme-active: #f1c54d;
+  --theme-card-bg: #104846;
+  --theme-card-border: #1b5c58;
+  --theme-card-text: #ffffff;
+  --theme-card-subtext: #9fbdb8;
+}
+
+html[data-theme] {
+  color: var(--text);
+  background: var(--bg);
+}
+
+html[data-theme] body,
+html[data-theme] main {
+  background: var(--bg);
+}
+
+html[data-theme] .sidebar {
+  background: var(--sidebar-bg);
+  color: var(--sidebar-text);
+  border-right: 1px solid var(--divider);
+}
+
+html[data-theme] .sidebar a {
+  color: var(--sidebar-text);
+}
+
+html[data-theme] .sidebar a:hover,
+html[data-theme] .sidebar a.active,
+html[data-theme] nav a:hover,
+html[data-theme] nav a.active {
+  background: var(--sidebar-hover);
+  color: white;
+}
+
+html[data-theme] .sidebar-bottom {
+  border-color: var(--divider);
+}
+
+html[data-theme] .sidebar-bottom button {
+  color: var(--sidebar-text);
+}
+
+html[data-theme] header {
+  background: var(--header-bg);
+  border-color: var(--divider);
+}
+
+html[data-theme] header p,
+html[data-theme] .page-title p,
+html[data-theme] .panel > p,
+html[data-theme] .settings-hero p,
+html[data-theme] .settings-card-head p,
+html[data-theme] .activity span,
+html[data-theme] .muted-line,
+html[data-theme] .security-row span,
+html[data-theme] .device span,
+html[data-theme] .settings-stat p {
+  color: var(--text-muted);
+}
+
+html[data-theme] .stat,
+html[data-theme] .settings-card,
+html[data-theme] .settings-stat,
+html[data-theme] .summary div,
+html[data-theme] .panel,
+html[data-theme] .modal,
+html[data-theme] .guide-item,
+html[data-theme] .invite-user,
+html[data-theme] .report-table-heading span,
+html[data-theme] .sheet-empty-content > span {
+  background: var(--surface);
+  border-color: var(--divider);
+  color: var(--text);
+}
+
+html[data-theme] .profile-meta span,
+html[data-theme] .guide-step,
+html[data-theme] .theme-card.active {
+  background: color-mix(in srgb, var(--primary) 12%, var(--surface) 88%);
+}
+
+html[data-theme] .profile-meta b,
+html[data-theme] .guide-item span,
+html[data-theme] .theme-card b {
+  color: var(--text);
+}
+
+html[data-theme] .search,
+html[data-theme] .filters input,
+html[data-theme] .filters select,
+html[data-theme] .customer-count,
+html[data-theme] .profile-form input,
+html[data-theme] .preference-form select,
+html[data-theme] .password-input,
+html[data-theme] .form input,
+html[data-theme] .form textarea,
+html[data-theme] .form select {
+  background: var(--input-bg);
+  border-color: var(--input-border);
+  color: var(--text);
+}
+
+html[data-theme] .settings-choice {
+  background: var(--surface);
+  color: var(--text);
+}
+
+html[data-theme] .settings-choice.active {
+  background: color-mix(in srgb, var(--primary) 15%, var(--surface) 85%);
+  color: var(--text);
+  border-color: var(--primary);
+}
+
+html[data-theme] th {
+  background: var(--surface);
+  color: var(--text-muted);
+}
+
+html[data-theme] td,
+html[data-theme] .activity,
+html[data-theme] .security-row,
+html[data-theme] .device {
+  border-color: var(--divider);
+}
+
+html[data-theme] tr:hover {
+  background: color-mix(in srgb, var(--surface) 92%, var(--primary) 8%);
+}
+
+html[data-theme] .tag {
+  background: color-mix(in srgb, var(--primary) 10%, var(--surface) 90%);
+  color: var(--primary);
+}
+
+html[data-theme] .actions button {
+  background: var(--surface);
+  color: var(--text);
+}
+
+html[data-theme] .monthly-table .pending-row {
+  background: var(--status-pending-bg);
+  color: var(--text);
+}
+
+html[data-theme] .monthly-table .paid-row {
+  background: var(--status-paid-bg);
+  color: var(--text);
+}
+
+html[data-theme] .monthly-table .pending-row:hover,
+html[data-theme] .monthly-table .paid-row:hover {
+  filter: brightness(1.05);
+}
+
+html[data-theme] .monthly-table .pending-row td,
+html[data-theme] .monthly-table .paid-row td {
+  color: inherit;
+  border-color: var(--divider);
+}
+
+html[data-theme] .monthly-table .pending-row .status {
+  color: var(--status-pending-text);
+}
+
+html[data-theme] .monthly-table .paid-row .status {
+  color: var(--status-paid-text);
+}
+
+html[data-theme] .monthly-table .due-value {
+  color: var(--due-text);
+}
+
+html[data-theme] .report-kicker {
+  color: var(--primary);
+}
+
+html[data-theme] .report-table-heading p {
+  color: var(--text-muted);
+}
+
+html[data-theme] .report-table-heading span {
+  background: color-mix(in srgb, var(--primary) 8%, var(--surface) 92%);
+  color: var(--primary);
+}
+
+html[data-theme] .report-due {
+  color: var(--warning);
+}
+
+html[data-theme] .report-clear {
+  color: var(--success);
+}
+
+html[data-theme] .invite-user {
+  background: var(--surface);
+}
+
+html[data-theme] .invite-user-copy span {
+  color: var(--text-muted);
+}
+
+html[data-theme] .primary {
+  background: linear-gradient(135deg, var(--primary), var(--primary-hover));
+  box-shadow: 0 6px 12px var(--primary-shadow);
+}
+
+html[data-theme] .secondary {
+  background: color-mix(in srgb, var(--primary) 12%, var(--surface) 88%);
+  color: var(--text);
+}
+
+html[data-theme] .theme-card {
+  background: var(--theme-card-bg);
+  border-color: var(--theme-card-border);
+  color: var(--theme-card-text);
+}
+
+html[data-theme] .theme-card small {
+  color: var(--theme-card-subtext);
 }

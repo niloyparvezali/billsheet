@@ -1,3 +1,4 @@
+import QRCode from "react-qr-code";
 import {
   EmailAuthProvider,
   deleteUser,
@@ -10,6 +11,8 @@ import {
 import {
   Timestamp,
   collection,
+  query,
+  where,
   doc,
   getDoc,
   getDocs,
@@ -18,13 +21,15 @@ import {
 } from "firebase/firestore";
 import { getDownloadURL, ref, uploadBytes } from "firebase/storage";
 import { motion } from "framer-motion";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
   FiActivity,
   FiBell,
+  FiBookOpen,
   FiCamera,
   FiCheck,
   FiCloud,
+  FiCopy,
   FiDatabase,
   FiDownload,
   FiEdit2,
@@ -33,25 +38,18 @@ import {
   FiHelpCircle,
   FiKey,
   FiLayout,
-  FiLock,
   FiLogOut,
-  FiMail,
   FiMonitor,
-  FiMoon,
-  FiPhone,
   FiRefreshCw,
-  FiSave,
   FiSettings,
+  FiShare2,
   FiMessageCircle,
   FiShield,
   FiSmartphone,
-  FiSun,
   FiTrash2,
   FiUploadCloud,
   FiUser,
-  FiUserPlus,
   FiUsers,
-  FiX,
 } from "react-icons/fi";
 import toast from "react-hot-toast";
 import { db, storage } from "../firebase/config";
@@ -60,7 +58,8 @@ import useOwnedCollection from "../hooks/useOwnedCollection";
 import Modal from "../components/Modal";
 import AppGuide from "../components/AppGuide";
 import { money } from "../utils/date";
-import { exportExcel, exportPdf } from "../utils/exports";
+import { exportCsv, exportExcel, exportPdf } from "../utils/exports";
+import { useUnsavedChanges } from "../context/UnsavedChangesContext";
 
 const Card = ({ icon: Icon, title, subtitle, children, className = "" }) => (
   <motion.section
@@ -118,6 +117,14 @@ const normalizeTimestamps = (value) => {
   return value;
 };
 
+const safeParse = (value, fallback) => {
+  try {
+    return value ? JSON.parse(value) : fallback;
+  } catch {
+    return fallback;
+  }
+};
+
 function AnimatedNumber({ value, prefix = "" }) {
   const [shown, setShown] = useState(0);
   useEffect(() => {
@@ -139,13 +146,15 @@ function AnimatedNumber({ value, prefix = "" }) {
 }
 
 export default function Settings() {
+  const { hasUnsavedChanges, setHasUnsavedChanges } =
+    useUnsavedChanges(); /*addbyme*/
   const { user, logout } = useAuth();
   const restoreInput = useRef(null);
   const photoInput = useRef(null);
   const nameInput = useRef(null);
-  const { data: users } = useOwnedCollection('users');
-  const { data: payments } = useOwnedCollection('payments');
-  const { data: categories } = useOwnedCollection('categories');
+  const { data: users } = useOwnedCollection("users");
+  const { data: payments } = useOwnedCollection("payments");
+  const { data: categories } = useOwnedCollection("categories");
   const [profile, setProfile] = useState({
     name: user?.displayName || "Administrator",
     email: user?.email || "",
@@ -158,36 +167,33 @@ export default function Settings() {
   });
   const [showPassword, setShowPassword] = useState(false);
   const [isProfileEditing, setIsProfileEditing] = useState(false);
-  const [theme, setTheme] = useState(localStorage.theme || "light");
+  const [theme, setTheme] = useState(() => localStorage.theme || "teal");
   const [guideOpen, setGuideOpen] = useState(false);
-  const [sidebar, setSidebar] = useState(
-    localStorage.settingsSidebar || "Rounded",
-  );
   const [preferences, setPreferences] = useState(() =>
-    JSON.parse(
-      localStorage.settingsPreferences ||
-        '{"email":true,"billing":true,"payment":true,"report":false,"weekly":false,"updates":true,"joined":true}',
-    ),
-  );
-  const [billingPreferences, setBillingPreferences] = useState(() =>
-    JSON.parse(
-      localStorage.billingPreferences ||
-        '{"currency":"BDT","dateFormat":"DD/MM/YYYY","timezone":"Asia/Dhaka","language":"English"}',
-    ),
+    safeParse(localStorage.settingsPreferences, {
+      email: true,
+      billing: true,
+      payment: true,
+      report: false,
+      weekly: false,
+      updates: true,
+      joined: true,
+    }),
   );
   const [danger, setDanger] = useState(null);
   const [dangerText, setDangerText] = useState("");
-  const [twoFactor, setTwoFactor] = useState(false);
   const [smsTemplate, setSmsTemplate] = useState(
     "Dear {name}, your monthly bill is {bill}. Please pay by {duedate}. Thank you.",
   );
-  const totalCollections = payments.reduce(
-    (sum, payment) => sum + Number(payment.amount || 0),
-    0,
+  const totalCollections = useMemo(
+    () =>
+      payments.reduce((sum, payment) => sum + Number(payment.amount || 0), 0),
+    [payments],
   );
-  const totalBills = users.reduce(
-    (sum, member) => sum + Number(member.monthlyBill || 0),
-    0,
+  const totalBills = useMemo(
+    () =>
+      users.reduce((sum, member) => sum + Number(member.monthlyBill || 0), 0),
+    [users],
   );
   const initials = (profile.name || user?.email || "A")
     .slice(0, 1)
@@ -198,7 +204,7 @@ export default function Settings() {
         month: "short",
         year: "numeric",
       })
-    : "Not available"
+    : "Not available";
   const lastLogin = user?.metadata?.lastSignInTime
     ? new Date(user.metadata.lastSignInTime).toLocaleString("en-GB", {
         day: "2-digit",
@@ -206,7 +212,7 @@ export default function Settings() {
         hour: "2-digit",
         minute: "2-digit",
       })
-    : "Not available"
+    : "Not available";
   useEffect(() => {
     const load = async () => {
       if (!user || !db) return;
@@ -217,10 +223,8 @@ export default function Settings() {
         if (data.profile)
           setProfile((current) => ({ ...current, ...data.profile }));
         if (data.preferences) setPreferences(data.preferences);
-        if (data.billingPreferences)
-          setBillingPreferences(data.billingPreferences);
-        if (typeof data.smsTemplate === "string") setSmsTemplate(data.smsTemplate);
-        if (data.sidebar) setSidebar(data.sidebar);
+        if (typeof data.smsTemplate === "string")
+          setSmsTemplate(data.smsTemplate);
         if (data.theme) changeTheme(data.theme);
       } catch (error) {
         console.warn("Could not load settings", error);
@@ -231,10 +235,24 @@ export default function Settings() {
   useEffect(() => {
     if (isProfileEditing) nameInput.current?.focus();
   }, [isProfileEditing]);
+
+  useEffect(() => {
+    const handleBeforeUnload = (event) => {
+      if (!hasUnsavedChanges) return;
+      event.preventDefault();
+      event.returnValue = "";
+    };
+
+    window.addEventListener("beforeunload", handleBeforeUnload);
+    return () => window.removeEventListener("beforeunload", handleBeforeUnload);
+  }, [hasUnsavedChanges]);
+
   const setPreference = (key, value) => {
     const next = { ...preferences, [key]: value };
     setPreferences(next);
     localStorage.settingsPreferences = JSON.stringify(next);
+
+    setHasUnsavedChanges(true);
   };
   const saveChanges = async () => {
     try {
@@ -242,7 +260,11 @@ export default function Settings() {
         toast.error("Name and email are required");
         return false;
       }
-      if (user && profile.email !== user.email) {
+      if (!user) {
+        toast.error("Please sign in again to save settings");
+        return false;
+      }
+      if (profile.email !== user.email) {
         const current = window.prompt(
           "Enter your current password to change your email address",
         );
@@ -267,6 +289,7 @@ export default function Settings() {
       if (db && user)
         await setDoc(doc(db, "settings", user.uid), saved, { merge: true });
       toast.success("Settings saved across your devices");
+      setHasUnsavedChanges(false);
       return true;
     } catch (error) {
       toast.error(
@@ -283,12 +306,14 @@ export default function Settings() {
   };
   const changeTheme = (value) => {
     setTheme(value);
+
     localStorage.theme = value;
     document.documentElement.dataset.theme = value;
     document.documentElement.classList.toggle("dark", value === "dark");
   };
   const savePassword = async (event) => {
     event.preventDefault();
+    if (!user) return toast.error("Please sign in again to update your password");
     if (password.next !== password.confirm)
       return toast.error("New passwords do not match");
     if (password.next.length < 6)
@@ -326,10 +351,11 @@ export default function Settings() {
       await uploadBytes(fileRef, file);
       const photoURL = await getDownloadURL(fileRef);
       await updateProfile(user, { photoURL });
-      setProfile((current) => ({ ...current, photoURL }));
+      const nextProfile = { ...profile, photoURL };
+      setProfile(nextProfile);
       await setDoc(
         doc(db, "settings", user.uid),
-        { profile: { ...profile, photoURL }, photoURL },
+        { profile: nextProfile, photoURL },
         { merge: true },
       );
       toast.success("Profile photo uploaded");
@@ -371,7 +397,7 @@ export default function Settings() {
   };
   const restoreBackup = async (event) => {
     const file = event.target.files?.[0];
-    if (!file || !db) return;
+    if (!file || !db || !user) return;
     try {
       const backup = JSON.parse(await file.text());
       if (!Array.isArray(backup.users) || !Array.isArray(backup.payments))
@@ -382,7 +408,9 @@ export default function Settings() {
           records.slice(i, i + 400).forEach((record) => {
             const { id, ...data } = record;
             const normalized = normalizeTimestamps(data);
-            batch.set(doc(db, name, id), normalized, { merge: true });
+            if (!normalized.ownerId) normalized.ownerId = user.uid;
+            const docRef = id ? doc(db, name, id) : doc(collection(db, name));
+            batch.set(docRef, normalized, { merge: true });
           });
           await batch.commit();
         }
@@ -398,7 +426,10 @@ export default function Settings() {
     }
   };
   const removeCollection = async (name) => {
-    const snapshot = await getDocs(collection(db, name));
+    if (!db || !user) return;
+    const snapshot = await getDocs(
+      query(collection(db, name), where("ownerId", "==", user.uid)),
+    );
     for (let i = 0; i < snapshot.docs.length; i += 400) {
       const batch = writeBatch(db);
       snapshot.docs.slice(i, i + 400).forEach((item) => batch.delete(item.ref));
@@ -425,7 +456,7 @@ export default function Settings() {
             theme: "light",
           });
       }
-      if (danger === "Logout All Devices") await logout();
+      if (danger === "Logout current device") await logout();
       if (danger === "Delete Account") await deleteUser(user);
       toast.success(`${danger} completed`);
       setDanger(null);
@@ -438,27 +469,67 @@ export default function Settings() {
       );
     }
   };
-  const inviteUser = async () => {
-    const invite = {
-      title: "Join BillSheet",
-      text: "Join me on BillSheet to manage monthly billing records.",
-      url: "https://billsheet-net.vercel.app/",
+  const APP_URL = "https://billsheet-net.vercel.app/";
+
+  const shareApp = async () => {
+    const shareData = {
+      title: "BillSheet",
+      text: "Manage your monthly billing easily with BillSheet.",
+      url: APP_URL,
     };
-    if (navigator.share) {
-      try {
-        await navigator.share(invite);
-      } catch (error) {
-        if (error.name !== "AbortError")
-          toast.error("Could not open sharing options");
+
+    try {
+      if (navigator.share) {
+        await navigator.share(shareData);
+      } else if (navigator.clipboard) {
+        await navigator.clipboard.writeText(APP_URL);
+        toast.success("Website link copied.");
+      } else {
+        window.prompt("Copy this link", APP_URL);
       }
-    } else {
-      await navigator.clipboard.writeText(invite.url);
-      toast.success("Invitation link copied to your clipboard");
+    } catch (err) {
+      if (err.name !== "AbortError") {
+        toast.error("Unable to share.");
+      }
     }
   };
 
+const copyLink = async () => {
+  try {
+    if (navigator.clipboard) {
+      await navigator.clipboard.writeText(APP_URL);
+      toast.success("Website link copied.");
+    } else {
+      window.prompt("Copy this link", APP_URL);
+    }
+  } catch {
+    toast.error("Unable to copy link.");
+  }
+};
+
   return (
     <div className="page settings-page">
+      {hasUnsavedChanges && (
+        <div className="unsaved-banner">
+          <div className="unsaved-banner-text">
+            <span className="dot"></span>
+            <span>Before leaving, apply your changes.</span>
+          </div>
+
+          <div className="unsaved-banner-actions">
+            <button className="btn btn-primary" onClick={saveChanges}>
+              Save
+            </button>
+
+            <button
+              className="btn btn-secondary"
+              onClick={() => window.location.reload()}
+            >
+              Discard
+            </button>
+          </div>
+        </div>
+      )}
       <div className="settings-hero">
         <div>
           <span className="eyebrow">
@@ -469,17 +540,6 @@ export default function Settings() {
             Manage your profile, security, appearance, notifications, and
             application preferences.
           </p>
-        </div>
-        <div className="settings-hero-actions">
-          <button
-            className="secondary settings-help"
-            onClick={() => setGuideOpen(true)}
-          >
-            <FiHelpCircle /> How to use
-          </button>
-          <button className="primary" onClick={saveChanges}>
-            <FiSave /> Save Changes
-          </button>
         </div>
       </div>
 
@@ -518,9 +578,10 @@ export default function Settings() {
                   ref={nameInput}
                   value={profile.name}
                   disabled={!isProfileEditing}
-                  onChange={(e) =>
-                    setProfile({ ...profile, name: e.target.value })
-                  }
+                  onChange={(e) => {
+                    setProfile({ ...profile, name: e.target.value });
+                    setHasUnsavedChanges(true);
+                  }}
                 />
               </label>
               <label>
@@ -529,9 +590,10 @@ export default function Settings() {
                   type="email"
                   value={profile.email}
                   disabled={!isProfileEditing}
-                  onChange={(e) =>
-                    setProfile({ ...profile, email: e.target.value })
-                  }
+                  onChange={(e) => {
+                    setProfile({ ...profile, email: e.target.value });
+                    setHasUnsavedChanges(true);
+                  }}
                 />
               </label>
               <label>
@@ -539,9 +601,10 @@ export default function Settings() {
                 <input
                   value={profile.company}
                   disabled={!isProfileEditing}
-                  onChange={(e) =>
-                    setProfile({ ...profile, company: e.target.value })
-                  }
+                  onChange={(e) => {
+                    setProfile({ ...profile, company: e.target.value });
+                    setHasUnsavedChanges(true);
+                  }}
                 />
               </label>
             </div>
@@ -560,11 +623,11 @@ export default function Settings() {
             </span>
           </div>
           <div className="settings-actions">
-            <button className="secondary" onClick={toggleProfileEditing}>
+            <button className="btn btn-secondary" onClick={toggleProfileEditing}>
               <FiEdit2 /> {isProfileEditing ? "Save" : "Edit"}
             </button>
             <button
-              className="secondary"
+              className="btn btn-secondary"
               onClick={() => photoInput.current?.click()}
             >
               <FiUploadCloud /> Upload Photo
@@ -602,27 +665,17 @@ export default function Settings() {
                 </div>
               </label>
             ))}
-            <button className="primary">
+            <button className="btn btn-primary">
               <FiKey /> Update Password
             </button>
           </form>
           <div className="security-row">
             <div>
               <b>Two Factor Authentication</b>
-              <span>OFF - Add a second layer of protection.</span>
+              <span>Coming soon. More security options will be added here.</span>
             </div>
-            <button
-              className="secondary"
-              onClick={() => {
-                setTwoFactor(!twoFactor);
-                toast(
-                  twoFactor
-                    ? "Two-factor authentication disabled"
-                    : "Two-factor authentication setup is ready",
-                );
-              }}
-            >
-              {twoFactor ? "Enabled" : "Enable"}
+            <button type="button" className="btn btn-secondary" disabled>
+              Coming soon
             </button>
           </div>
           <small className="muted-line">
@@ -677,17 +730,55 @@ export default function Settings() {
           <p className="setting-label">Theme settings</p>
           <div className="choice-row">
             {[
-              ["light", "Light"],
-              ["dark", "Dark"],
-              ["cyan", "Cyan Ledger"],
-              ["teal", "Teal Ledger"],
-            ].map(([value, label]) => (
-              <Choice
-                key={value}
-                label={label}
-                active={theme === value}
-                onClick={() => changeTheme(value)}
-              />
+              {
+                value: "teal",
+                label: "Teal",
+                color: "#0a6a64",
+              },
+              {
+                value: "light",
+                label: "Light",
+                color: "#ffffff",
+              },
+              {
+                value: "dark",
+                label: "Dark",
+                color: "#1b1b1b",
+              },
+              {
+                value: "cyan",
+                label: "Cyan",
+                color: "#18c7d4",
+              },
+            ].map((item) => (
+              <button
+                key={item.value}
+                className={`theme-card ${theme === item.value ? "active" : ""}`}
+                onClick={() => {
+                  changeTheme(item.value);
+                  setHasUnsavedChanges(true);
+                }}
+              >
+                <span
+                  className="theme-color"
+                  style={{ background: item.color }}
+                />
+
+                <div className="theme-info">
+                  <div className="theme-title">{item.label}</div>
+
+                  <div className="theme-subtitle">
+                    {
+                      {
+                        light: "Clean & Bright",
+                        dark: "Easy on the Eyes",
+                        cyan: "Fresh & Modern",
+                        teal: "Calm & Aesthetic",
+                      }[item.value]
+                    }
+                  </div>
+                </div>
+              </button>
             ))}
           </div>
         </Card>
@@ -723,7 +814,10 @@ export default function Settings() {
             Message
             <textarea
               value={smsTemplate}
-              onChange={(event) => setSmsTemplate(event.target.value)}
+              onChange={(event) => {
+                setSmsTemplate(event.target.value);
+                setHasUnsavedChanges(true);
+              }}
               placeholder="Write your SMS message"
               rows={4}
             />
@@ -757,75 +851,117 @@ export default function Settings() {
           />
           <div className="backup-actions">
             <button
-              className="secondary"
-              onClick={() => {
-                const csv = [
-                  "Name,Month,Year,Amount,Due,Status",
-                  ...records.map((row) =>
-                    [
-                      row.Name,
-                      row.Month,
-                      row.Year,
-                      row.Amount,
-                      row.Due,
-                      row.Status,
-                    ]
-                      .map(
-                        (value) => `"${String(value).replaceAll('"', '""')}"`,
-                      )
-                      .join(","),
-                  ),
-                ].join("\n");
-                const link = document.createElement("a");
-                link.href = URL.createObjectURL(
-                  new Blob([csv], { type: "text/csv" }),
-                );
-                link.download = "billsheet-payments.csv";
-                link.click();
-                URL.revokeObjectURL(link.href);
-              }}
+              type="button"
+              className="backup-item"
+              disabled={!payments.length}
+              onClick={() => exportCsv(records, "billsheet-payments")}
             >
-              <FiDownload /> CSV
+              <FiDownload />
+              <span>Export CSV</span>
             </button>
+
             <button
-              className="secondary"
+              type="button"
+              className="backup-item"
+              disabled={!payments.length}
               onClick={() => exportExcel(records, "billsheet-payments")}
             >
-              <FiDownload /> Excel
+              <FiDownload />
+              <span>Export Excel</span>
             </button>
+
             <button
-              className="secondary"
+              className="backup-item"
+              disabled={!payments.length}
               onClick={() => exportPdf(records, "billsheet-payments")}
             >
-              <FiFileText /> PDF
+              <FiFileText />
+              <span>Export PDF</span>
             </button>
-            <button className="secondary" onClick={downloadBackup}>
-              <FiCloud /> Backup Now
+
+            <button className="backup-item" onClick={downloadBackup}>
+              <FiCloud />
+              <span>Backup Now</span>
             </button>
+
             <button
-              className="secondary"
+              className="backup-item"
               onClick={() => restoreInput.current?.click()}
             >
-              <FiRefreshCw /> Restore
+              <FiRefreshCw />
+              <span>Restore Backup</span>
             </button>
           </div>
         </Card>
         <Card
-          icon={FiUserPlus}
-          title="Invite User"
-          subtitle="Share BillSheet with your team"
+          icon={FiGlobe}
+          title="Share BillSheet"
+          subtitle="Open BillSheet from any device or share it with others."
         >
-          <div className="invite-user">
-            <div className="invite-user-copy">
-              <b>Invite someone to BillSheet</b>
-              <span>
-                Send a secure link so they can open the app and get started.
-              </span>
+          <div className="share-card">
+            <div className="share-url">https://billsheet-net.vercel.app/</div>
+
+            <div className="share-qr">
+              <QRCode
+                value="https://billsheet-net.vercel.app/"
+                size={120}
+                bgColor="#ffffff"
+                fgColor="#000000"
+              />
             </div>
-            <button className="primary" onClick={inviteUser}>
-              <FiUserPlus /> Share invite
-            </button>
+
+            <small className="share-note">
+              Scan this QR code to access BillSheet.
+            </small>
+            <div className="share-buttons">
+              <button className="btn btn-primary" onClick={shareApp}>
+                <FiShare2 />
+                Share
+              </button>
+
+              <button className="btn btn-secondary" onClick={copyLink}>
+                <FiCopy />
+                Copy Link
+              </button>
+            </div>
           </div>
+        </Card>
+        <Card
+          icon={FiHelpCircle}
+          title="Quick Guide"
+          subtitle="Everything you need to get started."
+        >
+          <div className="guide-item">
+            <FiUsers />
+            <span>Customer Management</span>
+          </div>
+
+          <div className="guide-item">
+            <FiFileText />
+            <span>Monthly Billing</span>
+          </div>
+
+          <div className="guide-item">
+            <FiActivity />
+            <span>Payment Collection</span>
+          </div>
+
+          <div className="guide-item">
+            <FiMessageCircle />
+            <span>SMS Reminders</span>
+          </div>
+
+          <div className="guide-item">
+            <FiDownload />
+            <span>Reports & Exports</span>
+          </div>
+          <button
+            className="primary full-width"
+            onClick={() => setGuideOpen(true)}
+          >
+            <FiBookOpen />
+            View User Guide
+          </button>
         </Card>
       </div>
 
@@ -873,7 +1009,7 @@ export default function Settings() {
             "Delete All Bills",
             "Reset Database",
             "Remove All Users",
-            "Logout All Devices",
+            "Logout current device",
           ].map((action) => (
             <button
               key={action}
@@ -907,7 +1043,7 @@ export default function Settings() {
             />
             <div>
               <button
-                className="secondary"
+                className="btn btn-secondary"
                 onClick={() => {
                   setDanger(null);
                   setDangerText("");

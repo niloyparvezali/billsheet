@@ -1,5 +1,4 @@
 import { useMemo, useState } from "react";
-import { collection } from "firebase/firestore";
 import {
   FiAlertCircle,
   FiDownload,
@@ -7,7 +6,6 @@ import {
   FiSearch,
   FiTrendingUp,
 } from "react-icons/fi";
-import { db } from "../firebase/config";
 import useOwnedCollection from "../hooks/useOwnedCollection";
 import { exportExcel, exportPdf } from "../utils/exports";
 import { money } from "../utils/date";
@@ -16,40 +14,67 @@ export default function Reports() {
   const now = new Date();
   const [year, setYear] = useState(now.getFullYear());
   const [search, setSearch] = useState("");
-  const { data: payments } = useOwnedCollection('payments');
-  const yearlyRows = useMemo(() => {
+  const {
+    data: payments,
+    loading: paymentsLoading,
+    error: paymentsError,
+  } = useOwnedCollection("payments");
+
+  const {
+    rows: yearlyRows,
+    total,
+    totalDue,
+    customerCount,
+    paymentCount,
+  } = useMemo(() => {
     const totals = new Map();
-    payments
-      .filter((payment) => +payment.year === +year)
-      .forEach((payment) => {
-        const id = payment.userId || payment.userName;
-        const current = totals.get(id) || {
-          Name: payment.userName || "Customer",
-          "Total Paid": 0,
-          "Outstanding Due": 0,
-          latestPeriod: -1,
-        };
-        current["Total Paid"] += Number(payment.amount || 0);
-        const period = Number(payment.month || 0);
-        if (period >= current.latestPeriod) {
-          current["Outstanding Due"] = Number(payment.due || 0);
-          current.latestPeriod = period;
-        }
-        totals.set(id, current);
-      });
-    return [...totals.values()]
+    let paymentCount = 0;
+    const normalizedYear = +year;
+    const searchTerm = search.trim().toLowerCase();
+
+    payments.forEach((payment, index) => {
+      if (+payment.year !== normalizedYear) return;
+
+      const id = payment.userId || payment.userName || payment.id || String(index);
+      const current = totals.get(id) || {
+        Name: payment.userName || "Customer",
+        "Total Paid": 0,
+        "Outstanding Due": 0,
+        latestPeriod: -1,
+      };
+
+      current["Total Paid"] += Number(payment.amount || 0);
+      const period = Number(payment.month || 0);
+      if (period >= current.latestPeriod) {
+        current["Outstanding Due"] = Number(payment.due || 0);
+        current.latestPeriod = period;
+      }
+      totals.set(id, current);
+
+      if (Number(payment.amount) > 0) {
+        paymentCount += 1;
+      }
+    });
+
+    const rows = [...totals.values()]
       .map(({ latestPeriod, ...row }) => row)
-      .filter((row) => row.Name.toLowerCase().includes(search.toLowerCase()))
+      .filter((row) => row.Name.toLowerCase().includes(searchTerm))
       .sort((a, b) => a.Name.localeCompare(b.Name));
+
+    const total = rows.reduce(
+      (sum, row) => sum + Number(row["Total Paid"] || 0),
+      0,
+    );
+    const totalDue = rows.reduce(
+      (sum, row) => sum + Number(row["Outstanding Due"] || 0),
+      0,
+    );
+    const customerCount = rows.filter(
+      (row) => Number(row["Total Paid"] || 0) > 0,
+    ).length;
+
+    return { rows, total, totalDue, customerCount, paymentCount };
   }, [payments, year, search]);
-  const total = yearlyRows.reduce((sum, row) => sum + row["Total Paid"], 0);
-  const totalDue = yearlyRows.reduce(
-    (sum, row) => sum + row["Outstanding Due"],
-    0,
-  );
-  const paymentCount = payments.filter(
-    (payment) => +payment.year === +year && Number(payment.amount) > 0,
-  ).length;
   return (
     <div className="page">
       <div className="page-title">
@@ -65,18 +90,20 @@ export default function Reports() {
         </div>
         <div className="button-row">
           <button
-            className="secondary"
+            className="btn btn-secondary"
+            disabled={!yearlyRows.length}
             onClick={() => exportPdf(yearlyRows, `yearly-report-${year}`)}
           >
             <FiDownload /> PDF
           </button>
           <button
-            className="secondary"
+            className="btn btn-secondary"
+            disabled={!yearlyRows.length}
             onClick={() => exportExcel(yearlyRows, `yearly-report-${year}`)}
           >
             <FiDownload /> Excel
           </button>
-          <button className="secondary" onClick={() => print()}>
+          <button className="btn btn-primary" onClick={() => window.print()}>
             <FiPrinter /> Print
           </button>
         </div>
@@ -163,7 +190,15 @@ export default function Reports() {
             ))}
           </tbody>
         </table>
-        {!yearlyRows.length && (
+        {paymentsLoading && (
+          <p className="empty">Loading report data…</p>
+        )}
+        {paymentsError && (
+          <p className="empty error">
+            Unable to load reports. {paymentsError.message || "Please try again."}
+          </p>
+        )}
+        {!paymentsLoading && !paymentsError && !yearlyRows.length && (
           <p className="empty">
             No records yet for {year} — once payments are added, this story will
             come alive.

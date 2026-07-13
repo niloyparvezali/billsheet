@@ -1,7 +1,8 @@
 import { useEffect, useState } from "react";
-import { NavLink, Outlet } from "react-router-dom";
+import { NavLink, Outlet, useLocation } from "react-router-dom";
 import {
   FiBarChart2,
+  FiClock,
   FiFileText,
   FiHome,
   FiLogOut,
@@ -11,21 +12,30 @@ import {
   FiX,
 } from "react-icons/fi";
 import { useAuth } from "../context/AuthContext";
+
 const links = [
   ["/", "Dashboard", FiHome],
   ["/users", "Users", FiUsers],
   ["/monthly-sheet", "Monthly Sheet", FiFileText],
   ["/reports", "Reports", FiBarChart2],
+  ["/history", "Transaction History", FiClock],
   ["/settings", "Settings", FiSettings],
 ];
 export default function Layout() {
   const { user, logout } = useAuth();
   const [open, setOpen] = useState(false);
+  const location = useLocation();
+
   useEffect(() => {
     const theme = localStorage.theme || "light";
     document.documentElement.dataset.theme = theme;
     document.documentElement.classList.toggle("dark", theme === "dark");
   }, []);
+
+  useEffect(() => {
+    setOpen(false);
+  }, [location.pathname]);
+
   return (
     <div className="app-shell">
       <aside className={open ? "sidebar open" : "sidebar"}>
