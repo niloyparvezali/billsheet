@@ -3,7 +3,11 @@
   "private": true,
   "version": "1.0.0",
   "type": "module",
-  "scripts": { "dev": "vite", "build": "vite build", "preview": "vite preview" },
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview"
+  },
   "dependencies": {
     "@vitejs/plugin-react": "latest",
     "dayjs": "latest",
@@ -11,13 +15,20 @@
     "framer-motion": "latest",
     "jspdf": "latest",
     "jspdf-autotable": "latest",
+    "lucide-react": "^1.24.0",
     "react": "latest",
     "react-dom": "latest",
     "react-hot-toast": "latest",
     "react-icons": "latest",
+    "react-qr-code": "^2.2.0",
     "react-router-dom": "latest",
     "recharts": "latest",
     "xlsx": "latest"
   },
-  "devDependencies": { "autoprefixer": "latest", "postcss": "latest", "tailwindcss": "latest", "vite": "latest" }
+  "devDependencies": {
+    "autoprefixer": "latest",
+    "postcss": "latest",
+    "tailwindcss": "latest",
+    "vite": "latest"
+  }
 }

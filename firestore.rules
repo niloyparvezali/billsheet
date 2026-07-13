@@ -5,20 +5,25 @@ service cloud.firestore {
     function ownsExisting() { return resource.data.ownerId == request.auth.uid; }
     function ownsNew() { return request.resource.data.ownerId == request.auth.uid; }
 
+    function ownerUnchangedOrUnspecified() {
+      return !(request.resource.data.keys().hasAny(["ownerId"])) ||
+        request.resource.data.ownerId == resource.data.ownerId;
+    }
+
     match /users/{id} {
       allow create: if signedIn() && ownsNew();
       allow read, delete: if signedIn() && ownsExisting();
-      allow update: if signedIn() && ownsExisting() && ownsNew();
+      allow update: if signedIn() && ownsExisting() && ownerUnchangedOrUnspecified();
     }
     match /categories/{id} {
       allow create: if signedIn() && ownsNew();
       allow read, delete: if signedIn() && ownsExisting();
-      allow update: if signedIn() && ownsExisting() && ownsNew();
+      allow update: if signedIn() && ownsExisting() && ownerUnchangedOrUnspecified();
     }
     match /payments/{id} {
       allow create: if signedIn() && ownsNew();
       allow read, delete: if signedIn() && ownsExisting();
-      allow update: if signedIn() && ownsExisting() && ownsNew();
+      allow update: if signedIn() && ownsExisting() && ownerUnchangedOrUnspecified();
     }
     match /settings/{id} {
       allow read, write: if signedIn() && id == request.auth.uid;
