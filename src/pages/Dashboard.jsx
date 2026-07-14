@@ -1,6 +1,14 @@
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { Link } from "react-router-dom";
-import { FiDollarSign, FiLayers, FiUserCheck, FiUsers } from "react-icons/fi";
+import dayjs from "dayjs";
+import {
+  FiDollarSign,
+  FiLayers,
+  FiUserCheck,
+  FiUsers,
+  FiGrid,
+  FiCalendar,
+} from "react-icons/fi";
 import {
   Bar,
   BarChart,
@@ -15,13 +23,14 @@ import {
 import useOwnedCollection from "../hooks/useOwnedCollection";
 import StatCard from "../components/StatCard";
 import { money, monthNames, formatDate } from "../utils/date";
+
 export default function Dashboard() {
   const { data: users } = useOwnedCollection("users");
   const { data: payments } = useOwnedCollection("payments");
   const now = new Date();
   const month = now.getMonth() + 1;
   const year = now.getFullYear();
-
+  const [chartPage, setChartPage] = useState(0);
   const activeUsers = useMemo(
     () => users.filter((user) => user.active !== false),
     [users],
@@ -61,6 +70,7 @@ export default function Dashboard() {
 
     yearPayments.forEach((payment) => {
       const index = Number(payment.month) - 1;
+
       if (index >= 0 && index < 12) {
         months[index].collection += Number(payment.amount || 0);
       }
@@ -68,6 +78,9 @@ export default function Dashboard() {
 
     return months;
   }, [yearPayments]);
+  const chartPages = [chart.slice(0, 6), chart.slice(6, 12)];
+
+  const currentChart = chartPages[chartPage];
 
   const totalCollection = useMemo(
     () => chart.reduce((sum, item) => sum + item.collection, 0),
@@ -79,23 +92,38 @@ export default function Dashboard() {
     [totalCollection],
   );
 
-  const highestMonth = useMemo(
-    () =>
-      chart.reduce(
-        (best, item) => (item.collection > best.collection ? item : best),
-        chart[0],
-      ),
-    [chart],
-  );
+  const highestMonth = useMemo(() => {
+    const monthsWithCollection = chart.filter((item) => item.collection > 0);
 
-  const lowestMonth = useMemo(
-    () =>
-      chart.reduce(
-        (worst, item) => (item.collection < worst.collection ? item : worst),
-        chart[0],
-      ),
-    [chart],
-  );
+    if (monthsWithCollection.length === 0) {
+      return {
+        month: "N/A",
+        collection: 0,
+      };
+    }
+
+    return monthsWithCollection.reduce((highest, item) =>
+      item.collection > highest.collection ? item : highest,
+    );
+  }, [chart]);
+
+  const lowestMonth = useMemo(() => {
+    // Keep only months that have a collection
+    const monthsWithCollection = chart.filter((item) => item.collection > 0);
+
+    // If there is no collection at all
+    if (monthsWithCollection.length === 0) {
+      return {
+        month: "N/A",
+        collection: 0,
+      };
+    }
+
+    // Find the smallest value greater than 0
+    return monthsWithCollection.reduce((lowest, item) =>
+      item.collection < lowest.collection ? item : lowest,
+    );
+  }, [chart]);
 
   const totalPaidThisMonth = useMemo(
     () => paid.reduce((sum, payment) => sum + Number(payment.amount || 0), 0),
@@ -123,6 +151,9 @@ export default function Dashboard() {
             {monthNames[month - 1]} {year}
           </p>
         </div>
+        <Link to="/monthly-sheet" className="sheet-circle">
+          <FiCalendar size={18} />
+        </Link>
       </div>
       <div className="stats">
         <StatCard
@@ -156,11 +187,28 @@ export default function Dashboard() {
               <h3>📊 Monthly Collection</h3>
               <p>{year} Collection Overview</p>
             </div>
+
+            <div className="chart-nav">
+              <button
+                className={chartPage === 0 ? "active" : ""}
+                onClick={() => setChartPage(0)}
+              >
+                Jan – Jun
+              </button>
+
+              <button
+                className={chartPage === 1 ? "active" : ""}
+                onClick={() => setChartPage(1)}
+              >
+                Jul – Dec
+              </button>
+            </div>
           </div>
+
           <div className="chart">
-            <ResponsiveContainer width="100%" height={320}>
+            <ResponsiveContainer width="100%" height={300}>
               <BarChart
-                data={chart}
+                data={currentChart}
                 margin={{
                   top: 35,
                   right: 10,
@@ -178,11 +226,13 @@ export default function Dashboard() {
                 <XAxis
                   dataKey="name"
                   interval={0}
-                  tick={{ fontSize: 11 }}
-                  axisLine={false}
+                  tick={{
+                    fontSize: 13,
+                    fontWeight: 600,
+                  }}
                   tickLine={false}
+                  axisLine={false}
                 />
-
                 <YAxis
                   width={55}
                   tick={{ fontSize: 11 }}
@@ -195,8 +245,8 @@ export default function Dashboard() {
 
                 <Bar
                   dataKey="collection"
-                  radius={[10, 10, 0, 0]}
-                  maxBarSize={38}
+                  maxBarSize={55}
+                  radius={[12, 12, 0, 0]}
                 >
                   <LabelList
                     dataKey="collection"
@@ -204,7 +254,7 @@ export default function Dashboard() {
                     formatter={(v) => (v ? money(v) : "")}
                   />
 
-                  {chart.map((item, index) => (
+                  {currentChart.map((item, index) => (
                     <Cell
                       key={index}
                       fill={
@@ -283,7 +333,7 @@ export default function Dashboard() {
               </div>
               <div className="payment-date">
                 <span className="payment-label">Date</span>
-                {formatDate(payment.paymentDate)}
+                {dayjs(payment.paymentDate?.toDate()).format("DD MMM")}
               </div>
             </div>
           ))

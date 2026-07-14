@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import {
   addDoc,
@@ -33,7 +33,10 @@ export default function MonthlySheet() {
   const today = new Date();
   const [month, setMonth] = useState(today.getMonth() + 1);
   const [year, setYear] = useState(today.getFullYear());
+
   const [search, setSearch] = useState("");
+  const searchRef = useRef(null);
+
   const [editing, setEditing] = useState(null);
   const [nameOrder, setNameOrder] = useState("asc");
   const [statusOrder, setStatusOrder] = useState("pending");
@@ -286,6 +289,7 @@ export default function MonthlySheet() {
         <label className="search">
           <FiSearch />
           <input
+            ref={searchRef}
             placeholder="Search name, category, or phone"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
@@ -467,6 +471,22 @@ export default function MonthlySheet() {
           onCancel={() => setSmsRecipient(null)}
         />
       )}
+      <button
+        className="search-fab"
+        title="Search"
+        onClick={() => {
+          window.scrollTo({
+            top: 0,
+            behavior: "smooth",
+          });
+
+          setTimeout(() => {
+            searchRef.current?.focus();
+          }, 350);
+        }}
+      >
+        <FiSearch />
+      </button>
     </div>
   );
 }

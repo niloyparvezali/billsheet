@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useMemo, useState, useRef } from "react";
 import {
   addDoc,
   collection,
@@ -25,6 +25,7 @@ const blank = {
 };
 
 export default function Users() {
+  const searchRef = useRef(null);
   const { user: signedInUser } = useAuth();
   const { data: allUsers } = useOwnedCollection("users");
   const users = useMemo(
@@ -157,8 +158,24 @@ export default function Users() {
         <div className="users-toolbar">
           <div className="users-toolbar-left">
             <label className="search users-search">
+              <button
+                className="search-fab"
+                onClick={() => {
+                  searchRef.current?.scrollIntoView({
+                    behavior: "smooth",
+                    block: "center",
+                  });
+
+                  setTimeout(() => {
+                    searchRef.current?.focus();
+                  }, 400);
+                }}
+              >
+                <FiSearch size={18} />
+              </button>
               <FiSearch />
               <input
+                ref={searchRef}
                 placeholder="Search users by name, category or phone..."
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
