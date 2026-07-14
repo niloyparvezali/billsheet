@@ -35,7 +35,8 @@ export default function Reports() {
     payments.forEach((payment, index) => {
       if (+payment.year !== normalizedYear) return;
 
-      const id = payment.userId || payment.userName || payment.id || String(index);
+      const id =
+        payment.userId || payment.userName || payment.id || String(index);
       const current = totals.get(id) || {
         Name: payment.userName || "Customer",
         "Total Paid": 0,
@@ -76,7 +77,7 @@ export default function Reports() {
     return { rows, total, totalDue, customerCount, paymentCount };
   }, [payments, year, search]);
   return (
-    <div className="page">
+    <div className="page reports-page">
       <div className="page-title">
         <div>
           <span className="report-kicker">
@@ -108,13 +109,46 @@ export default function Reports() {
           </button>
         </div>
       </div>
-      <div className="toolbar filters">
+      <div className="stats compact report-stats">
+        <div className="stat blue">
+          <div>
+            <p>Collected so far</p>
+            <h2>{money(total)}</h2>
+          </div>
+        </div>
+
+        <div className="stat green">
+          <div>
+            <p>Customers contributing</p>
+            <h2>{yearlyRows.filter((row) => row["Total Paid"] > 0).length}</h2>
+          </div>
+        </div>
+
+        <div className="stat orange">
+          <div>
+            <p>Payments captured</p>
+            <h2>{paymentCount}</h2>
+          </div>
+        </div>
+
+        <div className="stat purple">
+          <div>
+            <p>Open balance</p>
+            <h2>{money(totalDue)}</h2>
+          </div>
+        </div>
+      </div>
+
+      <div className="report-filter">
         <input
           type="number"
           min="2024"
           value={year}
           onChange={(e) => setYear(+e.target.value)}
         />
+      </div>
+
+      <div className="report-search">
         <label className="search">
           <FiSearch />
           <input
@@ -123,32 +157,6 @@ export default function Reports() {
             onChange={(e) => setSearch(e.target.value)}
           />
         </label>
-      </div>
-      <div className="stats compact report-stats">
-        <div className="stat blue">
-          <div>
-            <p>Collected so far</p>
-            <h2>{money(total)}</h2>
-          </div>
-        </div>
-        <div className="stat green">
-          <div>
-            <p>Customers contributing</p>
-            <h2>{yearlyRows.filter((row) => row["Total Paid"] > 0).length}</h2>
-          </div>
-        </div>
-        <div className="stat orange">
-          <div>
-            <p>Payments captured</p>
-            <h2>{paymentCount}</h2>
-          </div>
-        </div>
-        <div className="stat purple">
-          <div>
-            <p>Open balance</p>
-            <h2>{money(totalDue)}</h2>
-          </div>
-        </div>
       </div>
       <section className="panel table-wrap">
         <div className="report-table-heading">
@@ -162,40 +170,48 @@ export default function Reports() {
             <FiAlertCircle /> Due reflects the latest recorded balance
           </span>
         </div>
-        <table>
-          <thead>
-            <tr>
-              <th>Customer</th>
-              <th>Collected in {year}</th>
-              <th>Outstanding due</th>
-            </tr>
-          </thead>
-          <tbody>
-            {yearlyRows.map((row, i) => (
-              <tr key={`${row.Name}-${i}`}>
-                <td>
-                  <b>{row.Name}</b>
-                </td>
-                <td>{money(row["Total Paid"])}</td>
-                <td
-                  className={
-                    row["Outstanding Due"] > 0 ? "report-due" : "report-clear"
-                  }
+        <div className="customer-list">
+          {yearlyRows.map((row, i) => (
+            <div className="customer-card" key={`${row.Name}-${i}`}>
+              <div className="customer-card-top">
+                <h4>{row.Name}</h4>
+
+                <span
+                  className={`balance-status ${
+                    row["Outstanding Due"] > 0 ? "due" : "settled"
+                  }`}
                 >
-                  {row["Outstanding Due"] > 0
-                    ? money(row["Outstanding Due"])
-                    : "All clear"}
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-        {paymentsLoading && (
-          <p className="empty">Loading report data…</p>
-        )}
+                  {row["Outstanding Due"] > 0 ? "Balance Due" : "Settled"}
+                </span>
+              </div>
+
+              <div className="customer-card-body">
+                <div className="customer-item">
+                  <small>Collected in {year}</small>
+                  <strong>{money(row["Total Paid"])}</strong>
+                </div>
+
+                <div className="customer-item">
+                  <small>Outstanding Due</small>
+                  <strong
+                    className={
+                      row["Outstanding Due"] > 0 ? "report-due" : "report-clear"
+                    }
+                  >
+                    {row["Outstanding Due"] > 0
+                      ? money(row["Outstanding Due"])
+                      : "All clear"}
+                  </strong>
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+        {paymentsLoading && <p className="empty">Loading report data…</p>}
         {paymentsError && (
           <p className="empty error">
-            Unable to load reports. {paymentsError.message || "Please try again."}
+            Unable to load reports.{" "}
+            {paymentsError.message || "Please try again."}
           </p>
         )}
         {!paymentsLoading && !paymentsError && !yearlyRows.length && (

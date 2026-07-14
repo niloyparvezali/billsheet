@@ -1,11 +1,6 @@
 import { useMemo } from "react";
 import { Link } from "react-router-dom";
-import {
-  FiDollarSign,
-  FiLayers,
-  FiUserCheck,
-  FiUsers,
-} from "react-icons/fi";
+import { FiDollarSign, FiLayers, FiUserCheck, FiUsers } from "react-icons/fi";
 import {
   Bar,
   BarChart,
@@ -79,15 +74,26 @@ export default function Dashboard() {
     [chart],
   );
 
-  const averageCollection = useMemo(() => totalCollection / 12, [totalCollection]);
+  const averageCollection = useMemo(
+    () => totalCollection / 12,
+    [totalCollection],
+  );
 
   const highestMonth = useMemo(
-    () => chart.reduce((best, item) => (item.collection > best.collection ? item : best), chart[0]),
+    () =>
+      chart.reduce(
+        (best, item) => (item.collection > best.collection ? item : best),
+        chart[0],
+      ),
     [chart],
   );
 
   const lowestMonth = useMemo(
-    () => chart.reduce((worst, item) => (item.collection < worst.collection ? item : worst), chart[0]),
+    () =>
+      chart.reduce(
+        (worst, item) => (item.collection < worst.collection ? item : worst),
+        chart[0],
+      ),
     [chart],
   );
 
@@ -119,7 +125,11 @@ export default function Dashboard() {
         </div>
       </div>
       <div className="stats">
-        <StatCard label="Total Users" value={activeUsers.length} icon={<FiUsers />} />
+        <StatCard
+          label="Total Users"
+          value={activeUsers.length}
+          icon={<FiUsers />}
+        />
         <StatCard
           label="Paid This Month"
           value={paidCustomers}
@@ -151,39 +161,56 @@ export default function Dashboard() {
             <ResponsiveContainer width="100%" height={320}>
               <BarChart
                 data={chart}
-                margin={{ top: 42, right: 18, left: 0, bottom: 24 }}
+                margin={{
+                  top: 35,
+                  right: 10,
+                  left: -15,
+                  bottom: 15,
+                }}
+                barCategoryGap="25%"
               >
                 <CartesianGrid
                   strokeDasharray="3 3"
                   vertical={false}
-                  opacity={0.2}
+                  opacity={0.15}
                 />
 
-                <XAxis dataKey="name" tick={{ fontSize: 12 }} interval={0} />
+                <XAxis
+                  dataKey="name"
+                  interval={0}
+                  tick={{ fontSize: 11 }}
+                  axisLine={false}
+                  tickLine={false}
+                />
 
-                <YAxis tickFormatter={(v) => `৳${v}`} />
+                <YAxis
+                  width={55}
+                  tick={{ fontSize: 11 }}
+                  axisLine={false}
+                  tickLine={false}
+                  tickFormatter={(v) => `৳${v}`}
+                />
 
                 <Tooltip formatter={(v) => money(v)} />
 
-                <Bar dataKey="collection" radius={[8, 8, 0, 0]}>
+                <Bar
+                  dataKey="collection"
+                  radius={[10, 10, 0, 0]}
+                  maxBarSize={38}
+                >
                   <LabelList
                     dataKey="collection"
                     position="top"
-                    offset={12}
-                    formatter={(value) => money(value)}
-                    style={{
-                      fill: "#111827",
-                      fontSize: 12,
-                      fontWeight: 700,
-                    }}
+                    formatter={(v) => (v ? money(v) : "")}
                   />
+
                   {chart.map((item, index) => (
                     <Cell
                       key={index}
                       fill={
                         item.collection === highestMonth.collection
                           ? "#4F46E5"
-                          : "#818CF8"
+                          : "#7C83FF"
                       }
                     />
                   ))}
@@ -238,7 +265,12 @@ export default function Dashboard() {
         {recentPayments.length > 0 ? (
           recentPayments.map((payment, index) => (
             <div
-              key={payment.id || payment.userId || payment.paymentDate?.seconds || index}
+              key={
+                payment.id ||
+                payment.userId ||
+                payment.paymentDate?.seconds ||
+                index
+              }
               className="payment-row payment-row-item"
             >
               <div className="payment-name">
