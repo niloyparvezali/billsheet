@@ -8,6 +8,7 @@ import {
   FiMail,
   FiPhone,
   FiUser,
+  FiUserPlus,
 } from "react-icons/fi";
 import toast from "react-hot-toast";
 import { useAuth } from "../context/AuthContext";
@@ -448,32 +449,33 @@ export default function Login() {
     </>
   );
 
-  const title =
-    mode === "register"
-      ? "Create account"
-      : mode === "forgot"
-        ? "Reset passcode"
-        : "Welcome back";
-  const subtitle =
-    mode === "register"
-      ? "Create a secure workspace profile for your team."
-      : mode === "forgot"
-        ? "Enter your registered phone number to begin the recovery flow."
-        : "Manage customers, monthly bills, collections, and reports securely.";
-
   return (
     <main className="login-shell">
       <section className="auth-panel">
         <div className="auth-brand">
-          <div className="auth-brand-mark">B</div>
-          <div>
-            <h1>Bill Sheet</h1>
-            <p>Secure workspace</p>
+          <div className="logo">
+            <span className="logo-line"></span>
+
+            <h1 className="logo-title">
+              <span className="logo-bill">Bill</span>
+              <span className="logo-sheet">Sheet</span>
+            </h1>
+
+            <span className="logo-line"></span>
           </div>
+
+          <p className="auth-brand-subtitle">Secure workspace</p>
         </div>
         <div className="auth-intro">
-          <h2>{title}</h2>
-          <p>{subtitle}</p>
+          <h2>{mode === "register" ? "Create your account" : mode === "forgot" ? "Recover access" : "Welcome back"}</h2>
+
+          <p>
+            {mode === "register"
+              ? "Open a secure workspace for your billing team and start managing customers, bills, collections, and reports."
+              : mode === "forgot"
+                ? "Enter your registered phone number to recover your passcode and get back into your workspace."
+                : "Manage customers, Monthly bills, Collections, and reports securely."}
+          </p>
         </div>
         {!configured && (
           <div className="notice auth-notice">
@@ -532,40 +534,43 @@ export default function Login() {
           </form>
         )}
         <div className="auth-footer">
-          {mode !== "register" ? (
+          {mode === "login" ? (
             <button
               type="button"
-              className="auth-pill"
+              className="auth-pill auth-create"
               onClick={() => setMode("register")}
             >
-              Create account
+              <FiUserPlus />
+              <span>Create account</span>
             </button>
-          ) : (
+          ) : mode === "register" ? (
             <button
               type="button"
-              className="auth-pill"
+              className="auth-pill auth-create"
               onClick={() => setMode("login")}
             >
-              <FiArrowLeft /> Back to sign in
+              <FiArrowLeft />
+              <span>Back to sign in</span>
             </button>
-          )}
-          {mode !== "forgot" ? (
+          ) : null}
+
+          {mode === "login" ? (
             <button
               type="button"
-              className="auth-pill"
+              className="auth-pill auth-forgot"
               onClick={() => setMode("forgot")}
             >
               Forgot passcode
             </button>
-          ) : (
+          ) : mode === "forgot" ? (
             <button
               type="button"
-              className="auth-pill"
+              className="auth-pill auth-forgot"
               onClick={() => setMode("login")}
             >
-              Sign in
+              Back to sign in
             </button>
-          )}
+          ) : null}
         </div>
       </section>
     </main>

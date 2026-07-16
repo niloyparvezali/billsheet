@@ -174,8 +174,14 @@ export default function Users() {
   };
 
   return (
-    <div className="page">
+    <div className="page users-page">
       <section className="panel users-panel">
+        <div className="users-page-header">
+          <div className="users-page-heading">
+            <h1>Users</h1>
+            <p>Manage customers and account information.</p>
+          </div>
+        </div>
         <div className="users-toolbar">
           <div className="users-toolbar-left">
             <label className="search users-search">

@@ -1,22 +1,30 @@
-.users-page .search-fab {
-  top: 96px;
-  right: 28px;
-  width: 46px;
-  height: 46px;
+.users-page {
+  position: relative;
 }
 
-.users-page .search-fab svg {
-  width: 18px;
-  height: 18px;
+.users-page-header {
+  padding: 0 0 10px;
+  margin-bottom: 0;
 }
 
-@media (max-width: 700px) {
-  .users-page .search-fab {
-    top: 82px;
-    right: 16px;
-    width: 44px;
-    height: 44px;
-  }
+.users-page-heading {
+  max-width: 640px;
+}
+
+.users-page-heading h1 {
+  margin: 0;
+  font-size: clamp(28px, 3vw, 36px);
+  font-weight: 700;
+  line-height: 1.12;
+  letter-spacing: -0.02em;
+  color: #f7fbf8;
+}
+
+.users-page-heading p {
+  margin: 6px 0 0;
+  font-size: 15px;
+  line-height: 1.6;
+  color: rgba(255, 255, 255, 0.72);
 }
 
 .users-panel {
@@ -166,12 +174,27 @@
   border-radius: 18px;
   padding: 18px;
   box-shadow: var(--shadow-sm);
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
 }
 .user-card-header {
   display: flex;
   justify-content: space-between;
   align-items: flex-start;
-  margin-bottom: 16px;
+  margin-bottom: 2px;
+}
+.user-card-heading {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 0;
+}
+.user-card-heading h3 {
+  margin: 0;
+  font-size: 18px;
+  color: var(--text-primary);
+  word-break: break-word;
 }
 .user-card-body {
   display: flex;
@@ -182,21 +205,74 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+.user-card-row span,
+.user-card-stat span {
+  color: var(--text-secondary);
+  font-size: 13px;
+}
+.user-card-row strong,
+.user-card-stat strong {
+  color: var(--text-primary);
+  font-size: 14px;
+  text-align: right;
+  word-break: break-word;
+}
+.user-card-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+.user-card-stat {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 10px 12px;
+  border-radius: 14px;
+  background: rgba(255,255,255,0.04);
+  border: 1px solid rgba(255,255,255,0.06);
+}
+.user-card-meta-row {
+  padding-top: 4px;
+  border-top: 1px solid rgba(255,255,255,0.08);
 }
 .user-card-action-row {
   display: flex;
   justify-content: space-between;
   align-items: center;
-
-  margin-top: 14px;
-  padding-top: 14px;
-
+  gap: 12px;
+  margin-top: 2px;
+  padding-top: 12px;
   border-top: 1px solid var(--card-border);
+  flex-wrap: wrap;
 }
 .user-card-actions {
   display: flex;
   align-items: center;
   gap: 10px;
+  flex-wrap: wrap;
+}
+.user-card-actions button {
+  width: 40px;
+  height: 40px;
+  display: grid;
+  place-items: center;
+  border-radius: 12px;
+  border: 0;
+  transition: transform 0.2s ease;
+}
+.user-card-actions button:hover {
+  transform: translateY(-1px);
+}
+.user-inline-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 0;
+  border: 0;
+  background: transparent;
 }
 .actions-header,
 .actions-cell {
@@ -338,4 +414,116 @@
   opacity: 0.45;
   cursor: not-allowed;
   transform: none;
+}
+
+@media (max-width: 1024px) {
+  .users-toolbar {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .users-toolbar-left {
+    width: 100%;
+  }
+
+  .users-search {
+    max-width: none;
+  }
+
+  .users-meta {
+    width: 100%;
+    justify-content: flex-start;
+  }
+
+  .users-add-btn,
+  .users-toolbar .btn {
+    width: 100%;
+    justify-content: center;
+  }
+}
+
+@media (max-width: 768px) {
+  .users-panel {
+    padding: 18px;
+  }
+
+  .users-mobile-list {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+  }
+
+  .users-table {
+    display: none;
+  }
+
+  .user-card-action-row {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 10px;
+  }
+
+  .table-footer {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 12px;
+  }
+
+  .table-footer-nav {
+    width: 100%;
+    flex-wrap: wrap;
+  }
+
+  .table-footer-nav button {
+    flex: 1 1 140px;
+    min-width: 0;
+  }
+}
+
+@media (max-width: 600px) {
+  .users-panel {
+    padding: 16px;
+  }
+
+  .users-toolbar-left {
+    gap: 12px;
+  }
+
+  .users-search {
+    min-width: 0;
+    height: 44px;
+    padding: 0 14px;
+  }
+
+  .user-card {
+    padding: 16px;
+  }
+
+  .user-card-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .user-card-action-row {
+    align-items: stretch;
+  }
+
+  .user-card-actions {
+    width: 100%;
+    justify-content: flex-start;
+  }
+}
+
+@media (max-width: 480px) {
+  .users-page-heading h1 {
+    font-size: 24px;
+  }
+
+  .users-page-heading p {
+    font-size: 14px;
+  }
+
+  .users-meta {
+    padding: 10px 12px;
+    font-size: 13px;
+  }
 }

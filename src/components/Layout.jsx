@@ -34,7 +34,10 @@ export default function Layout() {
     <div className="app-shell">
       <aside className={open ? "sidebar open" : "sidebar"}>
         <div className="brand">
-          Bill<span>Sheet</span>
+          <div className="brand-text" aria-label="Bill Sheet">
+            <span className="brand-word brand-word-bill">Bill</span>
+            <span className="brand-word brand-word-sheet">Sheet</span>
+          </div>
           <button
             className="mobile-only icon"
             aria-label="Close menu"

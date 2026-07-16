@@ -23,7 +23,12 @@ export default function FloatingSearchButton({ targetRef, selector }) {
   };
 
   return (
-    <button className="search-fab" onClick={handleClick} aria-label="Search">
+    <button
+      className="search-fab"
+      onClick={handleClick}
+      aria-label="Search"
+      title="Search"
+    >
       <Search size={18} />
     </button>
   );

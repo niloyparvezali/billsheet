@@ -1,4 +1,4 @@
-/* Centralized teal theme system. */
+/* Forest / Ocean theme system. */
 :root {
   --bg: #062c2b;
   --surface: #0a3938;
@@ -43,6 +43,172 @@
   --theme-card-border: #1b5c58;
   --theme-card-text: #ffffff;
   --theme-card-subtext: #9fbdb8;
+  --chart-bar-active: #48d8c5;
+  --chart-bar-default: #4ecdc4;
+  --chart-grid: rgba(244, 247, 255, 0.16);
+  --chart-axis: rgba(244, 247, 255, 0.74);
+  --chart-label: #f4f7ff;
+  --chart-tooltip-bg: rgba(4, 17, 26, 0.95);
+  --chart-tooltip-text: #f4f7ff;
+}
+
+:root[data-theme="ocean"] {
+  --bg: #04131f;
+  --surface: #0c2440;
+  --card: #113a5c;
+  --text: #eef9ff;
+  --text-muted: #9dd8ee;
+  --primary: #22d3ee;
+  --primary-hover: #67e8f9;
+  --primary-shadow: rgba(34, 211, 238, 0.28);
+  --divider: #1b5b82;
+  --input-bg: #0f2d49;
+  --input-border: #1e6e92;
+  --sidebar-bg: #061a2d;
+  --sidebar-text: #dceeef;
+  --sidebar-hover: #153f66;
+  --header-bg: #071d31;
+  --overlay: rgba(3, 14, 28, 0.62);
+  --success: #6ee7b7;
+  --success-bg: #0a3d3d;
+  --warning: #fbbf24;
+  --warning-bg: #3b2d09;
+  --danger: #fb7185;
+  --danger-bg: #3f1724;
+  --info: #67e8f9;
+  --status-paid-bg: #0f4b5c;
+  --status-pending-bg: #3d1e2c;
+  --status-paid-text: #7dd3fc;
+  --status-pending-text: #fb7185;
+  --due-text: #fb7185;
+  --chart1: #7dd3fc;
+  --chart2: #22d3ee;
+  --chart3: #fb7185;
+  --chart4: #67e8f9;
+  --chart5: #38bdf8;
+  --sheet-gold: #22d3ee;
+  --sheet-gold-soft: rgba(34, 211, 238, 0.16);
+  --accent: var(--primary);
+  --accent-hover: var(--primary-hover);
+  --accent-shadow: var(--primary-shadow);
+  --theme-active: #22d3ee;
+  --theme-card-bg: #123b5d;
+  --theme-card-border: #1d6490;
+  --theme-card-text: #f7feff;
+  --theme-card-subtext: #9dd8ee;
+  --chart-bar-active: #22d3ee;
+  --chart-bar-default: #38bdf8;
+  --chart-grid: rgba(125, 211, 252, 0.22);
+  --chart-axis: rgba(220, 241, 255, 0.82);
+  --chart-label: #eef9ff;
+  --chart-tooltip-bg: rgba(4, 19, 35, 0.96);
+  --chart-tooltip-text: #eef9ff;
+}
+
+:root[data-theme="light"] {
+  --bg: #f4f8f7;
+  --surface: #eef5f2;
+  --card: #ffffff;
+  --text: #13231f;
+  --text-muted: #5b6c66;
+  --primary: #f1c54d;
+  --primary-hover: #ffd966;
+  --primary-shadow: rgba(241, 197, 77, 0.24);
+  --divider: #d6e3de;
+  --input-bg: #f9fcfb;
+  --input-border: #cddbd6;
+  --sidebar-bg: #f0f6f4;
+  --sidebar-text: #355149;
+  --sidebar-hover: #e4efe9;
+  --header-bg: #f7fbfa;
+  --overlay: rgba(12, 22, 20, 0.28);
+  --success: #1f9d71;
+  --success-bg: #e8f8f0;
+  --warning: #be7600;
+  --warning-bg: #fff4de;
+  --danger: #d9485f;
+  --danger-bg: #ffe9ed;
+  --info: #1f8fb8;
+  --status-paid-bg: #e6f8f0;
+  --status-pending-bg: #fff1e7;
+  --status-paid-text: #1f9d71;
+  --status-pending-text: #d9485f;
+  --due-text: #d9485f;
+  --chart1: #1f9d71;
+  --chart2: #f1c54d;
+  --chart3: #d9485f;
+  --chart4: #1f8fb8;
+  --chart5: #4db6ac;
+  --sheet-gold: #f4c542;
+  --sheet-gold-soft: rgba(244, 197, 66, 0.16);
+  --accent: var(--primary);
+  --accent-hover: var(--primary-hover);
+  --accent-shadow: var(--primary-shadow);
+  --theme-active: #f1c54d;
+  --theme-card-bg: #ffffff;
+  --theme-card-border: #d6e3de;
+  --theme-card-text: #13231f;
+  --theme-card-subtext: #5b6c66;
+  --chart-bar-active: #4db6ac;
+  --chart-bar-default: #4db6ac;
+  --chart-grid: rgba(15, 23, 42, 0.08);
+  --chart-axis: rgba(15, 23, 42, 0.64);
+  --chart-label: #13231f;
+  --chart-tooltip-bg: rgba(19, 35, 31, 0.95);
+  --chart-tooltip-text: #f7fbfa;
+}
+
+:root[data-theme="dark"] {
+  --bg: #04111d;
+  --surface: #0a1d2e;
+  --card: #11253f;
+  --text: #edf7f7;
+  --text-muted: #9dc9d6;
+  --primary: #f1c54d;
+  --primary-hover: #ffd966;
+  --primary-shadow: rgba(241, 197, 77, 0.24);
+  --divider: #1b5c58;
+  --input-bg: #10263b;
+  --input-border: #1d4a6d;
+  --sidebar-bg: #05121e;
+  --sidebar-text: #d4e4ea;
+  --sidebar-hover: #153d5d;
+  --header-bg: #071826;
+  --overlay: rgba(2, 8, 17, 0.7);
+  --success: #65e3a9;
+  --success-bg: #0e3c31;
+  --warning: #ffb86f;
+  --warning-bg: #3b291b;
+  --danger: #ff7980;
+  --danger-bg: #3d171d;
+  --info: #7dd3fc;
+  --status-paid-bg: #0c4a42;
+  --status-pending-bg: #3b2026;
+  --status-paid-text: #65e3a9;
+  --status-pending-text: #ff7980;
+  --due-text: #ff9a9f;
+  --chart1: #65e3a9;
+  --chart2: #f1c54d;
+  --chart3: #ff7980;
+  --chart4: #7dd3fc;
+  --chart5: #8dd1c1;
+  --sheet-gold: #f5c32a;
+  --sheet-gold-soft: rgba(245, 195, 42, 0.14);
+  --accent: var(--primary);
+  --accent-hover: var(--primary-hover);
+  --accent-shadow: var(--primary-shadow);
+  --theme-active: #f1c54d;
+  --theme-card-bg: #11253f;
+  --theme-card-border: #1d4a6d;
+  --theme-card-text: #edf7f7;
+  --theme-card-subtext: #9dc9d6;
+  --chart-bar-active: #48d8c5;
+  --chart-bar-default: #4ecdc4;
+  --chart-grid: rgba(244, 247, 255, 0.16);
+  --chart-axis: rgba(244, 247, 255, 0.74);
+  --chart-label: #f4f7ff;
+  --chart-tooltip-bg: rgba(4, 17, 26, 0.95);
+  --chart-tooltip-text: #f4f7ff;
 }
 
 html,

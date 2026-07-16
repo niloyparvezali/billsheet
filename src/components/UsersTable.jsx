@@ -1,4 +1,6 @@
 import { FiEdit2, FiTrash2 } from "react-icons/fi";
+import StatusBadge from "./StatusBadge";
+
 export default function UsersTable({
   list,
   setForm,
@@ -12,6 +14,13 @@ export default function UsersTable({
   startIndex,
   endIndex,
 }) {
+  const renderCardStats = (user) => [
+    { label: "Bill", value: money(user.monthlyBill) },
+    { label: "Paid", value: money(0) },
+    { label: "Due", value: money(Math.max(0, Number(user.monthlyBill || 0))) },
+    { label: "Status", value: <StatusBadge status={user.status || "Active"} className="user-inline-badge" /> },
+  ];
+
   return (
     <div className="table-wrap">
       <table className="users-table">
@@ -54,32 +63,41 @@ export default function UsersTable({
 
       <div className="users-mobile-list">
         {list.map((user, i) => (
-          <div className="user-card" key={`mobile-${user.id}`}>
+          <article className="user-card" key={`mobile-${user.id}`}>
             <div className="user-card-header">
-              <div>
+              <div className="user-card-heading">
                 <h3>{user.name}</h3>
-                <span className="user-category">{user.category}</span>
+                <span className="user-category">{user.category || "Uncategorized"}</span>
               </div>
             </div>
 
             <div className="user-card-body">
               <div className="user-card-row">
-                <span>Monthly Bill</span>
-                <strong>{money(user.monthlyBill)}</strong>
-              </div>
-
-              <div className="user-card-row">
                 <span>Phone</span>
                 <strong>{user.phone || "—"}</strong>
               </div>
 
-              <div className="user-card-row">
+              <div className="user-card-grid">
+                {renderCardStats(user).map((item) => (
+                  <div className="user-card-stat" key={item.label}>
+                    <span>{item.label}</span>
+                    {typeof item.value === "string" ? (
+                      <strong>{item.value}</strong>
+                    ) : (
+                      item.value
+                    )}
+                  </div>
+                ))}
+              </div>
+
+              <div className="user-card-row user-card-meta-row">
                 <span>Created</span>
                 <strong>{formatDate(user.createdAt)}</strong>
               </div>
             </div>
+
             <div className="user-card-row user-card-action-row">
-              <span>Action</span>
+              <span>Actions</span>
 
               <div className="user-card-actions">
                 <button
@@ -99,7 +117,7 @@ export default function UsersTable({
                 </button>
               </div>
             </div>
-          </div>
+          </article>
         ))}
       </div>
       <div className="table-footer">

@@ -11,12 +11,15 @@ import {
 import {
   collection,
   doc,
+  getDoc,
   getDocs,
   query,
   setDoc,
+  updateDoc,
   where,
 } from "firebase/firestore";
 import { auth, db, firebaseReady } from "../firebase/config";
+import { applyTheme, getStoredTheme, normalizeTheme } from "../utils/theme";
 
 const AuthContext = createContext(null);
 const LOCAL_ACCOUNT_KEY = "bill-sheet-auth-accounts";
@@ -72,6 +75,22 @@ const writeSessionUser = (user) => {
   }
 };
 
+const syncThemeFromSettings = async (uid) => {
+  if (!uid || !firebaseReady || !db) return;
+  try {
+    const settingsRef = doc(db, "settings", uid);
+    const snapshot = await getDoc(settingsRef);
+    const firebaseTheme = snapshot.exists() ? normalizeTheme(snapshot.data()?.theme) : "";
+    const storedTheme = normalizeTheme(getStoredTheme());
+    if (!firebaseTheme) return;
+    if (firebaseTheme !== storedTheme) {
+      applyTheme(firebaseTheme);
+    }
+  } catch (error) {
+    console.error("Unable to sync theme preference", error);
+  }
+};
+
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(readSessionUser);
   const [loading, setLoading] = useState(true);
@@ -96,6 +115,7 @@ export function AuthProvider({ children }) {
       };
       setUser(nextUser);
       writeSessionUser(nextUser);
+      void syncThemeFromSettings(u.uid);
       setLoading(false);
     });
   }, []);
@@ -140,6 +160,7 @@ export function AuthProvider({ children }) {
       };
       setUser(nextUser);
       writeSessionUser(nextUser);
+      await syncThemeFromSettings(firebaseUser.user.uid);
       return nextUser;
     }
 
@@ -230,6 +251,7 @@ export function AuthProvider({ children }) {
       };
       setUser(nextUser);
       writeSessionUser(nextUser);
+      await syncThemeFromSettings(created.user.uid);
       return nextUser;
     }
 
@@ -286,6 +308,51 @@ export function AuthProvider({ children }) {
     return { success: true };
   };
 
+  const changePasscode = async ({ currentPasscode, newPasscode, confirmNewPasscode }) => {
+    const trimmedCurrent = String(currentPasscode || "").trim();
+    const trimmedNew = String(newPasscode || "").trim();
+    const trimmedConfirm = String(confirmNewPasscode || "").trim();
+
+    if (!trimmedCurrent) {
+      throw new Error("Current passcode is required.");
+    }
+    if (!/^\d{4,6}$/.test(trimmedNew)) {
+      throw new Error("Passcode must contain 4–6 digits.");
+    }
+    if (trimmedConfirm !== trimmedNew) {
+      throw new Error("New passcodes do not match.");
+    }
+    if (trimmedNew === trimmedCurrent) {
+      throw new Error("Please choose a different passcode.");
+    }
+
+    const currentHash = await hashPasscode(trimmedCurrent);
+    const nextHash = await hashPasscode(trimmedNew);
+
+    if (firebaseReady && auth && db && user?.uid) {
+      const accountRef = doc(db, "authAccounts", user.uid);
+      const snapshot = await getDoc(accountRef);
+      const account = snapshot.exists() ? snapshot.data() : null;
+      if (!account || account.passcodeHash !== currentHash) {
+        throw new Error("Current passcode is incorrect.");
+      }
+      await updateDoc(accountRef, {
+        passcodeHash: nextHash,
+        lastLoginAt: new Date().toISOString(),
+      });
+      return true;
+    }
+
+    const accounts = loadLocalAccounts();
+    const account = accounts.find((item) => item.uid === user?.uid || item.phone === user?.phoneNumber || item.email === user?.email);
+    if (!account || account.passcodeHash !== currentHash) {
+      throw new Error("Current passcode is incorrect.");
+    }
+    account.passcodeHash = nextHash;
+    saveLocalAccounts(accounts);
+    return true;
+  };
+
   const value = {
     user,
     loading,
@@ -307,6 +374,7 @@ export function AuthProvider({ children }) {
     signInWithPhoneAndPasscode,
     registerWithPhoneAndPasscode,
     recoverPasscode,
+    changePasscode,
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

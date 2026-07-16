@@ -1,5 +1,7 @@
+import { useEffect, useMemo, useState } from "react";
 import { doc, setDoc } from "firebase/firestore";
 import { db } from "../firebase/config";
+import { readThemeColors } from "../utils/theme";
 
 import {
   ResponsiveContainer,
@@ -24,6 +26,28 @@ export default function MonthlyCollectionChart({
   year,
   money,
 }) {
+  const [themeColors, setThemeColors] = useState(readThemeColors);
+
+  useEffect(() => {
+    const syncTheme = () => setThemeColors(readThemeColors());
+    syncTheme();
+    window.addEventListener("themechange", syncTheme);
+    return () => window.removeEventListener("themechange", syncTheme);
+  }, []);
+
+  const chartStyle = useMemo(
+    () => ({
+      axis: themeColors.axis,
+      grid: themeColors.grid,
+      label: themeColors.label,
+      tooltipBg: themeColors.tooltipBg,
+      tooltipText: themeColors.tooltipText,
+      active: themeColors.active,
+      default: themeColors.default,
+    }),
+    [themeColors],
+  );
+
   return (
     <section className="panel monthly-panel">
       <div className="panel-header">
@@ -84,7 +108,8 @@ export default function MonthlyCollectionChart({
             <CartesianGrid
               strokeDasharray="3 3"
               vertical={false}
-              opacity={0.15}
+              stroke={chartStyle.grid}
+              opacity={1}
             />
 
             <XAxis
@@ -93,25 +118,37 @@ export default function MonthlyCollectionChart({
               tick={{
                 fontSize: 13,
                 fontWeight: 600,
+                fill: chartStyle.axis,
               }}
               tickLine={false}
               axisLine={false}
             />
             <YAxis
               width={55}
-              tick={{ fontSize: 11 }}
+              tick={{ fontSize: 11, fill: chartStyle.axis }}
               axisLine={false}
               tickLine={false}
               tickFormatter={(v) => `৳${v}`}
             />
 
-            <Tooltip formatter={(v) => money(v)} />
+            <Tooltip
+              formatter={(v) => money(v)}
+              contentStyle={{
+                background: chartStyle.tooltipBg,
+                border: `1px solid ${chartStyle.grid}`,
+                color: chartStyle.tooltipText,
+                borderRadius: 12,
+              }}
+              cursor={{ fill: "rgba(255,255,255,0.04)" }}
+            />
 
             <Bar dataKey="collection" maxBarSize={55} radius={[12, 12, 0, 0]}>
               <LabelList
                 dataKey="collection"
                 position="top"
                 formatter={(v) => (v ? money(v) : "")}
+                fill={chartStyle.label}
+                style={{ fontSize: 11, fontWeight: 600 }}
               />
 
               {currentChart.map((item, index) => (
@@ -119,8 +156,8 @@ export default function MonthlyCollectionChart({
                   key={index}
                   fill={
                     item.collection === highestMonth.collection
-                      ? "#4F46E5"
-                      : "#7C83FF"
+                      ? chartStyle.active
+                      : chartStyle.default
                   }
                 />
               ))}

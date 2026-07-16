@@ -1,8 +1,9 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
-  addDoc,
   collection,
+  doc,
   serverTimestamp,
+  writeBatch,
 } from "firebase/firestore";
 import toast from "react-hot-toast";
 
@@ -12,34 +13,36 @@ import ConfirmModal from "./ConfirmModal";
 import { db } from "../firebase/config";
 import useOwnedCollection from "../hooks/useOwnedCollection";
 import { money } from "../utils/date";
+import { computePaymentSummary, getMonthPaymentTransactions } from "../utils/payments";
+
 export default function PaymentModal({ data, month, year, ownerId, close }) {
-  const [amount, setAmount] = useState(
-    data.payment?.amount != null ? data.payment.amount : "",
-  );
-  const [extraDue, setExtraDue] = useState(
-    data.payment?.extraDue != null ? data.payment.extraDue : "",
-  );
+  const [amount, setAmount] = useState("");
+  const [extraDue, setExtraDue] = useState("");
   const [saving, setSaving] = useState(false);
   const [showSaveConfirm, setShowSaveConfirm] = useState(false);
   const bill = Number(data.user.monthlyBill || 0);
   const { data: payments = [] } = useOwnedCollection("payments");
 
-  const paidSoFar = useMemo(() => {
-    const isRemoved = (payment) => Boolean(
-      payment?.isDeleted || payment?.deletedAt || payment?.status === "removed",
-    );
-    return (payments || [])
-      .filter((payment) => {
-        const sameUser = payment.userId === data.user.id || payment.userName === data.user.name;
-        return (
-          !isRemoved(payment) &&
-          sameUser &&
-          Number(payment.month) === Number(month) &&
-          Number(payment.year) === Number(year)
-        );
-      })
-      .reduce((sum, payment) => sum + Number(payment.amount || 0), 0);
-  }, [data.user.id, data.user.name, month, payments, year]);
+  const paymentSummary = useMemo(() => {
+    const monthPayments = getMonthPaymentTransactions({
+      payments,
+      userId: data.user.id,
+      userName: data.user.name,
+      month,
+      year,
+    });
+    return computePaymentSummary({ bill, payments: monthPayments });
+  }, [bill, data.user.id, data.user.name, month, payments, year]);
+
+  const alreadyPaid = Number(paymentSummary.totalPaid || 0);
+  const outstandingBalance = Number(paymentSummary.outstandingBalance || 0);
+  const carryForward = Number(paymentSummary.carryForward || 0);
+
+  useEffect(() => {
+    const recommendedAmount = Math.max(0, outstandingBalance);
+    setAmount(String(recommendedAmount));
+    setExtraDue("");
+  }, [outstandingBalance, data.user.id, data.user.name, month, year]);
 
   const savePayment = async () => {
     setSaving(true);
@@ -50,28 +53,40 @@ export default function PaymentModal({ data, month, year, ownerId, close }) {
       setSaving(false);
       return;
     }
-    const runningPaid = paidSoFar + paid;
-    const due = Math.max(0, bill + addedDue - runningPaid);
+    const paymentTimestamp = new Date();
+    const paymentDateText = paymentTimestamp.toISOString().split("T")[0];
+    const paymentTimeText = paymentTimestamp.toTimeString().split(" ")[0].slice(0, 5);
+    const notes = addedDue > 0 ? `Additional due: ${addedDue}` : "";
     const base = {
       ownerId,
       userId: data.user.id,
       userName: data.user.name,
+      customerId: data.user.id,
+      customerName: data.user.name,
       userCategory: data.user.category,
       monthlyBill: bill,
       month,
       year,
       amount: paid,
       extraDue: addedDue,
-      due,
-      currentPaid: runningPaid,
-      status: due > 0 ? "pending" : "paid",
+      transactionId: "",
+      paymentDateText,
+      paymentTime: paymentTimeText,
+      paymentType: "Payment",
+      createdBy: ownerId || "",
+      status: "Completed",
+      notes,
     };
     try {
-      await addDoc(collection(db, "payments"), {
+      const paymentRef = doc(collection(db, "payments"));
+      const batch = writeBatch(db);
+      batch.set(paymentRef, {
         ...base,
+        transactionId: paymentRef.id,
         paymentDate: serverTimestamp(),
         createdAt: serverTimestamp(),
       });
+      await batch.commit();
       toast.success(`${data.user.name}'s payment has been saved successfully.`);
       close();
     } catch (error) {
@@ -98,11 +113,12 @@ export default function PaymentModal({ data, month, year, ownerId, close }) {
     <Modal title={`Payment · ${data.user.name}`} onClose={close}>
       <form className="form" onSubmit={attemptSave}>
         <p className="payment-note">
-          Monthly bill: <b>{money(bill)}</b> · Opening due:{" "}
-          <b>{money(data.openingDue)}</b>
+          Bill Amount: <b>{money(bill)}</b> · Already Paid: <b>{money(alreadyPaid)}</b>
+          <br />
+          Outstanding Balance: <b>{money(outstandingBalance)}</b> · Carry Forward: <b>{money(carryForward)}</b>
         </p>
         <label>
-          Paid amount
+          Payment Amount
           <input
             type="number"
             min="0.01"
@@ -113,7 +129,7 @@ export default function PaymentModal({ data, month, year, ownerId, close }) {
           />
         </label>
         <label>
-          Additional due (optional)
+          Additional Due (optional)
           <input
             type="number"
             min="0"

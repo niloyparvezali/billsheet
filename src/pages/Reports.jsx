@@ -13,6 +13,7 @@ import {
 import useOwnedCollection from "../hooks/useOwnedCollection";
 import { exportAnnualCustomerReport } from "../utils/exports";
 import { formatDate, money, monthNames } from "../utils/date";
+import { computePaymentSummary, getActivePayments } from "../utils/payments";
 
 export default function Reports() {
   const autocompleteRef = useRef(null);
@@ -127,10 +128,12 @@ export default function Reports() {
     }
   };
 
+  const activePayments = useMemo(() => getActivePayments(payments), [payments]);
+
   const selectedYearPayments = useMemo(() => {
     if (!selectedCustomer) return [];
     const targetId = selectedCustomer.customerId || selectedCustomer.id;
-    return (payments || [])
+    return (activePayments || [])
       .filter((payment) => {
         const paymentOwnerId = payment.userId || payment.userName || payment.id;
         return (
@@ -145,12 +148,12 @@ export default function Reports() {
         const rightPeriod = Number(right.year || 0) * 100 + Number(right.month || 0);
         return leftPeriod - rightPeriod;
       });
-  }, [payments, selectedCustomer, year]);
+  }, [activePayments, selectedCustomer, year]);
 
   const previousDue = useMemo(() => {
     if (!selectedCustomer) return 0;
     const targetId = selectedCustomer.customerId || selectedCustomer.id;
-    const priorPayments = (payments || [])
+    const priorPayments = (activePayments || [])
       .filter((payment) => {
         const paymentOwnerId = payment.userId || payment.userName || payment.id;
         return (
@@ -169,7 +172,7 @@ export default function Reports() {
       (sum, payment) => sum + Number(payment.due || 0),
       0,
     );
-  }, [payments, selectedCustomer, year]);
+  }, [activePayments, selectedCustomer, year]);
 
   const paidThisYear = useMemo(() => {
     return selectedYearPayments.reduce(
@@ -179,17 +182,17 @@ export default function Reports() {
   }, [selectedYearPayments]);
 
   const yearOverview = useMemo(() => {
-    const collection = (payments || [])
+    const collection = (activePayments || [])
       .filter((payment) => Number(payment.year) === Number(year))
       .reduce((sum, payment) => sum + Number(payment.amount || 0), 0);
-    const outstanding = (payments || [])
+    const outstanding = (activePayments || [])
       .filter((payment) => Number(payment.year) === Number(year))
       .reduce((sum, payment) => sum + Number(payment.due || 0), 0);
     return {
       collection,
       outstanding,
     };
-  }, [payments, year]);
+  }, [activePayments, year]);
 
   const monthlyHistory = useMemo(() => {
     if (!selectedCustomer) return [];
@@ -215,7 +218,7 @@ export default function Reports() {
 
     return Array.from({ length: 12 }, (_, index) => {
       const month = index + 1;
-      const payment = selectedYearPayments.find(
+      const monthPayments = selectedYearPayments.filter(
         (entry) => Number(entry.month) === month,
       );
       const monthStart = new Date(Number(year), index, 1);
@@ -232,25 +235,33 @@ export default function Reports() {
       const isInactiveMonth = beforeJoin || afterLeave;
       const monthlyBill = isInactiveMonth
         ? null
-        : Number(payment?.monthlyBill || selectedCustomer?.user?.monthlyBill || 0);
-      const paid = isInactiveMonth ? null : Number(payment?.amount || 0);
-      const remaining = isInactiveMonth ? null : monthlyBill - paid;
+        : Number(
+            monthPayments.find((entry) => Number(entry.monthlyBill || 0) > 0)?.monthlyBill ||
+              selectedCustomer?.user?.monthlyBill ||
+              0,
+          );
+      const summary = computePaymentSummary({
+        bill: monthlyBill || 0,
+        payments: monthPayments,
+      });
+      const paid = isInactiveMonth ? null : summary.totalPaid;
+      const remaining = isInactiveMonth ? null : summary.outstandingBalance;
+      const carryForward = isInactiveMonth ? null : summary.carryForward;
       const status = beforeJoin
         ? "Not Joined"
         : afterLeave
           ? "Inactive"
-          : paid >= monthlyBill
-            ? "Paid"
-            : paid > 0
-              ? "Partial"
-              : "Due";
+          : summary.status;
       return {
         month,
         monthName: monthNames[index],
         monthlyBill,
         paid,
         remainingDue: remaining,
-        paymentDate: payment?.paymentDate || null,
+        carryForward,
+        paymentDate: monthPayments.length
+          ? monthPayments[monthPayments.length - 1]?.paymentDateText || monthPayments[monthPayments.length - 1]?.paymentDate || null
+          : null,
         status,
       };
     });
@@ -281,13 +292,13 @@ export default function Reports() {
         label: `From ${year - 1}`,
         value: money(previousDue),
         icon: <FiAlertCircle />,
-        accent: "teal",
+        accent: "forest",
       },
       {
         label: `Annual Bill ${year}`,
         value: money(annualBill),
         icon: <FiCreditCard />,
-        accent: "cyan",
+        accent: "ocean",
       },
       {
         label: `Paid ${year}`,
@@ -492,7 +503,7 @@ export default function Reports() {
                   <div>{entry.monthName}</div>
                   <div>{entry.status === "Not Joined" || entry.status === "Inactive" ? "—" : money(entry.monthlyBill)}</div>
                   <div>{entry.status === "Not Joined" || entry.status === "Inactive" ? "—" : money(entry.paid)}</div>
-                  <div>{entry.status === "Not Joined" || entry.status === "Inactive" ? "—" : money(entry.remainingDue)}</div>
+                  <div>{entry.status === "Not Joined" || entry.status === "Inactive" ? "—" : money(entry.carryForward ?? entry.remainingDue ?? 0)}</div>
                   <div>{entry.paymentDate ? formatDate(entry.paymentDate) : "—"}</div>
                   <div>
                     <span className={`reports-history-status ${entry.status.toLowerCase()}`}>

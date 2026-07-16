@@ -1,6 +1,4 @@
-import FloatingSearchButton from "./FloatingSearchButton";
-
-export default function PageHeader({ title, subtitle, searchRef, children }) {
+export default function PageHeader({ title, subtitle, children }) {
   return (
     <div className="page-title">
       <div>
@@ -10,8 +8,6 @@ export default function PageHeader({ title, subtitle, searchRef, children }) {
 
         {children}
       </div>
-
-      {searchRef && <FloatingSearchButton targetRef={searchRef} />}
     </div>
   );
 }

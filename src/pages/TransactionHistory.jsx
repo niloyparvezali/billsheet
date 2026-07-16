@@ -4,9 +4,10 @@ import { useEffect, useMemo, useState } from "react";
 import useOwnedCollection from "../hooks/useOwnedCollection";
 import { money, formatDate, monthNames } from "../utils/date";
 import { exportPdf } from "../utils/exports";
+import { createTransactionRowFromPayment } from "../utils/payments";
 
 const parsePaymentTimestamp = (payment) => {
-  const timestamp = payment?.paymentDate;
+  const timestamp = payment?.paymentDate || payment?.createdAt || payment?.timestamp;
   if (!timestamp) return null;
   if (typeof timestamp.toDate === "function") return timestamp.toDate();
   if (timestamp instanceof Date) return timestamp;
@@ -32,24 +33,7 @@ const getMonthLabel = (payment) => {
   return payment?.month || "--";
 };
 
-const createTransactionRow = (payment) => {
-  const bill = Number(
-    payment.bill || payment.monthlyBill || payment.amount || 0,
-  );
-  const paid = Number(payment.amount || 0);
-  const effectiveDue = Number(payment.due ?? bill - paid);
-  const isRemoved = Boolean(
-    payment?.isDeleted || payment?.deletedAt || payment?.status === "removed",
-  );
-  return {
-    bill,
-    paid,
-    due: effectiveDue,
-    status: isRemoved ? "Removed" : paid > 0 ? "Paid" : "Pending",
-    dateTime: parsePaymentTimestamp(payment),
-    isRemoved,
-  };
-};
+const createTransactionRow = (payment, index) => createTransactionRowFromPayment(payment, index);
 
 export default function TransactionHistory() {
   const [search, setSearch] = useState("");
@@ -63,13 +47,22 @@ export default function TransactionHistory() {
   const searchTerm = useMemo(() => search.trim().toLowerCase(), [search]);
 
   const filteredPayments = useMemo(() => {
-    let data = [...payments];
+    let data = [...(payments || [])];
 
-    // Search by customer name
+    // Search by customer name or transaction metadata.
     if (searchTerm) {
-      data = data.filter((p) =>
-        (p.userName || "").toLowerCase().includes(searchTerm),
-      );
+      data = data.filter((p) => {
+        const haystacks = [
+          p.userName,
+          p.customerName,
+          p.transactionId,
+          p.notes,
+          p.paymentType,
+        ];
+        return haystacks.some((value) =>
+          String(value || "").toLowerCase().includes(searchTerm),
+        );
+      });
     }
 
     // From date
@@ -90,7 +83,7 @@ export default function TransactionHistory() {
         return value > 0 && value <= to.getTime();
       });
     }
-    // Always newest first
+    // Always newest first, preserving each payment as its own immutable transaction row.
     data.sort((a, b) => getPaymentTime(b) - getPaymentTime(a));
 
     return data;
@@ -102,40 +95,43 @@ export default function TransactionHistory() {
 
   const TRANSACTIONS_PER_PAGE = 20;
 
+  const transactionRows = useMemo(
+    () => filteredPayments.map((payment, index) => createTransactionRow(payment, index)),
+    [filteredPayments],
+  );
+
   const pageCount = Math.max(
     1,
-    Math.ceil(filteredPayments.length / TRANSACTIONS_PER_PAGE),
+    Math.ceil(transactionRows.length / TRANSACTIONS_PER_PAGE),
   );
   const currentPageIndex = Math.min(currentPage, pageCount);
   const pagePayments = useMemo(
     () =>
-      filteredPayments.slice(
+      transactionRows.slice(
         (currentPageIndex - 1) * TRANSACTIONS_PER_PAGE,
         currentPageIndex * TRANSACTIONS_PER_PAGE,
       ),
-    [filteredPayments, currentPageIndex],
+    [transactionRows, currentPageIndex],
   );
   const showingFrom =
-    filteredPayments.length === 0
+    transactionRows.length === 0
       ? 0
       : (currentPageIndex - 1) * TRANSACTIONS_PER_PAGE + 1;
 
   const showingTo = Math.min(
     currentPageIndex * TRANSACTIONS_PER_PAGE,
-    filteredPayments.length,
+    transactionRows.length,
   );
   const summary = useMemo(() => {
-    const totalTransactions = filteredPayments.length;
+    const totalTransactions = transactionRows.length;
 
-    const totalCollection = filteredPayments.reduce(
-      (sum, p) => sum + Number(p.amount || 0),
+    const totalCollection = transactionRows.reduce(
+      (sum, row) => sum + Number(row.amount || 0),
       0,
     );
 
-    const totalDue = filteredPayments.reduce((sum, p) => {
-      const bill = Number(p.bill || p.monthlyBill || p.amount || 0);
-      const paid = Number(p.amount || 0);
-      return sum + Number(p.due ?? bill - paid);
+    const totalDue = transactionRows.reduce((sum, row) => {
+      return sum + Number(row.due || 0);
     }, 0);
 
     const averagePayment =
@@ -151,22 +147,21 @@ export default function TransactionHistory() {
 
   const exportRows = useMemo(
     () =>
-      filteredPayments.map((payment) => {
-        const bill = Number(
-          payment.bill || payment.monthlyBill || payment.amount || 0,
-        );
-        const paid = Number(payment.amount || 0);
-        return {
-          Date: payment.paymentDate ? formatDate(payment.paymentDate) : "--",
-          Customer: payment.userName || "Customer",
-          Month: getMonthLabel(payment),
-          Bill: bill,
-          Paid: paid,
-          Due: Number(payment.due ?? bill - paid),
-          Status: paid > 0 ? "Paid" : "Pending",
-        };
-      }),
-    [filteredPayments],
+      transactionRows.map((row) => ({
+        TransactionID: row.transactionId || "--",
+        CustomerID: row.customerId || "--",
+        Customer: row.customerName || "Customer",
+        Month: getMonthLabel({ month: row.month }),
+        Year: row.year || "--",
+        Amount: row.amount || 0,
+        PaymentDate: row.paymentDate || "--",
+        PaymentTime: row.paymentTime || "--",
+        PaymentType: row.paymentType || "Payment",
+        CreatedBy: row.createdBy || "--",
+        Status: row.status || "Pending",
+        Notes: row.notes || "",
+      })),
+    [transactionRows],
   );
 
   const handleExportPdf = () => exportPdf(exportRows, "Transaction History");
@@ -280,20 +275,18 @@ export default function TransactionHistory() {
             {loading ? (
               <p className="empty">Loading transactions…</p>
             ) : pagePayments.length ? (
-              pagePayments.map((payment) => {
-                const { bill, paid, due, status, dateTime, isRemoved } =
-                  createTransactionRow(payment);
-                const monthLabel = getMonthLabel(payment);
+              pagePayments.map((row) => {
+                const monthLabel = getMonthLabel({ month: row.month });
 
                 return (
-                  <div className="transaction-row" key={payment.id}>
+                  <div className="transaction-row" key={row.transactionId || row.customerId || row.paymentDate || row.amount}>
                     <div className="transaction-history-date-cell">
                       <span>
-                        {dateTime ? formatDate(dateTime) : "--"}
+                        {row.dateTime ? formatDate(row.dateTime) : "--"}
                       </span>
-                      {dateTime ? (
+                      {row.dateTime ? (
                         <small>
-                          {dateTime.toLocaleTimeString([], {
+                          {row.paymentTime || row.dateTime.toLocaleTimeString([], {
                             hour: "numeric",
                             minute: "2-digit",
                           })}
@@ -302,22 +295,22 @@ export default function TransactionHistory() {
                     </div>
 
                     <div>
-                      <strong>{payment.userName || "Customer"}</strong>
+                      <strong>{row.customerName || "Customer"}</strong>
                     </div>
 
                     <div>{monthLabel}</div>
 
-                    <div>{money(bill)}</div>
+                    <div>{money(row.bill)}</div>
 
-                    <div>{money(paid)}</div>
+                    <div>{money(row.amount)}</div>
 
-                    <div>{money(due)}</div>
+                    <div>{money(row.due)}</div>
 
                     <div>
                       <span
-                        className={isRemoved ? "status-pending" : paid > 0 ? "status-paid" : "status-pending"}
+                        className={row.isRemoved ? "status-pending" : row.amount > 0 ? "status-paid" : "status-pending"}
                       >
-                        {status}
+                        {row.status}
                       </span>
                     </div>
                   </div>
@@ -331,7 +324,7 @@ export default function TransactionHistory() {
         {pageCount > 1 && (
           <div className="transaction-pagination">
             <div className="pagination-info">
-              Showing {showingFrom}–{showingTo} of {filteredPayments.length}{" "}
+              Showing {showingFrom}–{showingTo} of {transactionRows.length}{" "}
               transactions
             </div>
 

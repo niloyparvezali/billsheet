@@ -29,6 +29,7 @@ import {
 import useOwnedCollection from "../hooks/useOwnedCollection";
 import StatCard from "../components/StatCard";
 import { money, monthNames, formatDate } from "../utils/date";
+import { getActivePayments } from "../utils/payments";
 
 export default function Dashboard() {
   const { data: users } = useOwnedCollection("users");
@@ -44,9 +45,11 @@ export default function Dashboard() {
     [users],
   );
 
+  const activePayments = useMemo(() => getActivePayments(payments), [payments]);
+
   const yearPayments = useMemo(
-    () => payments.filter((p) => +p.year === year),
-    [payments, year],
+    () => activePayments.filter((p) => +p.year === year),
+    [activePayments, year],
   );
 
   const current = useMemo(
@@ -162,21 +165,21 @@ export default function Dashboard() {
 
   const recentPayments = useMemo(
     () =>
-      payments
+      activePayments
         .filter((p) => Number(p.amount || 0) > 0)
         .sort(
           (a, b) =>
             (b.paymentDate?.seconds || 0) - (a.paymentDate?.seconds || 0),
         )
         .slice(0, 6),
-    [payments],
+    [activePayments],
   );
   if (loadingChartPage) {
     return <div className="page">Loading...</div>;
   }
 
   return (
-    <div className="page">
+    <div className="page dashboard-page">
       <div className="page-title">
         <div>
           <h2>Overview</h2>

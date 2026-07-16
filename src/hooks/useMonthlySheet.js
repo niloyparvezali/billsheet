@@ -1,4 +1,6 @@
 import { useCallback, useMemo } from "react";
+import { computePaymentSummary, getMonthPaymentTransactions } from "../utils/payments";
+
 const period = (month, year) => Number(year) * 12 + Number(month);
 export default function useMonthlySheet({
   users,
@@ -73,7 +75,13 @@ export default function useMonthlySheet({
 
     const currentUsers = activeUsers.map((user) => ({
       user,
-      payments: paymentIndex.get(user.id) || [],
+      payments: getMonthPaymentTransactions({
+        payments: paymentIndex.get(user.id) || [],
+        userId: user.id,
+        userName: user.name,
+        month,
+        year,
+      }),
     }));
     const archivedUsers = payments
       .filter((payment) => !activeUserIds.has(payment.userId))
@@ -92,12 +100,11 @@ export default function useMonthlySheet({
       .sort((a, b) => a.user.name.localeCompare(b.user.name))
       .map(({ user, payments: userPayments }) => {
         const openingDue = dueFor(user);
-        const currentPaid = (userPayments || []).reduce(
-          (sum, payment) => sum + Number(payment.amount || 0),
-          0,
-        );
         const bill = Number(user.monthlyBill || 0);
-        const due = Math.max(0, bill - currentPaid);
+        const summary = computePaymentSummary({
+          bill,
+          payments: userPayments || [],
+        });
         return {
           user,
           payment: [...userPayments].sort((left, right) => {
@@ -106,22 +113,26 @@ export default function useMonthlySheet({
             return rightTime - leftTime;
           })[0] || null,
           openingDue,
-          currentPaid,
-          due,
+          currentPaid: summary.totalPaid,
+          due: summary.outstandingBalance,
+          carryForward: summary.carryForward,
+          status: summary.status,
         };
       });
   }, [activeUsers, activeUserIds, payments, dueFor]);
   const paid = rows.filter((row) => Number(row.currentPaid || 0) > 0);
-  const total = paid.reduce((sum, row) => sum + Number(row.currentPaid || 0), 0);
+  const total = rows.reduce((sum, row) => sum + Number(row.currentPaid || 0), 0);
   const totalDue = rows.reduce((sum, row) => sum + Number(row.due || 0), 0);
   const totalBill = rows.reduce(
     (sum, row) => sum + Number(row.user.monthlyBill || 0),
     0,
   );
   const getStatusPriority = (row) => {
-    const paid = Number(row.payment?.amount || 0);
+    const isPending = String(row.status || "Pending").toLowerCase() === "pending";
 
-    return statusOrder === "pending" ? (paid > 0 ? 1 : 0) : paid > 0 ? 0 : 1;
+    return statusOrder === "pending"
+      ? isPending ? 0 : 1
+      : isPending ? 1 : 0;
   };
   const filteredRows = useMemo(() => {
     const rowsWithStatus = [...rows].sort((a, b) => {
