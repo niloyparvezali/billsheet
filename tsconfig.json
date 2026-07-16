@@ -5,8 +5,11 @@
     "moduleResolution": "bundler",
     "jsx": "preserve",
     "allowSyntheticDefaultImports": true,
+    "allowJs": true,
     "checkJs": false,
-    "ignoreDeprecations": "6.0"
+    "ignoreDeprecations": "6.0",
+    "noEmit": true
   },
+  "include": ["src/**/*", "vite.config.js"],
   "exclude": ["node_modules", "dist", "build", "functions"]
 }

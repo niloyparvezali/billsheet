@@ -1,4 +1,10 @@
-import { useMemo, useState } from "react";
+import MonthlyCollectionChart from "../components/MonthlyCollectionChart";
+import RecentPayments from "../components/RecentPayments";
+import DashboardSummary from "../components/DashboardSummary";
+import { doc, getDoc, setDoc } from "firebase/firestore";
+import { db } from "../firebase/config";
+import { useAuth } from "../context/AuthContext";
+import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import dayjs from "dayjs";
 import {
@@ -27,10 +33,12 @@ import { money, monthNames, formatDate } from "../utils/date";
 export default function Dashboard() {
   const { data: users } = useOwnedCollection("users");
   const { data: payments } = useOwnedCollection("payments");
+  const { user } = useAuth();
   const now = new Date();
   const month = now.getMonth() + 1;
   const year = now.getFullYear();
-  const [chartPage, setChartPage] = useState(0);
+  const [chartPage, setChartPage] = useState(null);
+  const [loadingChartPage, setLoadingChartPage] = useState(true);
   const activeUsers = useMemo(
     () => users.filter((user) => user.active !== false),
     [users],
@@ -79,6 +87,28 @@ export default function Dashboard() {
     return months;
   }, [yearPayments]);
   const chartPages = [chart.slice(0, 6), chart.slice(6, 12)];
+  useEffect(() => {
+    if (!user) return;
+
+    const loadPreference = async () => {
+      try {
+        const snap = await getDoc(doc(db, "settings", user.uid));
+
+        if (snap.exists()) {
+          setChartPage(snap.data().dashboardChartPage ?? 0);
+        } else {
+          setChartPage(0);
+        }
+      } catch (error) {
+        console.error(error);
+        setChartPage(0);
+      } finally {
+        setLoadingChartPage(false);
+      }
+    };
+
+    loadPreference();
+  }, [user]);
 
   const currentChart = chartPages[chartPage];
 
@@ -141,6 +171,9 @@ export default function Dashboard() {
         .slice(0, 6),
     [payments],
   );
+  if (loadingChartPage) {
+    return <div className="page">Loading...</div>;
+  }
 
   return (
     <div className="page">
@@ -181,166 +214,29 @@ export default function Dashboard() {
         />
       </div>
       <div className="dashboard-layout">
-        <section className="panel monthly-panel">
-          <div className="panel-header">
-            <div>
-              <h3>📊 Monthly Collection</h3>
-              <p>{year} Collection Overview</p>
-            </div>
+        <MonthlyCollectionChart
+          currentChart={currentChart}
+          chartPage={chartPage}
+          setChartPage={setChartPage}
+          user={user}
+          highestMonth={highestMonth}
+          lowestMonth={lowestMonth}
+          totalCollection={totalCollection}
+          averageCollection={averageCollection}
+          year={year}
+          money={money}
+        />
 
-            <div className="chart-nav">
-              <button
-                className={chartPage === 0 ? "active" : ""}
-                onClick={() => setChartPage(0)}
-              >
-                Jan – Jun
-              </button>
-
-              <button
-                className={chartPage === 1 ? "active" : ""}
-                onClick={() => setChartPage(1)}
-              >
-                Jul – Dec
-              </button>
-            </div>
-          </div>
-
-          <div className="chart">
-            <ResponsiveContainer width="100%" height={300}>
-              <BarChart
-                data={currentChart}
-                margin={{
-                  top: 35,
-                  right: 10,
-                  left: -15,
-                  bottom: 15,
-                }}
-                barCategoryGap="25%"
-              >
-                <CartesianGrid
-                  strokeDasharray="3 3"
-                  vertical={false}
-                  opacity={0.15}
-                />
-
-                <XAxis
-                  dataKey="name"
-                  interval={0}
-                  tick={{
-                    fontSize: 13,
-                    fontWeight: 600,
-                  }}
-                  tickLine={false}
-                  axisLine={false}
-                />
-                <YAxis
-                  width={55}
-                  tick={{ fontSize: 11 }}
-                  axisLine={false}
-                  tickLine={false}
-                  tickFormatter={(v) => `৳${v}`}
-                />
-
-                <Tooltip formatter={(v) => money(v)} />
-
-                <Bar
-                  dataKey="collection"
-                  maxBarSize={55}
-                  radius={[12, 12, 0, 0]}
-                >
-                  <LabelList
-                    dataKey="collection"
-                    position="top"
-                    formatter={(v) => (v ? money(v) : "")}
-                  />
-
-                  {currentChart.map((item, index) => (
-                    <Cell
-                      key={index}
-                      fill={
-                        item.collection === highestMonth.collection
-                          ? "#4F46E5"
-                          : "#7C83FF"
-                      }
-                    />
-                  ))}
-                </Bar>
-              </BarChart>
-            </ResponsiveContainer>
-          </div>
-
-          <div className="dashboard-summary">
-            <div className="summary-card">
-              <small>💰 Total Collection</small>
-              <h4>{money(totalCollection)}</h4>
-            </div>
-
-            <div className="summary-card">
-              <small>📈 Average / Month</small>
-              <h4>{money(averageCollection)}</h4>
-            </div>
-
-            <div className="summary-card">
-              <small>🏆 Highest Month</small>
-              <h4>{highestMonth.month}</h4>
-              <span>{money(highestMonth.collection)}</span>
-            </div>
-
-            <div className="summary-card">
-              <small>📉 Lowest Month</small>
-              <h4>{lowestMonth.month}</h4>
-              <span>{money(lowestMonth.collection)}</span>
-            </div>
-          </div>
-        </section>
+        <DashboardSummary
+          totalCollection={totalCollection}
+          averageCollection={averageCollection}
+          highestMonth={highestMonth}
+          lowestMonth={lowestMonth}
+          money={money}
+        />
       </div>
-      <section className="panel recent-payments-panel">
-        <div className="panel-header">
-          <div>
-            <h3>Recent Payments</h3>
-            <p>Latest successful collections</p>
-          </div>
 
-          <Link to="/history" className="text-button">
-            View All →
-          </Link>
-        </div>
-
-        <div className="payment-row payment-row-head">
-          <div>Customer</div>
-          <div>Amount</div>
-          <div>Date</div>
-        </div>
-
-        {recentPayments.length > 0 ? (
-          recentPayments.map((payment, index) => (
-            <div
-              key={
-                payment.id ||
-                payment.userId ||
-                payment.paymentDate?.seconds ||
-                index
-              }
-              className="payment-row payment-row-item"
-            >
-              <div className="payment-name">
-                <span className="payment-label">Customer</span>
-                <b>{payment.userName || payment.customerName || "Customer"}</b>
-              </div>
-              <div className="payment-amount">
-                <span className="payment-label">Amount</span>
-                {money(payment.amount)}
-              </div>
-              <div className="payment-date">
-                <span className="payment-label">Date</span>
-                {dayjs(payment.paymentDate?.toDate()).format("DD MMM")}
-              </div>
-            </div>
-          ))
-        ) : (
-          <p className="empty">No payments recorded yet.</p>
-        )}
-      </section>
+      <RecentPayments recentPayments={recentPayments} money={money} />
     </div>
   );
 }

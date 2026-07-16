@@ -60,9 +60,8 @@ export default function AppGuide({ onClose }) {
           <div>
             <b>5. Manage settings</b>
             <span>
-              Use Settings to update your profile and password, choose Light,
-              Dark, Cyan Ledger, or Teal Ledger, manage notifications, and
-              create or restore backups.
+              Use Settings to update your profile and password, manage
+              notifications, and create or restore backups.
             </span>
           </div>
         </div>

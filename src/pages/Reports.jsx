@@ -1,226 +1,538 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
   FiAlertCircle,
+  FiArrowRight,
+  FiCalendar,
+  FiCreditCard,
+  FiDollarSign,
   FiDownload,
-  FiPrinter,
+  FiHash,
   FiSearch,
-  FiTrendingUp,
+  FiUser,
 } from "react-icons/fi";
 import useOwnedCollection from "../hooks/useOwnedCollection";
-import { exportExcel, exportPdf } from "../utils/exports";
-import { money } from "../utils/date";
+import { exportAnnualCustomerReport } from "../utils/exports";
+import { formatDate, money, monthNames } from "../utils/date";
 
 export default function Reports() {
+  const autocompleteRef = useRef(null);
   const now = new Date();
   const [year, setYear] = useState(now.getFullYear());
-  const [search, setSearch] = useState("");
+  const [yearInput, setYearInput] = useState(String(now.getFullYear()));
+  const [customerSearch, setCustomerSearch] = useState("");
+  const [selectedCustomerId, setSelectedCustomerId] = useState(null);
+  const [showSuggestions, setShowSuggestions] = useState(false);
   const {
-    data: payments,
+    data: users = [],
+    loading: usersLoading,
+    error: usersError,
+  } = useOwnedCollection("users");
+  const {
+    data: payments = [],
     loading: paymentsLoading,
     error: paymentsError,
   } = useOwnedCollection("payments");
 
-  const {
-    rows: yearlyRows,
-    total,
-    totalDue,
-    customerCount,
-    paymentCount,
-  } = useMemo(() => {
-    const totals = new Map();
-    let paymentCount = 0;
-    const normalizedYear = +year;
-    const searchTerm = search.trim().toLowerCase();
+  const customerOptions = useMemo(() => {
+    const options = [];
+    const seen = new Set();
 
-    payments.forEach((payment, index) => {
-      if (+payment.year !== normalizedYear) return;
-
-      const id =
-        payment.userId || payment.userName || payment.id || String(index);
-      const current = totals.get(id) || {
-        Name: payment.userName || "Customer",
-        "Total Paid": 0,
-        "Outstanding Due": 0,
-        latestPeriod: -1,
-      };
-
-      current["Total Paid"] += Number(payment.amount || 0);
-      const period = Number(payment.month || 0);
-      if (period >= current.latestPeriod) {
-        current["Outstanding Due"] = Number(payment.due || 0);
-        current.latestPeriod = period;
-      }
-      totals.set(id, current);
-
-      if (Number(payment.amount) > 0) {
-        paymentCount += 1;
-      }
+    (users || []).forEach((user) => {
+      const key = user.id || user.name || user.email;
+      if (!key || seen.has(key)) return;
+      seen.add(key);
+      options.push({
+        id: user.id,
+        name: user.name || user.email || "Customer",
+        phone: user.phone || "",
+        memberSince: user.createdAt || user.joinedAt || null,
+        customerId: user.id,
+        user,
+      });
     });
 
-    const rows = [...totals.values()]
-      .map(({ latestPeriod, ...row }) => row)
-      .filter((row) => row.Name.toLowerCase().includes(searchTerm))
-      .sort((a, b) => a.Name.localeCompare(b.Name));
+    (payments || []).forEach((payment) => {
+      const fallbackId = payment.userId || payment.userName || payment.id;
+      if (!fallbackId || seen.has(fallbackId)) return;
 
-    const total = rows.reduce(
-      (sum, row) => sum + Number(row["Total Paid"] || 0),
+      const matchingUser = (users || []).find(
+        (user) => user.id === payment.userId || user.name === payment.userName,
+      );
+      seen.add(fallbackId);
+      options.push({
+        id: fallbackId,
+        name: payment.userName || matchingUser?.name || "Customer",
+        phone: matchingUser?.phone || payment.phone || "",
+        memberSince: matchingUser?.createdAt || matchingUser?.joinedAt || null,
+        customerId: payment.userId || payment.id,
+        user: matchingUser || null,
+      });
+    });
+
+    return options.sort((left, right) => left.name.localeCompare(right.name));
+  }, [users, payments]);
+
+  const filteredCustomers = useMemo(() => {
+    const term = customerSearch.trim().toLowerCase();
+    if (!term) return [];
+    return customerOptions.filter((customer) =>
+      `${customer.name} ${customer.phone} ${customer.customerId}`
+        .toLowerCase()
+        .includes(term),
+    );
+  }, [customerOptions, customerSearch]);
+
+  useEffect(() => {
+    const handlePointerDown = (event) => {
+      if (
+        autocompleteRef.current &&
+        !autocompleteRef.current.contains(event.target)
+      ) {
+        setShowSuggestions(false);
+      }
+    };
+
+    document.addEventListener("mousedown", handlePointerDown);
+    return () => document.removeEventListener("mousedown", handlePointerDown);
+  }, []);
+
+  const selectedCustomer = useMemo(() => {
+    return (
+      customerOptions.find((customer) => customer.id === selectedCustomerId) ||
+      null
+    );
+  }, [customerOptions, selectedCustomerId]);
+
+  const handleCustomerSelect = (customer) => {
+    setSelectedCustomerId(customer.id);
+    setCustomerSearch(customer.name || "");
+    setShowSuggestions(false);
+  };
+
+  const handleYearInputChange = (event) => {
+    const rawValue = event.target.value.replace(/\D/g, "").slice(0, 4);
+    setYearInput(rawValue);
+
+    if (rawValue.length === 4) {
+      const numericYear = Number(rawValue);
+      if (Number.isFinite(numericYear)) {
+        setYear(numericYear);
+      }
+    }
+  };
+
+  const handleYearBlur = () => {
+    if (!yearInput || yearInput.length < 4) {
+      setYearInput(String(year));
+    }
+  };
+
+  const selectedYearPayments = useMemo(() => {
+    if (!selectedCustomer) return [];
+    const targetId = selectedCustomer.customerId || selectedCustomer.id;
+    return (payments || [])
+      .filter((payment) => {
+        const paymentOwnerId = payment.userId || payment.userName || payment.id;
+        return (
+          Number(payment.year) === Number(year) &&
+          (paymentOwnerId === targetId ||
+            payment.userName === selectedCustomer.name ||
+            payment.userId === targetId)
+        );
+      })
+      .sort((left, right) => {
+        const leftPeriod = Number(left.year || 0) * 100 + Number(left.month || 0);
+        const rightPeriod = Number(right.year || 0) * 100 + Number(right.month || 0);
+        return leftPeriod - rightPeriod;
+      });
+  }, [payments, selectedCustomer, year]);
+
+  const previousDue = useMemo(() => {
+    if (!selectedCustomer) return 0;
+    const targetId = selectedCustomer.customerId || selectedCustomer.id;
+    const priorPayments = (payments || [])
+      .filter((payment) => {
+        const paymentOwnerId = payment.userId || payment.userName || payment.id;
+        return (
+          Number(payment.year) < Number(year) &&
+          (paymentOwnerId === targetId ||
+            payment.userName === selectedCustomer.name ||
+            payment.userId === targetId)
+        );
+      })
+      .sort((left, right) => {
+        const leftPeriod = Number(left.year || 0) * 100 + Number(left.month || 0);
+        const rightPeriod = Number(right.year || 0) * 100 + Number(right.month || 0);
+        return rightPeriod - leftPeriod;
+      });
+    return priorPayments.reduce(
+      (sum, payment) => sum + Number(payment.due || 0),
       0,
     );
-    const totalDue = rows.reduce(
-      (sum, row) => sum + Number(row["Outstanding Due"] || 0),
+  }, [payments, selectedCustomer, year]);
+
+  const paidThisYear = useMemo(() => {
+    return selectedYearPayments.reduce(
+      (sum, payment) => sum + Number(payment.amount || 0),
       0,
     );
-    const customerCount = rows.filter(
-      (row) => Number(row["Total Paid"] || 0) > 0,
-    ).length;
+  }, [selectedYearPayments]);
 
-    return { rows, total, totalDue, customerCount, paymentCount };
-  }, [payments, year, search]);
+  const yearOverview = useMemo(() => {
+    const collection = (payments || [])
+      .filter((payment) => Number(payment.year) === Number(year))
+      .reduce((sum, payment) => sum + Number(payment.amount || 0), 0);
+    const outstanding = (payments || [])
+      .filter((payment) => Number(payment.year) === Number(year))
+      .reduce((sum, payment) => sum + Number(payment.due || 0), 0);
+    return {
+      collection,
+      outstanding,
+    };
+  }, [payments, year]);
+
+  const monthlyHistory = useMemo(() => {
+    if (!selectedCustomer) return [];
+
+    const parseDateValue = (value) => {
+      if (!value) return null;
+      if (typeof value?.toDate === "function") return value.toDate();
+      const date = value instanceof Date ? value : new Date(value);
+      return Number.isNaN(date.getTime()) ? null : date;
+    };
+
+    const joinedDate = parseDateValue(
+      selectedCustomer?.user?.joinDate || selectedCustomer?.user?.createdAt || selectedCustomer?.memberSince || null,
+    );
+    const leaveDate = parseDateValue(
+      selectedCustomer?.user?.leaveDate || selectedCustomer?.user?.archivedAt || null,
+    );
+
+    const yearStart = new Date(Number(year), 0, 1);
+    const yearEnd = new Date(Number(year), 11, 31, 23, 59, 59);
+    const joinWithinYear = joinedDate && joinedDate >= yearStart && joinedDate <= yearEnd;
+    const leaveWithinYear = leaveDate && leaveDate >= yearStart && leaveDate <= yearEnd;
+
+    return Array.from({ length: 12 }, (_, index) => {
+      const month = index + 1;
+      const payment = selectedYearPayments.find(
+        (entry) => Number(entry.month) === month,
+      );
+      const monthStart = new Date(Number(year), index, 1);
+      const monthEnd = new Date(Number(year), index + 1, 0);
+      const beforeJoin =
+        !!joinedDate &&
+        joinedDate > monthEnd &&
+        joinWithinYear;
+      const afterLeave =
+        !!leaveDate &&
+        leaveDate < monthStart &&
+        ((leaveWithinYear && leaveDate < monthStart) || (!leaveWithinYear && leaveDate < monthStart));
+
+      const isInactiveMonth = beforeJoin || afterLeave;
+      const monthlyBill = isInactiveMonth
+        ? null
+        : Number(payment?.monthlyBill || selectedCustomer?.user?.monthlyBill || 0);
+      const paid = isInactiveMonth ? null : Number(payment?.amount || 0);
+      const remaining = isInactiveMonth ? null : monthlyBill - paid;
+      const status = beforeJoin
+        ? "Not Joined"
+        : afterLeave
+          ? "Inactive"
+          : paid >= monthlyBill
+            ? "Paid"
+            : paid > 0
+              ? "Partial"
+              : "Due";
+      return {
+        month,
+        monthName: monthNames[index],
+        monthlyBill,
+        paid,
+        remainingDue: remaining,
+        paymentDate: payment?.paymentDate || null,
+        status,
+      };
+    });
+  }, [selectedCustomer, selectedYearPayments, year]);
+
+  const annualBill = useMemo(() => {
+    if (!selectedCustomer) return 0;
+    return (monthlyHistory || []).reduce((sum, entry) => {
+      if (entry.status === "Not Joined" || entry.status === "Inactive") return sum;
+      return sum + Number(entry.monthlyBill || 0);
+    }, 0);
+  }, [monthlyHistory, selectedCustomer]);
+
+  const totalPayable = previousDue + annualBill;
+  const difference = paidThisYear - totalPayable;
+  const outstandingBalance = difference < 0 ? Math.abs(difference) : 0;
+  const creditCarryForward = difference > 0 ? difference : 0;
+  const balanceStatus =
+    difference < 0
+      ? "Outstanding Balance"
+      : difference > 0
+        ? "Credit Carry Forward"
+        : "Account Settled";
+
+  const summaryCards = useMemo(
+    () => [
+      {
+        label: `From ${year - 1}`,
+        value: money(previousDue),
+        icon: <FiAlertCircle />,
+        accent: "teal",
+      },
+      {
+        label: `Annual Bill ${year}`,
+        value: money(annualBill),
+        icon: <FiCreditCard />,
+        accent: "cyan",
+      },
+      {
+        label: `Paid ${year}`,
+        value: money(paidThisYear),
+        icon: <FiDollarSign />,
+        accent: "green",
+      },
+      {
+        label: "Outstanding Balance",
+        value: money(outstandingBalance),
+        icon: <FiAlertCircle />,
+        accent: "amber",
+      },
+      {
+        label: "Credit Carry Forward",
+        value: money(creditCarryForward),
+        icon: <FiArrowRight />,
+        accent: "blue",
+      },
+    ],
+    [annualBill, creditCarryForward, outstandingBalance, paidThisYear, previousDue, year],
+  );
+
+  const exportReport = () => {
+    if (!selectedCustomer) return;
+    exportAnnualCustomerReport({
+      businessName: "BillSheet",
+      customer: selectedCustomer,
+      year,
+      summary: {
+        previousDue,
+        annualBill,
+        paidThisYear,
+        outstandingBalance,
+        creditCarryForward,
+        balanceStatus,
+      },
+      history: monthlyHistory,
+    });
+  };
+
   return (
     <div className="page reports-page">
-      <div className="page-title">
+      <section className="reports-hero">
         <div>
-          <span className="report-kicker">
-            <FiTrendingUp /> Annual payment snapshot
-          </span>
-          <h2>Your {year} collection story</h2>
+          <div className="reports-eyebrow">Annual Statement</div>
+          <h2>Annual Customer Report</h2>
           <p>
-            Celebrate every payment, spot open balances, and keep your billing
-            year moving forward.
+            View yearly payment summaries, outstanding balances and carry-forward history.
           </p>
         </div>
-        <div className="button-row">
-          <button
-            className="btn btn-secondary"
-            disabled={!yearlyRows.length}
-            onClick={() => exportPdf(yearlyRows, `yearly-report-${year}`)}
-          >
-            <FiDownload /> PDF
-          </button>
-          <button
-            className="btn btn-secondary"
-            disabled={!yearlyRows.length}
-            onClick={() => exportExcel(yearlyRows, `yearly-report-${year}`)}
-          >
-            <FiDownload /> Excel
-          </button>
-          <button className="btn btn-primary" onClick={() => window.print()}>
-            <FiPrinter /> Print
-          </button>
-        </div>
-      </div>
-      <div className="stats compact report-stats">
-        <div className="stat blue">
-          <div>
-            <p>Collected so far</p>
-            <h2>{money(total)}</h2>
+      </section>
+
+      <section className="reports-overview-grid">
+        <div className="reports-overview-card">
+          <div className="reports-overview-icon">
+            <FiDollarSign />
           </div>
+          <div className="reports-overview-number">{money(yearOverview.collection)}</div>
+          <div className="reports-overview-label">Collected from all customers in {year}</div>
         </div>
-
-        <div className="stat green">
-          <div>
-            <p>Customers contributing</p>
-            <h2>{yearlyRows.filter((row) => row["Total Paid"] > 0).length}</h2>
+        <div className="reports-overview-card reports-overview-card--warning">
+          <div className="reports-overview-icon">
+            <FiAlertCircle />
           </div>
+          <div className="reports-overview-number">{money(yearOverview.outstanding)}</div>
+          <div className="reports-overview-label">Remaining unpaid in {year}</div>
         </div>
+      </section>
 
-        <div className="stat orange">
-          <div>
-            <p>Payments captured</p>
-            <h2>{paymentCount}</h2>
+      <section className="reports-toolbar">
+        <div className="reports-toolbar-controls">
+          <div className="reports-autocomplete" ref={autocompleteRef}>
+            <label className="reports-search-field reports-search-field--wide">
+              <FiSearch />
+              <input
+                value={customerSearch}
+                onChange={(event) => {
+                  setCustomerSearch(event.target.value);
+                  setShowSuggestions(true);
+                }}
+                onFocus={() => setShowSuggestions(Boolean(customerSearch.trim()))}
+                placeholder="Search customer by name or phone..."
+              />
+            </label>
+            {showSuggestions && filteredCustomers.length > 0 && (
+              <div className="reports-suggestions">
+                {filteredCustomers.map((customer) => (
+                  <button
+                    type="button"
+                    className="reports-suggestion-item"
+                    key={customer.id}
+                    onMouseDown={() => handleCustomerSelect(customer)}
+                  >
+                    <span className="reports-suggestion-name">{customer.name}</span>
+                    {customer.phone ? (
+                      <span className="reports-suggestion-phone">{customer.phone}</span>
+                    ) : null}
+                  </button>
+                ))}
+              </div>
+            )}
           </div>
+
+          <label className="reports-year-field">
+            <span>Year</span>
+            <input
+              className="reports-year-input"
+              type="text"
+              inputMode="numeric"
+              maxLength="4"
+              value={yearInput}
+              onChange={handleYearInputChange}
+              onBlur={handleYearBlur}
+              placeholder={String(now.getFullYear())}
+            />
+          </label>
         </div>
+        <button className="reports-export-btn" type="button" onClick={exportReport}>
+          <FiDownload /> PDF
+        </button>
+      </section>
 
-        <div className="stat purple">
-          <div>
-            <p>Open balance</p>
-            <h2>{money(totalDue)}</h2>
-          </div>
-        </div>
-      </div>
-
-      <div className="report-filter">
-        <input
-          type="number"
-          min="2024"
-          value={year}
-          onChange={(e) => setYear(+e.target.value)}
-        />
-      </div>
-
-      <div className="report-search">
-        <label className="search">
-          <FiSearch />
-          <input
-            placeholder="Find a customer"
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-          />
-        </label>
-      </div>
-      <section className="panel table-wrap">
-        <div className="report-table-heading">
-          <div>
-            <h3>Customer balance board</h3>
-            <p>
-              Collected payments and the latest outstanding balance for {year}.
-            </p>
-          </div>
-          <span>
-            <FiAlertCircle /> Due reflects the latest recorded balance
-          </span>
-        </div>
-        <div className="customer-list">
-          {yearlyRows.map((row, i) => (
-            <div className="customer-card" key={`${row.Name}-${i}`}>
-              <div className="customer-card-top">
-                <h4>{row.Name}</h4>
-
-                <span
-                  className={`balance-status ${
-                    row["Outstanding Due"] > 0 ? "due" : "settled"
-                  }`}
-                >
-                  {row["Outstanding Due"] > 0 ? "Balance Due" : "Settled"}
+      {selectedCustomer ? (
+        <>
+          {(() => {
+            const joinedDate = selectedCustomer?.user?.joinDate || selectedCustomer?.user?.createdAt || selectedCustomer?.memberSince;
+            const leaveDate = selectedCustomer?.user?.leaveDate || selectedCustomer?.user?.archivedAt;
+            const hasActiveMonth = (monthlyHistory || []).some((entry) => entry.status !== "Not Joined" && entry.status !== "Inactive");
+            const hasActiveWindow = (() => {
+              if (!joinedDate && !leaveDate) return true;
+              const start = new Date(joinedDate || "");
+              const end = leaveDate ? new Date(leaveDate) : null;
+              const yearStart = new Date(Number(year), 0, 1);
+              const yearEnd = new Date(Number(year), 11, 31, 23, 59, 59);
+              if (!Number.isNaN(start.getTime()) && !Number.isNaN(yearStart.getTime()) && start > yearEnd) return false;
+              if (end && !Number.isNaN(end.getTime()) && end < yearStart) return false;
+              return true;
+            })();
+            if (!hasActiveWindow || !hasActiveMonth) {
+              return (
+                <section className="reports-empty-state reports-empty-state--notice">
+                  <div className="reports-empty-icon">
+                    <FiCalendar />
+                  </div>
+                  <h3>This customer was not active during {year}.</h3>
+                  <p>No monthly bills were generated for this year because the customer was outside the active lifecycle window.</p>
+                </section>
+              );
+            }
+            return null;
+          })()}
+          <section className="reports-profile-card">
+            <div className="reports-profile-avatar">
+              {selectedCustomer.name?.slice(0, 2).toUpperCase() || "CU"}
+            </div>
+            <div className="reports-profile-details">
+              <div className="reports-profile-name">{selectedCustomer.name}</div>
+              <div className="reports-profile-meta">
+                <span>
+                  <FiUser /> {selectedCustomer.phone || "No phone on file"}
+                </span>
+                <span>
+                  <FiCalendar /> Member since {formatDate(selectedCustomer.memberSince)}
+                </span>
+                <span>
+                  <FiHash /> {selectedCustomer.customerId || selectedCustomer.id}
                 </span>
               </div>
-
-              <div className="customer-card-body">
-                <div className="customer-item">
-                  <small>Collected in {year}</small>
-                  <strong>{money(row["Total Paid"])}</strong>
-                </div>
-
-                <div className="customer-item">
-                  <small>Outstanding Due</small>
-                  <strong
-                    className={
-                      row["Outstanding Due"] > 0 ? "report-due" : "report-clear"
-                    }
-                  >
-                    {row["Outstanding Due"] > 0
-                      ? money(row["Outstanding Due"])
-                      : "All clear"}
-                  </strong>
-                </div>
-              </div>
             </div>
-          ))}
-        </div>
-        {paymentsLoading && <p className="empty">Loading report data…</p>}
-        {paymentsError && (
-          <p className="empty error">
-            Unable to load reports.{" "}
-            {paymentsError.message || "Please try again."}
-          </p>
-        )}
-        {!paymentsLoading && !paymentsError && !yearlyRows.length && (
-          <p className="empty">
-            No records yet for {year} — once payments are added, this story will
-            come alive.
-          </p>
-        )}
-      </section>
+          </section>
+
+          <section className="reports-summary-grid">
+            {summaryCards.map((card) => (
+              <div key={card.label} className={`reports-summary-card reports-summary-card--${card.accent}`}>
+                <div className="reports-summary-icon">{card.icon}</div>
+                <div className="reports-summary-number">{card.value}</div>
+                <div className="reports-summary-label">{card.label}</div>
+              </div>
+            ))}
+          </section>
+
+          <section className="reports-history-card">
+            <div className="reports-history-head">
+              <div>
+                <div className="reports-history-kicker">Monthly activity</div>
+                <h3>Payment History</h3>
+              </div>
+              <div className="reports-history-chip">All 12 months</div>
+            </div>
+            <div className="reports-history-table">
+              <div className="reports-history-row reports-history-row--head">
+                <div>Month</div>
+                <div>Monthly Bill</div>
+                <div>Paid</div>
+                <div>Carry Forward</div>
+                <div>Payment Date</div>
+                <div>Status</div>
+              </div>
+              {monthlyHistory.map((entry) => (
+                <div className="reports-history-row" key={entry.month}>
+                  <div>{entry.monthName}</div>
+                  <div>{entry.status === "Not Joined" || entry.status === "Inactive" ? "—" : money(entry.monthlyBill)}</div>
+                  <div>{entry.status === "Not Joined" || entry.status === "Inactive" ? "—" : money(entry.paid)}</div>
+                  <div>{entry.status === "Not Joined" || entry.status === "Inactive" ? "—" : money(entry.remainingDue)}</div>
+                  <div>{entry.paymentDate ? formatDate(entry.paymentDate) : "—"}</div>
+                  <div>
+                    <span className={`reports-history-status ${entry.status.toLowerCase()}`}>
+                      {entry.status}
+                    </span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </section>
+
+          <section className="reports-footer-summary">
+            <div>
+              <div className="reports-footer-label">Previous Due</div>
+              <div className="reports-footer-value">{money(previousDue)}</div>
+            </div>
+            <div>
+              <div className="reports-footer-label">Annual Bill</div>
+              <div className="reports-footer-value">{money(annualBill)}</div>
+            </div>
+            <div>
+              <div className="reports-footer-label">Outstanding Balance</div>
+              <div className="reports-footer-value reports-footer-value--warning">{money(outstandingBalance)}</div>
+            </div>
+            <div>
+              <div className="reports-footer-label">Credit Carry Forward</div>
+              <div className="reports-footer-value reports-footer-value--credit">{money(creditCarryForward)}</div>
+            </div>
+            <p>Status: {balanceStatus}</p>
+          </section>
+        </>
+      ) : (
+        <section className="reports-empty-state">
+          <div className="reports-empty-icon">
+            <FiSearch />
+          </div>
+          <h3>No customer selected</h3>
+          <p>Select a customer to view the annual statement.</p>
+        </section>
+      )}
     </div>
   );
 }

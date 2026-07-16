@@ -21,4 +21,9 @@ export const formatTime = (value) => {
   return date ? dayjs(date).format('hh:mm A') : '—'
 }
 
-export const money = (value) => `৳${Number(value || 0).toLocaleString()}`
+export const money = (value) => {
+  const numeric = Number(value ?? 0)
+  if (!Number.isFinite(numeric)) return '৳0'
+  const absoluteValue = Math.abs(numeric)
+  return `৳${absoluteValue.toLocaleString()}`
+}

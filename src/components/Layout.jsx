@@ -27,12 +27,6 @@ export default function Layout() {
   const location = useLocation();
 
   useEffect(() => {
-    const theme = localStorage.theme || "light";
-    document.documentElement.dataset.theme = theme;
-    document.documentElement.classList.toggle("dark", theme === "dark");
-  }, []);
-
-  useEffect(() => {
     setOpen(false);
   }, [location.pathname]);
 
@@ -67,9 +61,12 @@ export default function Layout() {
             {user?.photoURL ? (
               <img src={user.photoURL} alt="" />
             ) : (
-              <b>{user?.email?.[0]?.toUpperCase()}</b>
+              <b>{(user?.displayName || user?.email || "U").slice(0, 1).toUpperCase()}</b>
             )}
-            <small>{user?.email}</small>
+            <div className="admin-meta">
+              <strong>{user?.displayName || user?.email || "User"}</strong>
+              <small>{user?.companyName || user?.email || "No company yet"}</small>
+            </div>
           </div>
           <button onClick={logout}>
             <FiLogOut /> Log out

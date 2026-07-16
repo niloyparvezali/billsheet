@@ -1,4 +1,8 @@
-import { useMemo, useState, useRef } from "react";
+import { FiEdit2, FiPlus, FiSearch, FiTrash2, FiUsers } from "react-icons/fi";
+import UsersTable from "../components/UsersTable";
+import CategoryModal from "../components/CategoryModal";
+import UserForm from "../components/UserForm";
+import { useMemo, useState, useRef, useEffect } from "react";
 import {
   addDoc,
   collection,
@@ -7,7 +11,6 @@ import {
   serverTimestamp,
   updateDoc,
 } from "firebase/firestore";
-import { FiEdit2, FiPlus, FiSearch, FiTrash2, FiUsers } from "react-icons/fi";
 import toast from "react-hot-toast";
 import { db } from "../firebase/config";
 import { useAuth } from "../context/AuthContext";
@@ -22,6 +25,9 @@ const blank = {
   monthlyBill: "",
   phone: "",
   address: "",
+  joinDate: "",
+  leaveDate: "",
+  status: "Active",
 };
 
 export default function Users() {
@@ -73,6 +79,21 @@ export default function Users() {
         .sort((a, b) => a.name.localeCompare(b.name)),
     [users, search],
   );
+  const USERS_PER_PAGE = 50;
+
+  const [currentPage, setCurrentPage] = useState(1);
+  const totalUsers = list.length;
+
+  const totalPages = Math.max(1, Math.ceil(totalUsers / USERS_PER_PAGE));
+
+  const startIndex = (currentPage - 1) * USERS_PER_PAGE;
+
+  const endIndex = Math.min(startIndex + USERS_PER_PAGE, totalUsers);
+
+  const paginatedUsers = list.slice(startIndex, endIndex);
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [search]);
   const save = async (event) => {
     event.preventDefault();
     if (!form?.name?.trim()) {
@@ -90,6 +111,9 @@ export default function Users() {
         monthlyBill: Number(form.monthlyBill || 0),
         phone: form.phone.trim(),
         address: form.address.trim(),
+        joinDate: form.joinDate || null,
+        leaveDate: form.leaveDate || null,
+        status: form.status || "Active",
         ...(form.id
           ? {}
           : {
@@ -114,11 +138,13 @@ export default function Users() {
     try {
       await updateDoc(doc(db, "users", id), {
         active: false,
+        status: "Inactive",
+        leaveDate: new Date().toISOString(),
         disconnectedAt: serverTimestamp(),
       });
-      toast.success("User deleted; payment history kept");
+      toast.success("User deactivated; payment history kept");
     } catch (error) {
-      toast.error(error.message || "Could not delete user");
+      toast.error(error.message || "Could not deactivate user");
     } finally {
       setDeleteUser(null);
     }
@@ -149,30 +175,10 @@ export default function Users() {
 
   return (
     <div className="page">
-      <div className="page-title">
-        <div>
-          <h2>Users</h2>
-        </div>
-      </div>
       <section className="panel users-panel">
         <div className="users-toolbar">
           <div className="users-toolbar-left">
             <label className="search users-search">
-              <button
-                className="search-fab"
-                onClick={() => {
-                  searchRef.current?.scrollIntoView({
-                    behavior: "smooth",
-                    block: "center",
-                  });
-
-                  setTimeout(() => {
-                    searchRef.current?.focus();
-                  }, 400);
-                }}
-              >
-                <FiSearch size={18} />
-              </button>
               <FiSearch />
               <input
                 ref={searchRef}
@@ -187,7 +193,6 @@ export default function Users() {
               <strong>{String(list.length).padStart(2, "0")}</strong>
             </div>
           </div>
-
           <button
             className="btn btn-primary users-add-btn"
             onClick={() => setForm(blank)}
@@ -195,101 +200,19 @@ export default function Users() {
             <FiPlus /> Add user
           </button>
         </div>
-
-        <div className="table-wrap">
-          <table className="users-table">
-            <thead>
-              <tr>
-                <th>SL</th>
-                <th>Name</th>
-                <th>Category</th>
-                <th>Monthly Bill</th>
-                <th>Phone</th>
-                <th>Created</th>
-                <th className="actions-header">Action</th>
-                <th />
-              </tr>
-            </thead>
-            <tbody>
-              {list.map((user, i) => (
-                <tr key={user.id}>
-                  <td data-label="SL">{i + 1}</td>
-                  <td data-label="Name">
-                    <strong className="user-name">{user.name}</strong>
-                  </td>
-                  <td data-label="Category">
-                    <span className="user-category">{user.category}</span>
-                  </td>
-                  <td data-label="Monthly Bill">{money(user.monthlyBill)}</td>
-                  <td data-label="Phone">{user.phone || "—"}</td>
-                  <td data-label="Created">{formatDate(user.createdAt)}</td>
-                  <td className="actions actions-cell" data-label="Action">
-                    <button onClick={() => setForm(user)}>
-                      <FiEdit2 />
-                    </button>
-                    <button
-                      className="danger"
-                      onClick={() => setDeleteUser(user)}
-                    >
-                      <FiTrash2 />
-                    </button>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-          <div className="users-mobile-list">
-            {list.map((user, i) => (
-              <div className="user-card" key={`mobile-${user.id}`}>
-                <div className="user-card-header">
-                  <div>
-                    <h3>{user.name}</h3>
-                    <span className="user-category">{user.category}</span>
-                  </div>
-                </div>
-
-                <div className="user-card-body">
-                  <div className="user-card-row">
-                    <span>Monthly Bill</span>
-                    <strong>{money(user.monthlyBill)}</strong>
-                  </div>
-
-                  <div className="user-card-row">
-                    <span>Phone</span>
-                    <strong>{user.phone || "—"}</strong>
-                  </div>
-
-                  <div className="user-card-row">
-                    <span>Created</span>
-                    <strong>{formatDate(user.createdAt)}</strong>
-                  </div>
-                </div>
-                <div className="user-card-row user-card-action-row">
-                  <span>Action</span>
-
-                  <div className="user-card-actions">
-                    <button
-                      className="edit-btn"
-                      onClick={() => setForm(user)}
-                      title="Edit User"
-                    >
-                      <FiEdit2 />
-                    </button>
-
-                    <button
-                      className="danger delete-btn"
-                      onClick={() => setDeleteUser(user)}
-                      title="Delete User"
-                    >
-                      <FiTrash2 />
-                    </button>
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
-          {!list.length && <p className="empty">No users match your search.</p>}
-        </div>
+        <UsersTable
+          list={paginatedUsers}
+          setForm={setForm}
+          setDeleteUser={setDeleteUser}
+          money={money}
+          formatDate={formatDate}
+          currentPage={currentPage}
+          setCurrentPage={setCurrentPage}
+          totalPages={totalPages}
+          totalUsers={totalUsers}
+          startIndex={startIndex}
+          endIndex={endIndex}
+        />
       </section>
       {form && (
         <Modal
@@ -345,170 +268,5 @@ export default function Users() {
         />
       )}
     </div>
-  );
-}
-
-function UserForm({
-  form,
-  setForm,
-  categories,
-  categoryError,
-  onCategory,
-  onSubmit,
-}) {
-  const set = (key, value) => setForm({ ...form, [key]: value });
-  return (
-    <form onSubmit={onSubmit} className="form">
-      <label>
-        Name
-        <input
-          required
-          value={form.name || ""}
-          onChange={(e) => set("name", e.target.value)}
-        />
-      </label>
-      <label>
-        Category
-        <div className="row">
-          <select
-            required
-            value={form.category || ""}
-            onChange={(e) => set("category", e.target.value)}
-          >
-            <option value="">Select category</option>
-            {categories.map((category) => (
-              <option key={category.id} value={category.name}>
-                {category.name}
-              </option>
-            ))}
-          </select>
-          <button
-            type="button"
-            className="btn btn-secondary"
-            onClick={onCategory}
-          >
-            + New
-          </button>
-        </div>
-        {categoryError && (
-          <small className="field-error">
-            Categories could not load:{" "}
-            {categoryError.code || categoryError.message}
-          </small>
-        )}
-      </label>
-      <label>
-        Monthly bill
-        <input
-          type="number"
-          min="0"
-          step="any"
-          placeholder="e.g. 500"
-          value={form.monthlyBill ?? ""}
-          onChange={(e) => set("monthlyBill", e.target.value)}
-        />
-      </label>
-      <label>
-        Phone number
-        <input
-          type="tel"
-          inputMode="tel"
-          placeholder="e.g. +8801XXXXXXXXX"
-          value={form.phone || ""}
-          onChange={(e) => set("phone", e.target.value)}
-        />
-      </label>
-      <label>
-        Address
-        <textarea
-          value={form.address || ""}
-          onChange={(e) => set("address", e.target.value)}
-        />
-      </label>
-      <button className="btn btn-primary">Save user</button>
-    </form>
-  );
-}
-
-function CategoryModal({
-  ownerId,
-  categories,
-  users,
-  close,
-  onAdded,
-  onRemoved,
-  requestRemoveCategory,
-}) {
-  const [name, setName] = useState("");
-  const save = async (event) => {
-    event.preventDefault();
-    const clean = name.trim();
-    if (!clean) return;
-    if (
-      categories.some(
-        (category) =>
-          category.name.trim().toLowerCase() === clean.toLowerCase(),
-      )
-    ) {
-      toast.error(`The category “${clean}” already exists`);
-      return;
-    }
-    try {
-      const added = await addDoc(collection(db, "categories"), {
-        ownerId,
-        name: clean,
-        createdAt: serverTimestamp(),
-      });
-      onAdded({ id: added.id, name: clean });
-      toast.success(`${clean} category added`);
-      setName("");
-    } catch (error) {
-      toast.error(`Could not add category: ${error.message}`);
-    }
-  };
-  return (
-    <Modal title="Manage categories" onClose={close}>
-      <form className="form" onSubmit={save}>
-        <label>
-          New category name
-          <input
-            autoFocus
-            required
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-          />
-        </label>
-        <button className="btn btn-primary">Save category</button>
-      </form>
-      {categories.length > 0 && (
-        <div className="category-list">
-          {categories.map((category) => {
-            const inUse = users.some(
-              (user) =>
-                user.category?.trim().toLowerCase() ===
-                category.name.trim().toLowerCase(),
-            );
-            return (
-              <div className="activity" key={category.id}>
-                <b>{category.name}</b>
-                <div className="actions">
-                  <button
-                    className="danger"
-                    type="button"
-                    title={
-                      inUse ? "This category is in use" : "Remove category"
-                    }
-                    disabled={inUse}
-                    onClick={() => requestRemoveCategory(category)}
-                  >
-                    <FiTrash2 />
-                  </button>
-                </div>
-              </div>
-            );
-          })}
-        </div>
-      )}
-    </Modal>
   );
 }
