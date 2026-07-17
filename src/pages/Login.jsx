@@ -25,8 +25,8 @@ const phoneErrorMessage = (value) => {
 
 const passcodeErrorMessage = (value) => {
   if (!value) return "Passcode is required.";
-  if (!/^(?:\d{4}|\d{6})$/.test(value)) {
-    return "Use 4 or 6 numeric digits.";
+  if (!/^\d{6}$/.test(value)) {
+    return "Use exactly 6 numeric digits.";
   }
   return "";
 };
@@ -129,7 +129,7 @@ export default function Login() {
     if (passcode.length >= 6) return;
     const nextPasscode = `${passcode}${digit}`.replace(/\D/g, "").slice(0, 6);
     updatePasscode(nextPasscode);
-    if (nextPasscode.length === 4 || nextPasscode.length === 6) {
+    if (nextPasscode.length === 6) {
       void attemptLogin(phone, nextPasscode);
     }
   };
@@ -285,6 +285,7 @@ export default function Login() {
           >
             ⌫
           </button>
+
           <button
             type="button"
             className="keypad-btn keypad-btn-zero"
@@ -292,12 +293,14 @@ export default function Login() {
           >
             0
           </button>
+
           <button
             type="button"
             className="keypad-btn keypad-btn-clear"
             onClick={handleKeypadClear}
+            aria-label="Clear"
           >
-            Clear
+            C
           </button>
         </div>
         {errors.passcode ? (
@@ -401,7 +404,7 @@ export default function Login() {
                 passcode: passcodeErrorMessage(digits),
               }));
             }}
-            placeholder="4 or 6 digits"
+            placeholder="6 digits"
           />
         </div>
         {errors.passcode ? (
@@ -477,10 +480,10 @@ export default function Login() {
 
           <p>
             {mode === "register"
-              ? "Open a secure workspace for your billing team and start managing customers, bills, collections, and reports."
+              ? "Open a secure workspace for your billing team and start managing customers, bills, and reports."
               : mode === "forgot"
                 ? "Enter your registered phone number to recover your passcode and get back into your workspace."
-                : "Manage customers, Monthly bills, Collections, and reports securely."}
+                : "Manage customers, Monthly bills, and reports securely."}
           </p>
         </div>
         {!configured && (
@@ -538,7 +541,7 @@ export default function Login() {
               type="submit"
               disabled={busy}
             >
-              {busy ? "Please wait..." : "Continue"}
+              {busy ? "Please wait..." : "Send Reset Link"}
             </button>
           </form>
         )}
@@ -581,6 +584,13 @@ export default function Login() {
             </button>
           ) : null}
         </div>
+        {mode === "forgot" && (
+          <p className="auth-help-text">
+            Didn't receive the email?
+            <br />
+            Please check your <strong>Spam/Junk</strong> folder.
+          </p>
+        )}
       </section>
     </main>
   );

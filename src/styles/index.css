@@ -590,7 +590,8 @@ header p {
 }
 
 .auth-brand-subtitle {
-  margin: 0;
+  margin: -2px 0 0; /* Move it up */
+  padding: 0;
   color: rgba(255, 255, 255, 0.72);
   font-size: clamp(13px, 1.6vw, 16px);
   font-weight: 500;
@@ -808,6 +809,28 @@ header p {
 .keypad-btn-backspace {
   grid-column: 1;
   grid-row: 4;
+
+  width: 100%;
+  max-width: 64px;
+  aspect-ratio: 1 / 1;
+
+  border-radius: 50%;
+
+  padding: 0;
+  font-size: 18px;
+  font-weight: 700;
+
+  justify-self: center;
+  color: #ef4444;
+  border: 1.5px solid rgba(239, 68, 68, 0.6);
+  box-shadow:
+    0 14px 30px rgba(0, 0, 0, 0.14),
+    inset 0 1px 0 rgba(255, 255, 255, 0.16),
+    0 0 12px rgba(239, 68, 68, 0.15);
+}
+.keypad-btn-backspace:hover {
+  border-color: #ef4444;
+  background: rgba(239, 68, 68, 0.12);
 }
 .keypad-btn-zero {
   grid-column: 2;
@@ -819,7 +842,26 @@ header p {
 .keypad-btn-clear {
   grid-column: 3;
   grid-row: 4;
-  font-size: clamp(11px, 1.5vw, 13px);
+
+  width: 100%;
+  max-width: 64px;
+  aspect-ratio: 1 / 1;
+
+  border-radius: 50%;
+
+  padding: 0;
+  font-size: 18px;
+  font-weight: 700;
+  color: #f5c32a;
+  border: 1.5px solid rgba(245, 195, 42, 0.7);
+  box-shadow:
+    0 14px 30px rgba(0, 0, 0, 0.14),
+    inset 0 1px 0 rgba(255, 255, 255, 0.16),
+    0 0 12px rgba(245, 195, 42, 0.15);
+}
+.keypad-btn-clear:hover {
+  border-color: #f5c32a;
+  background: rgba(245, 195, 42, 0.12);
 }
 .auth-submit {
   width: 100%;
@@ -954,6 +996,9 @@ header p {
 }
 
 @media (max-width: 600px) {
+  .logo-line {
+    display: none;
+  }
   .login-shell {
     padding: 12px;
     align-items: stretch;
@@ -1050,6 +1095,9 @@ header p {
 }
 
 @media (max-width: 480px) {
+  .logo-line {
+    display: none;
+  }
   .login-shell {
     padding: 12px;
     padding-top: calc(12px + env(safe-area-inset-top));
@@ -3734,4 +3782,16 @@ table {
     top: 82px;
     right: 16px;
   }
+}
+.auth-help-text {
+  margin: 14px 0 4px;
+  text-align: center;
+  font-size: 13px;
+  line-height: 1.5;
+  color: rgba(255, 255, 255, 0.7);
+}
+
+.auth-help-text strong {
+  color: #f6c547;
+  font-weight: 600;
 }
