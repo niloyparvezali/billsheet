@@ -467,7 +467,13 @@ export default function Login() {
           <p className="auth-brand-subtitle">Secure workspace</p>
         </div>
         <div className="auth-intro">
-          <h2>{mode === "register" ? "Create your account" : mode === "forgot" ? "Recover access" : "Welcome back"}</h2>
+          <h2>
+            {mode === "register"
+              ? "Create your account"
+              : mode === "forgot"
+                ? "Recover access"
+                : "Welcome back"}
+          </h2>
 
           <p>
             {mode === "register"
@@ -486,13 +492,16 @@ export default function Login() {
         {mode === "login" ? (
           <form onSubmit={submitLogin} className="auth-form">
             {renderLoginFields()}
-            <button
-              className="primary auth-submit"
-              type="submit"
-              disabled={busy}
-            >
-              {busy ? "Please wait..." : "Sign in"}
-            </button>
+
+            {mode !== "login" && (
+              <button
+                className="primary auth-submit"
+                type="submit"
+                disabled={busy}
+              >
+                {busy ? "Please wait..." : "Sign in"}
+              </button>
+            )}
           </form>
         ) : mode === "register" ? (
           <form onSubmit={submitRegister} className="auth-form">
