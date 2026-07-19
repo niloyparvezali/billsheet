@@ -4,6 +4,7 @@ import { toast } from "react-hot-toast";
 import { doc, setDoc } from "firebase/firestore";
 import { resetApplicationData } from "../../utils/backup/resetApplicationData";
 import { restoreBackup } from "../../utils/backup/restoreBackup";
+import { deleteAccount } from "../../utils/deleteAccount";
 import {
   AlertTriangle,
   Camera,

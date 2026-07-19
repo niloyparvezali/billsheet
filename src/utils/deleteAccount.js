@@ -1,4 +1,4 @@
-import { deleteUser } from "firebase/auth";
+import { deleteUser as deleteFirebaseUser } from "firebase/auth";
 import {
   collection,
   query,
@@ -8,10 +8,13 @@ import {
   doc,
 } from "firebase/firestore";
 
-import { db } from "../firebase/config";
+import { auth, db } from "../firebase/config";
 
 export async function deleteAccount(user) {
-  if (!user?.uid) {
+  const authUser = auth?.currentUser;
+  const targetUid = user?.uid || authUser?.uid;
+
+  if (!targetUid) {
     throw new Error("User not found.");
   }
 
@@ -21,7 +24,7 @@ export async function deleteAccount(user) {
 
   for (const name of collections) {
     const snapshot = await getDocs(
-      query(collection(db, name), where("ownerId", "==", user.uid)),
+      query(collection(db, name), where("ownerId", "==", targetUid)),
     );
 
     snapshot.forEach((document) => {
@@ -30,13 +33,19 @@ export async function deleteAccount(user) {
   }
 
   // Delete settings document
-  batch.delete(doc(db, "settings", user.uid));
+  batch.delete(doc(db, "settings", targetUid));
 
   // Commit Firestore deletes
   await batch.commit();
 
-  // Delete Firebase Authentication account
-  await deleteUser(user);
+  // Delete Firebase Authentication account using the active auth user
+  if (authUser) {
+    await deleteFirebaseUser(authUser);
+  } else if (user?.firebaseUser) {
+    await deleteFirebaseUser(user.firebaseUser);
+  } else {
+    throw new Error("Authenticated user not available.");
+  }
 
   return true;
 }
