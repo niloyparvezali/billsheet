@@ -3,11 +3,17 @@ import { FiCalendar, FiFileText, FiSearch } from "react-icons/fi";
 import { useEffect, useMemo, useState } from "react";
 import useOwnedCollection from "../hooks/useOwnedCollection";
 import { money, formatDate, monthNames } from "../utils/date";
-import { exportPdf } from "../utils/exports";
-import { createTransactionRowFromPayment } from "../utils/payments";
+import { exportTransactionPdf } from "../utils/pdf";
+import {
+  createTransactionRowFromPayment,
+  filterPaymentsByYear,
+  formatBalanceDisplayValue,
+  getPaymentMonthYear,
+} from "../utils/payments";
 
 const parsePaymentTimestamp = (payment) => {
-  const timestamp = payment?.paymentDate || payment?.createdAt || payment?.timestamp;
+  const timestamp =
+    payment?.paymentDate || payment?.createdAt || payment?.timestamp;
   if (!timestamp) return null;
   if (typeof timestamp.toDate === "function") return timestamp.toDate();
   if (timestamp instanceof Date) return timestamp;
@@ -33,9 +39,42 @@ const getMonthLabel = (payment) => {
   return payment?.month || "--";
 };
 
-const createTransactionRow = (payment, index) => createTransactionRowFromPayment(payment, index);
+const createTransactionRow = (payment, index) =>
+  createTransactionRowFromPayment(payment, index);
+
+const getTransactionStatusBadgeClass = (row) => {
+  const normalizedStatus = String(row?.status || "")
+    .trim()
+    .toLowerCase();
+
+  if (["completed", "paid"].includes(normalizedStatus)) return "status-paid";
+  if (["advance"].includes(normalizedStatus)) return "status-advance";
+  if (["partial"].includes(normalizedStatus)) return "status-partial";
+  if (["due"].includes(normalizedStatus)) return "status-due";
+  if (
+    [
+      "voided",
+      "reversed",
+      "removed",
+      "deleted",
+      "cancelled",
+      "canceled",
+      "failed",
+      "declined",
+    ].includes(normalizedStatus)
+  )
+    return "status-voided";
+
+  return row?.isRemoved
+    ? "status-voided"
+    : row?.amount > 0
+      ? "status-paid"
+      : "status-pending";
+};
 
 export default function TransactionHistory() {
+  const currentYear = new Date().getFullYear();
+  const [selectedYear, setSelectedYear] = useState(currentYear);
   const [search, setSearch] = useState("");
   const [filterMode, setFilterMode] = useState("date");
   const [fromDate, setFromDate] = useState("");
@@ -46,8 +85,20 @@ export default function TransactionHistory() {
 
   const searchTerm = useMemo(() => search.trim().toLowerCase(), [search]);
 
+  const yearOptions = useMemo(() => {
+    const years = new Set();
+    (payments || []).forEach((payment) => {
+      const { year } = getPaymentMonthYear(payment);
+      if (Number.isFinite(Number(year))) {
+        years.add(Number(year));
+      }
+    });
+    years.add(currentYear);
+    return Array.from(years).sort((left, right) => right - left);
+  }, [payments, currentYear]);
+
   const filteredPayments = useMemo(() => {
-    let data = [...(payments || [])];
+    let data = filterPaymentsByYear(payments || [], selectedYear);
 
     // Search by customer name or transaction metadata.
     if (searchTerm) {
@@ -60,7 +111,9 @@ export default function TransactionHistory() {
           p.paymentType,
         ];
         return haystacks.some((value) =>
-          String(value || "").toLowerCase().includes(searchTerm),
+          String(value || "")
+            .toLowerCase()
+            .includes(searchTerm),
         );
       });
     }
@@ -87,16 +140,19 @@ export default function TransactionHistory() {
     data.sort((a, b) => getPaymentTime(b) - getPaymentTime(a));
 
     return data;
-  }, [payments, searchTerm, fromDate, toDate]);
+  }, [payments, searchTerm, fromDate, toDate, selectedYear]);
 
   useEffect(() => {
     setCurrentPage(1);
-  }, [searchTerm, fromDate, toDate]);
+  }, [searchTerm, fromDate, toDate, selectedYear]);
 
   const TRANSACTIONS_PER_PAGE = 20;
 
   const transactionRows = useMemo(
-    () => filteredPayments.map((payment, index) => createTransactionRow(payment, index)),
+    () =>
+      filteredPayments.map((payment, index) =>
+        createTransactionRow(payment, index),
+      ),
     [filteredPayments],
   );
 
@@ -124,15 +180,14 @@ export default function TransactionHistory() {
   );
   const summary = useMemo(() => {
     const totalTransactions = transactionRows.length;
+    const revenueRows = transactionRows.filter(
+      (row) => row.contributesToRevenue !== false,
+    );
 
-    const totalCollection = transactionRows.reduce(
+    const totalCollection = revenueRows.reduce(
       (sum, row) => sum + Number(row.amount || 0),
       0,
     );
-
-    const totalDue = transactionRows.reduce((sum, row) => {
-      return sum + Number(row.due || 0);
-    }, 0);
 
     const averagePayment =
       totalTransactions > 0 ? totalCollection / totalTransactions : 0;
@@ -140,10 +195,26 @@ export default function TransactionHistory() {
     return {
       totalTransactions,
       totalCollection,
-      totalDue,
       averagePayment,
     };
-  }, [filteredPayments]);
+  }, [transactionRows]);
+
+  const yearRangeLabel = useMemo(() => {
+    const yearStart = new Date(selectedYear, 0, 1);
+    const yearEnd = new Date(selectedYear, 11, 31, 23, 59, 59, 999);
+    return {
+      start: yearStart.toLocaleDateString("en-US", {
+        month: "long",
+        day: "numeric",
+        year: "numeric",
+      }),
+      end: yearEnd.toLocaleDateString("en-US", {
+        month: "long",
+        day: "numeric",
+        year: "numeric",
+      }),
+    };
+  }, [selectedYear]);
 
   const exportRows = useMemo(
     () =>
@@ -154,6 +225,10 @@ export default function TransactionHistory() {
         Month: getMonthLabel({ month: row.month }),
         Year: row.year || "--",
         Amount: row.amount || 0,
+        Due: row.due || 0,
+        CarryForward:
+          row.carryForward ||
+          Math.max(0, Number(row.amount || 0) - Number(row.bill || 0)),
         PaymentDate: row.paymentDate || "--",
         PaymentTime: row.paymentTime || "--",
         PaymentType: row.paymentType || "Payment",
@@ -164,7 +239,13 @@ export default function TransactionHistory() {
     [transactionRows],
   );
 
-  const handleExportPdf = () => exportPdf(exportRows, "Transaction History");
+  const handleExportPdf = () =>
+    exportTransactionPdf({
+      rows: exportRows,
+      companyName: "Bill Sheet",
+      theme: "forest",
+      year: selectedYear,
+    });
 
   return (
     <div className="page transaction-history-page">
@@ -173,10 +254,25 @@ export default function TransactionHistory() {
           <h2>📒 Transaction History</h2>
 
           <p>
-            Complete payment history from the first transaction to the latest.
+            {`Transactions for ${selectedYear} from ${yearRangeLabel.start} to ${yearRangeLabel.end}.`}
           </p>
         </div>
         <div className="transaction-actions">
+          <div className="year-selector-shell">
+
+            <select
+              id="year-selector"
+              className="year-selector"
+              value={selectedYear}
+              onChange={(event) => setSelectedYear(Number(event.target.value))}
+            >
+              {yearOptions.map((year) => (
+                <option key={year} value={year}>
+                  {year}
+                </option>
+              ))}
+            </select>
+          </div>
           <button
             className="btn btn-primary"
             onClick={handleExportPdf}
@@ -213,7 +309,7 @@ export default function TransactionHistory() {
                   setToDate("");
                 }}
               >
-                👤 Customer
+                👤 Name
               </button>
             </div>
 
@@ -225,7 +321,7 @@ export default function TransactionHistory() {
 
                     <input
                       type="text"
-                      placeholder="Search customer..."
+                      placeholder="Search name..."
                       value={search}
                       onChange={(e) => setSearch(e.target.value)}
                     />
@@ -258,7 +354,7 @@ export default function TransactionHistory() {
         <div className="transaction-table">
           <div className="transaction-head">
             <div>Date</div>
-            <div>Customer</div>
+            <div>Name</div>
 
             <div>Month</div>
 
@@ -266,7 +362,7 @@ export default function TransactionHistory() {
 
             <div>Paid</div>
 
-            <div>Due</div>
+            <div>Balance</div>
 
             <div>Status</div>
           </div>
@@ -276,26 +372,60 @@ export default function TransactionHistory() {
               <p className="empty">Loading transactions…</p>
             ) : pagePayments.length ? (
               pagePayments.map((row) => {
-                const monthLabel = getMonthLabel({ month: row.month });
+                const monthLabel = getMonthLabel({
+                  month: row.month,
+                }).substring(0, 3);
+                const dueValue = Number(row.due || 0);
+                const carryForwardValue = Number(
+                  row.carryForward ??
+                    Math.max(
+                      0,
+                      Number(row.amount || 0) - Number(row.bill || 0),
+                    ),
+                );
+                const balanceStyle =
+                  dueValue > 0
+                    ? { color: "#fda4af" }
+                    : carryForwardValue > 0
+                      ? { color: "#4ade80" }
+                      : undefined;
+                const balanceLabel = formatBalanceDisplayValue({
+                  due: dueValue,
+                  carryForward: carryForwardValue,
+                });
 
                 return (
-                  <div className="transaction-row" key={row.transactionId || row.customerId || row.paymentDate || row.amount}>
+                  <div
+                    className="transaction-row"
+                    key={
+                      row.transactionId ||
+                      row.customerId ||
+                      row.paymentDate ||
+                      row.amount
+                    }
+                  >
                     <div className="transaction-history-date-cell">
                       <span>
-                        {row.dateTime ? formatDate(row.dateTime) : "--"}
+                        {row.dateTime
+                          ? row.dateTime.toLocaleDateString("en-GB", {
+                              day: "2-digit",
+                              month: "short",
+                            })
+                          : "--"}
                       </span>
                       {row.dateTime ? (
                         <small>
-                          {row.paymentTime || row.dateTime.toLocaleTimeString([], {
-                            hour: "numeric",
-                            minute: "2-digit",
-                          })}
+                          {row.paymentTime ||
+                            row.dateTime.toLocaleTimeString([], {
+                              hour: "numeric",
+                              minute: "2-digit",
+                            })}
                         </small>
                       ) : null}
                     </div>
 
                     <div>
-                      <strong>{row.customerName || "Customer"}</strong>
+                      <strong>{row.customerName || "Name"}</strong>
                     </div>
 
                     <div>{monthLabel}</div>
@@ -304,12 +434,10 @@ export default function TransactionHistory() {
 
                     <div>{money(row.amount)}</div>
 
-                    <div>{money(row.due)}</div>
+                    <div style={balanceStyle}>{balanceLabel}</div>
 
                     <div>
-                      <span
-                        className={row.isRemoved ? "status-pending" : row.amount > 0 ? "status-paid" : "status-pending"}
-                      >
+                      <span className={getTransactionStatusBadgeClass(row)}>
                         {row.status}
                       </span>
                     </div>
@@ -320,6 +448,55 @@ export default function TransactionHistory() {
               <p className="empty">No transactions found.</p>
             )}
           </div>
+        </div>
+        <div className="transaction-mobile-list">
+          {pagePayments.map((row) => {
+            const dueValue = Number(row.due || 0);
+
+            const carryForwardValue = Number(
+              row.carryForward ??
+                Math.max(0, Number(row.amount || 0) - Number(row.bill || 0)),
+            );
+
+            const balance = formatBalanceDisplayValue({
+              due: dueValue,
+              carryForward: carryForwardValue,
+            });
+
+            return (
+              <div
+                key={
+                  row.transactionId || `${row.customerId}-${row.paymentDate}`
+                }
+                className="transaction-mobile-item"
+              >
+                <span className="tm-date">
+                  {row.dateTime
+                    ? row.dateTime.toLocaleDateString("en-GB", {
+                        day: "2-digit",
+                        month: "short",
+                      })
+                    : "--"}
+                </span>
+
+                <span className="tm-customer">{row.customerName || "--"}</span>
+
+                <span className="tm-month">
+                  {getMonthLabel({ month: row.month }).substring(0, 3)}
+                </span>
+
+                <span className="tm-paid">{money(row.amount || 0)}</span>
+
+                <span
+                  className={
+                    dueValue > 0 ? "tm-balance due" : "tm-balance carry"
+                  }
+                >
+                  {balance}
+                </span>
+              </div>
+            );
+          })}
         </div>
         {pageCount > 1 && (
           <div className="transaction-pagination">
@@ -362,11 +539,6 @@ export default function TransactionHistory() {
           <div className="card summary-box">
             <small>Total Collection</small>
             <h3>{money(summary.totalCollection)}</h3>
-          </div>
-
-          <div className="card summary-box">
-            <small>Outstanding Due</small>
-            <h3>{money(summary.totalDue)}</h3>
           </div>
         </div>
       </section>

@@ -6,6 +6,7 @@ import { FiTrash2 } from "react-icons/fi";
 
 import Modal from "./Modal";
 import { db } from "../firebase/config";
+import { getDisplayPackages } from "../utils/users";
 export default function CategoryModal({
   ownerId,
   categories,
@@ -59,11 +60,14 @@ export default function CategoryModal({
       {categories.length > 0 && (
         <div className="category-list">
           {categories.map((category) => {
-            const inUse = users.some(
-              (user) =>
-                user.category?.trim().toLowerCase() ===
-                category.name.trim().toLowerCase(),
-            );
+            const inUse = users.some((user) => {
+              const packages = getDisplayPackages(user);
+              return packages.some(
+                (packageName) =>
+                  packageName.trim().toLowerCase() ===
+                  category.name.trim().toLowerCase(),
+              );
+            });
             return (
               <div className="activity" key={category.id}>
                 <b>{category.name}</b>
@@ -75,7 +79,11 @@ export default function CategoryModal({
                       inUse ? "This category is in use" : "Remove category"
                     }
                     disabled={inUse}
-                    onClick={() => requestRemoveCategory(category)}
+                    onClick={(event) => {
+                      event.preventDefault();
+                      event.stopPropagation();
+                      requestRemoveCategory(category);
+                    }}
                   >
                     <FiTrash2 />
                   </button>

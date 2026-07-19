@@ -12,7 +12,6 @@ import {
   FiLayers,
   FiUserCheck,
   FiUsers,
-  FiGrid,
   FiCalendar,
 } from "react-icons/fi";
 import {
@@ -29,66 +28,36 @@ import {
 import useOwnedCollection from "../hooks/useOwnedCollection";
 import StatCard from "../components/StatCard";
 import { money, monthNames, formatDate } from "../utils/date";
-import { getActivePayments } from "../utils/payments";
+import { buildDashboardLedgerSummary, getActivePayments } from "../utils/payments";
 
 export default function Dashboard() {
-  const { data: users } = useOwnedCollection("users");
-  const { data: payments } = useOwnedCollection("payments");
+  const { data: users = [] } = useOwnedCollection("users");
+  const { data: payments = [] } = useOwnedCollection("payments");
   const { user } = useAuth();
   const now = new Date();
   const month = now.getMonth() + 1;
   const year = now.getFullYear();
   const [chartPage, setChartPage] = useState(null);
   const [loadingChartPage, setLoadingChartPage] = useState(true);
-  const activeUsers = useMemo(
-    () => users.filter((user) => user.active !== false),
-    [users],
+
+  const summary = useMemo(
+    () => buildDashboardLedgerSummary({ users, payments, month, year }),
+    [users, payments, month, year],
   );
 
-  const activePayments = useMemo(() => getActivePayments(payments), [payments]);
-
-  const yearPayments = useMemo(
-    () => activePayments.filter((p) => +p.year === year),
-    [activePayments, year],
+  const activeUsers = summary.activeUsers;
+  const inactiveUsers = summary.inactiveUsers;
+  const paidCustomers = summary.paidCustomers;
+  const pendingCustomers = summary.pendingCustomers;
+  const totalCollection = summary.totalCollection;
+  const chart = useMemo(
+    () => summary.chart.map((item) => ({
+      name: item.name.slice(0, 3),
+      month: item.month,
+      collection: item.collection,
+    })),
+    [summary.chart],
   );
-
-  const current = useMemo(
-    () => yearPayments.filter((p) => +p.month === month),
-    [yearPayments, month],
-  );
-
-  const paidCustomers = useMemo(() => {
-    const paidSet = new Set();
-    current.forEach((payment) => {
-      if (Number(payment.amount || 0) > 0 && payment.userId) {
-        paidSet.add(payment.userId);
-      }
-    });
-    return paidSet.size;
-  }, [current]);
-
-  const paid = useMemo(
-    () => current.filter((p) => Number(p.amount || 0) > 0),
-    [current],
-  );
-
-  const chart = useMemo(() => {
-    const months = monthNames.map((name) => ({
-      name: name.slice(0, 3),
-      month: name,
-      collection: 0,
-    }));
-
-    yearPayments.forEach((payment) => {
-      const index = Number(payment.month) - 1;
-
-      if (index >= 0 && index < 12) {
-        months[index].collection += Number(payment.amount || 0);
-      }
-    });
-
-    return months;
-  }, [yearPayments]);
   const chartPages = [chart.slice(0, 6), chart.slice(6, 12)];
   useEffect(() => {
     if (!user) return;
@@ -114,11 +83,6 @@ export default function Dashboard() {
   }, [user]);
 
   const currentChart = chartPages[chartPage];
-
-  const totalCollection = useMemo(
-    () => chart.reduce((sum, item) => sum + item.collection, 0),
-    [chart],
-  );
 
   const averageCollection = useMemo(
     () => totalCollection / 12,
@@ -159,20 +123,20 @@ export default function Dashboard() {
   }, [chart]);
 
   const totalPaidThisMonth = useMemo(
-    () => paid.reduce((sum, payment) => sum + Number(payment.amount || 0), 0),
-    [paid],
+    () => summary.currentPayments.reduce((sum, payment) => sum + Number(payment.amount || 0), 0),
+    [summary.currentPayments],
   );
 
   const recentPayments = useMemo(
     () =>
-      activePayments
+      getActivePayments(payments)
         .filter((p) => Number(p.amount || 0) > 0)
         .sort(
           (a, b) =>
             (b.paymentDate?.seconds || 0) - (a.paymentDate?.seconds || 0),
         )
         .slice(0, 6),
-    [activePayments],
+    [payments],
   );
   if (loadingChartPage) {
     return <div className="page">Loading...</div>;
@@ -194,18 +158,18 @@ export default function Dashboard() {
       <div className="stats">
         <StatCard
           label="Total Users"
-          value={activeUsers.length}
+          value={summary.totalUsers}
           icon={<FiUsers />}
         />
         <StatCard
-          label="Paid This Month"
-          value={paidCustomers}
+          label="Active Users"
+          value={activeUsers.length}
           tone="green"
           icon={<FiUserCheck />}
         />
         <StatCard
-          label="Pending Users"
-          value={Math.max(0, activeUsers.length - paidCustomers)}
+          label="Inactive Users"
+          value={inactiveUsers}
           tone="orange"
           icon={<FiLayers />}
         />

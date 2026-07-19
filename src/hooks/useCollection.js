@@ -5,15 +5,18 @@ export default function useCollection(queryRef) {
   const [data, setData] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+
   useEffect(() => {
     if (!queryRef) {
       setData([]);
       setError(null);
       setLoading(false);
-      return;
+      return undefined;
     }
+
     setError(null);
     setLoading(true);
+
     const unsub = onSnapshot(
       queryRef,
       (snapshot) => {
@@ -21,7 +24,6 @@ export default function useCollection(queryRef) {
           id: item.id,
           ...item.data(),
         }));
-
         setData(records);
         setLoading(false);
       },
@@ -31,7 +33,9 @@ export default function useCollection(queryRef) {
         setLoading(false);
       },
     );
-    return unsub;
+
+    return () => unsub();
   }, [queryRef]);
+
   return { data, loading, error };
 }

@@ -129,8 +129,8 @@ export function AuthProvider({ children }) {
     if (!/^01\d{9}$/.test(normalizedPhone)) {
       throw new Error("Use a valid Bangladeshi phone number beginning with 01.");
     }
-    if (!/^(\d{4}|\d{6})$/.test(passcode)) {
-      throw new Error("Passcode must be 4 or 6 digits.");
+    if (!/^\d{6}$/.test(passcode)) {
+      throw new Error("Passcode must be 6 digits.");
     }
 
     const passcodeHash = await hashPasscode(passcode);

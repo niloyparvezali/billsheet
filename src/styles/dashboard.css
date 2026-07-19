@@ -431,9 +431,19 @@
 /* ===========================================
    .payment-name
 =========================================== */
+.payment-name {
+  min-width: 0;
+  overflow: hidden;
+}
+
 .payment-name b {
+  display: block;
   font-size: 16px;
   font-weight: 700;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 100%;
 }
 /* ===========================================
    .payment-amount

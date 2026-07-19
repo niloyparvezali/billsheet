@@ -1,7 +1,3 @@
-import jsPDF from "jspdf";
-import autoTable from "jspdf-autotable";
-import * as XLSX from "xlsx";
-import { money } from "./date";
 
 export function exportExcel(rows, fileName) {
   const sheet = XLSX.utils.json_to_sheet(rows);
@@ -43,140 +39,122 @@ export function exportCsv(rows, fileName) {
   URL.revokeObjectURL(link.href);
 }
 
-export function exportAnnualCustomerReport({
-  businessName = "BillSheet",
-  customer,
-  year,
-  summary,
-  history,
-}) {
+const formatAmountForExport = (
+  value,
+  { isDue = false, isAdvance = false } = {},
+) => {
+  const numeric = Number(value || 0);
+  if (!Number.isFinite(numeric)) return money(0);
+  if (numeric === 0) return money(0);
+  if (isDue)
+    return formatBalanceDisplayValue({
+      due: Math.abs(numeric),
+      carryForward: 0,
+    });
+  if (isAdvance)
+    return formatBalanceDisplayValue({
+      due: 0,
+      carryForward: Math.abs(numeric),
+    });
+  return money(numeric);
+};
+
+export function exportPdf(rows, title = "Report", summary = {}) {
   const pdf = new jsPDF("p", "mm", "a4");
+
+  const pageWidth = pdf.internal.pageSize.getWidth();
   const pageHeight = pdf.internal.pageSize.getHeight();
 
-  pdf.setFillColor(8, 27, 27);
-  pdf.rect(0, 0, 210, 54, "F");
+  // Header
+  pdf.setFillColor(18, 52, 86);
+  pdf.rect(0, 0, pageWidth, 34, "F");
 
   pdf.setTextColor(255, 255, 255);
-  pdf.setFontSize(20);
   pdf.setFont("helvetica", "bold");
-  pdf.text(businessName, 14, 20);
-  pdf.setFontSize(12);
+  pdf.setFontSize(22);
+  pdf.text("Bill Sheet", 15, 15);
+
+  pdf.setFontSize(11);
   pdf.setFont("helvetica", "normal");
-  pdf.text("Annual Customer Report", 14, 30);
-  pdf.text(`Year ${year}`, 14, 38);
-  pdf.text(`Customer: ${customer?.name || "Customer"}`, 14, 46);
+  pdf.text("Monthly Collection Report", 15, 24);
 
-  pdf.setTextColor(42, 51, 56);
+  // Report information
+  pdf.setTextColor(40);
   pdf.setFontSize(11);
-  pdf.text(`Generated: ${new Date().toLocaleString()}`, 14, 64);
 
-  const summaryRows = [
-    ["Previous Due", money(summary.previousDue)],
-    ["Annual Bill", money(summary.annualBill)],
-    ["Paid This Year", money(summary.paidThisYear)],
-    ["Outstanding Balance", money(summary.outstandingBalance)],
-    ["Credit Carry Forward", money(summary.creditCarryForward)],
-    ["Status", summary.balanceStatus || "Account Settled"],
-  ];
+  pdf.text(`Report : ${title}`, 15, 45);
+  pdf.text(`Generated : ${new Date().toLocaleString()}`, 15, 52);
 
+  // Table
   autoTable(pdf, {
-    startY: 72,
-    head: [["Metric", "Amount"]],
-    body: summaryRows,
-    styles: { fontSize: 10, cellPadding: 3 },
-    headStyles: { fillColor: [16, 69, 66], textColor: 255, fontStyle: "bold" },
-    alternateRowStyles: { fillColor: [243, 248, 248] },
-    margin: { left: 14, right: 14 },
-  });
+    startY: 60,
 
-  const historyRows = history.map((entry) => [
-    entry.monthName,
-    money(entry.monthlyBill),
-    money(entry.paid),
-    money(entry.remainingDue),
-    entry.paymentDate ? new Date(entry.paymentDate).toLocaleDateString() : "—",
-    entry.status,
-  ]);
+    head: [Object.keys(rows[0] || {})],
 
-  autoTable(pdf, {
-    startY: 120,
-    head: [["Month", "Monthly Bill", "Paid", "Remaining Due", "Payment Date", "Status"]],
-    body: historyRows,
-    styles: { fontSize: 9, cellPadding: 3 },
-    headStyles: { fillColor: [16, 69, 66], textColor: 255, fontStyle: "bold" },
-    alternateRowStyles: { fillColor: [248, 250, 250] },
-    margin: { left: 14, right: 14 },
-  });
-
-  pdf.setFontSize(9);
-  pdf.setTextColor(100);
-  pdf.text(
-    "Carry Forward will automatically be added to the next year's first bill.",
-    14,
-    pageHeight - 16,
-  );
-
-  pdf.save(
-    `annual-customer-report-${year}-${customer?.name || "customer"}.pdf`,
-  );
-}
-
-export function exportPdf(rows, title = "Report") {
-  const pdf = new jsPDF("p", "mm", "a4");
-
-  pdf.setFontSize(20);
-  pdf.setTextColor(33, 37, 41);
-  pdf.text("BillSheet", 14, 18);
-
-  pdf.setFontSize(11);
-  pdf.setTextColor(110);
-
-  pdf.text(title, 14, 25);
-
-  pdf.text(`Generated: ${new Date().toLocaleString()}`, 14, 31);
-
-  const keys = Object.keys(rows[0] || {});
-
-  autoTable(pdf, {
-    startY: 38,
-
-    head: [keys],
-
-    body: rows.map((row) => keys.map((key) => row[key])),
+    body: rows.map((row) => Object.values(row)),
 
     styles: {
       fontSize: 9,
       cellPadding: 3,
+      valign: "middle",
     },
 
     headStyles: {
-      fillColor: [79, 70, 229],
+      fillColor: [25, 84, 140],
       textColor: 255,
       fontStyle: "bold",
     },
 
     alternateRowStyles: {
-      fillColor: [248, 249, 252],
+      fillColor: [245, 248, 252],
     },
 
     margin: {
-      left: 14,
-      right: 14,
+      left: 15,
+      right: 15,
     },
   });
 
-  const pageCount = pdf.getNumberOfPages();
+  const finalY = pdf.lastAutoTable.finalY + 10;
 
-  for (let i = 1; i <= pageCount; i++) {
+  pdf.setDrawColor(200);
+  pdf.roundedRect(15, finalY, 180, 42, 2, 2);
+
+  pdf.setFont("helvetica", "bold");
+  pdf.setFontSize(12);
+  pdf.text("Summary", 20, finalY + 8);
+
+  pdf.setFont("helvetica", "normal");
+  pdf.setFontSize(10);
+
+  pdf.text(`Total Users : ${summary.totalUsers ?? "-"}`, 20, finalY + 16);
+  pdf.text(`Paid Users : ${summary.paidUsers ?? "-"}`, 20, finalY + 23);
+  pdf.text(`Pending Users : ${summary.pendingUsers ?? "-"}`, 20, finalY + 30);
+
+  pdf.text(`Total Bill : ${summary.totalBill ?? "-"}`, 110, finalY + 16);
+  pdf.text(`Collection : ${summary.totalCollection ?? "-"}`, 110, finalY + 23);
+  pdf.text(`Total Due : ${summary.totalDue ?? "-"}`, 110, finalY + 30);
+
+  pdf.setFontSize(10);
+  pdf.setTextColor(100);
+
+  pdf.text("Generated by Bill Sheet", 15, pageHeight - 12);
+
+  pdf.setFontSize(10);
+  pdf.setTextColor(100);
+
+  pdf.text(`Total Customers : ${rows.length}`, 15, finalY);
+
+  pdf.text("Generated by Bill Sheet", 15, pageHeight - 12);
+
+  const pages = pdf.getNumberOfPages();
+
+  for (let i = 1; i <= pages; i++) {
     pdf.setPage(i);
 
     pdf.setFontSize(9);
 
-    pdf.setTextColor(120);
-
-    pdf.text(`Page ${i} of ${pageCount}`, 180, 290);
-
-    pdf.text("Generated by BillSheet", 14, 290);
+    pdf.text(`Page ${i} of ${pages}`, pageWidth - 35, pageHeight - 12);
   }
 
   pdf.save(`${title}.pdf`);

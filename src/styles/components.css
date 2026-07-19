@@ -413,13 +413,37 @@ tbody tr:hover {
   font-size: 13px;
   font-weight: 700;
 }
+.status.completed,
+.status.complete,
 .status.paid {
-  color: #45d48c;
-  background: rgba(69, 212, 140, 0.12);
+  color: var(--success);
+  background: var(--success-bg);
+}
+.status.active {
+  color: var(--success);
+  background: var(--success-bg);
+}
+.status.inactive {
+  color: var(--danger);
+  background: var(--danger-bg);
 }
 .status.pending {
-  color: #ff7f8c;
-  background: rgba(255, 127, 140, 0.12);
+  color: var(--danger);
+  background: var(--danger-bg);
+}
+.status.advance {
+  color: var(--info);
+  background: var(--info-bg);
+}
+.status.partial {
+  color: var(--warning);
+  background: var(--warning-bg);
+}
+.status.due,
+.status.voided,
+.status.reversed {
+  color: var(--danger);
+  background: var(--danger-bg);
 }
 .tag {
   font-size: 12px;

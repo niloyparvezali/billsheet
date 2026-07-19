@@ -1,0 +1,257 @@
+import jsPDF from "jspdf";
+import autoTable from "jspdf-autotable";
+import { getPdfTheme } from "./pdfTheme";
+import { formatReportDate } from "./pdfHelpers";
+
+export function createPdfLayout({
+  reportTitle,
+  companyName = "",
+  reportInfo = [],
+  theme = "forest",
+}) {
+  const pdf = new jsPDF("p", "mm", "a4");
+
+  const colors = getPdfTheme(theme);
+
+  const pageWidth = pdf.internal.pageSize.getWidth();
+  const pageHeight = pdf.internal.pageSize.getHeight();
+
+  // =============================
+  // Header
+  // =============================
+
+  const drawHeader = () => {
+    // Header Background
+    pdf.setFillColor(...colors.primary);
+    pdf.rect(0, 0, pageWidth, 34, "F");
+
+    // Brand
+    pdf.setFont("helvetica", "bold");
+    pdf.setFontSize(24);
+
+    pdf.setTextColor(...colors.white);
+    pdf.text("Bill", 15, 15);
+
+    const billWidth = pdf.getTextWidth("Bill ");
+
+    pdf.setTextColor(...colors.accent);
+    pdf.text("Sheet", 15 + billWidth, 15);
+
+    // Report Title
+    pdf.setFontSize(12);
+    pdf.setFont("helvetica", "normal");
+    pdf.setTextColor(...colors.white);
+    pdf.text(reportTitle, 15, 24);
+
+    // Decorative Line
+    pdf.setDrawColor(...colors.accent);
+    pdf.setLineWidth(1);
+    pdf.line(0, 34, pageWidth, 34);
+  };
+
+  // =============================
+  // Report Information
+  // =============================
+
+  const drawReportInfo = () => {
+    let y = 44;
+
+    pdf.setFontSize(10);
+
+    const leftX = 15;
+    const rightX = 110;
+
+    if (companyName) {
+      pdf.setFont("helvetica", "bold");
+      pdf.setTextColor(...colors.text);
+      pdf.text("Company", leftX, y);
+
+      pdf.setFont("helvetica", "normal");
+      pdf.text(companyName, leftX + 30, y);
+
+      y += 8;
+    }
+
+    reportInfo.forEach((item, index) => {
+      const x = index % 2 === 0 ? leftX : rightX;
+
+      if (index % 2 === 0 && index !== 0) {
+        y += 8;
+      }
+
+      pdf.setFont("helvetica", "bold");
+      pdf.text(item.label, x, y);
+
+      pdf.setFont("helvetica", "normal");
+      pdf.text(String(item.value), x + 30, y);
+    });
+
+    y += 10;
+
+    pdf.setFont("helvetica", "bold");
+    pdf.text("Generated", leftX, y);
+
+    pdf.setFont("helvetica", "normal");
+    pdf.text(formatReportDate(), leftX + 30, y);
+
+    return y + 8;
+  };
+
+  // =============================
+  // Summary
+  // =============================
+
+  const drawSummary = (summaryRows, startY) => {
+    autoTable(pdf, {
+      startY,
+
+      theme: "grid",
+
+      head: [["Summary", "Value"]],
+
+      body: summaryRows,
+
+      headStyles: {
+        fillColor: colors.secondary,
+        textColor: colors.white,
+      },
+
+      styles: {
+        fontSize: 10,
+        cellPadding: 3,
+      },
+    });
+
+    return pdf.lastAutoTable.finalY + 8;
+  };
+  // =============================
+  // Table
+  // =============================
+
+  const drawTable = ({ head, body, startY, didParseCell }) => {
+    autoTable(pdf, {
+      margin: {
+        top: 40,
+        bottom: 15,
+        left: 15,
+        right: 15,
+      },
+
+      startY,
+
+      head,
+
+      body,
+
+      styles: {
+        font: "helvetica",
+        fontSize: 9,
+        cellPadding: {
+          top: 3,
+          bottom: 3,
+          left: 2.5,
+          right: 2.5,
+        },
+        valign: "middle",
+        textColor: colors.text,
+        lineColor: colors.border,
+        lineWidth: 0.1,
+      },
+
+      headStyles: {
+        fillColor: colors.primary,
+        textColor: colors.white,
+        fontStyle: "bold",
+        halign: "center",
+        valign: "middle",
+      },
+
+      alternateRowStyles: {
+        fillColor: [248, 249, 250],
+      },
+      columnStyles: {
+        0: {
+          cellWidth: 24,
+          halign: "left",
+        },
+
+        1: {
+          cellWidth: 30,
+          halign: "right",
+        },
+
+        2: {
+          cellWidth: 26,
+          halign: "right",
+        },
+
+        3: {
+          cellWidth: 30,
+          halign: "right",
+        },
+
+        4: {
+          cellWidth: 34,
+          halign: "center",
+        },
+
+        5: {
+          cellWidth: 26,
+          halign: "center",
+        },
+      },
+      didParseCell,
+
+      didDrawPage: (data) => {
+        // Header on every page
+        drawHeader();
+
+        // Only the first page shows the report information
+        if (data.pageNumber > 1) {
+          pdf.setFont("helvetica", "bold");
+          pdf.setFontSize(11);
+          pdf.setTextColor(...colors.text);
+
+          pdf.text(reportTitle, 15, 42);
+        }
+
+        // Footer on every page
+        drawFooter();
+      },
+    });
+  };
+
+  // =============================
+  // Footer
+  // =============================
+
+  const drawFooter = () => {
+    pdf.setFontSize(9);
+    pdf.setTextColor(...colors.footer);
+
+    pdf.text("Generated by Bill Sheet", pageWidth / 2, pageHeight - 8, {
+      align: "center",
+    });
+
+    pdf.setFontSize(8);
+
+    pdf.setTextColor(220, 38, 38);
+
+    pdf.text("Dev.WhiteSauce", pageWidth / 2, pageHeight - 3, {
+      align: "center",
+    });
+  };
+
+  drawHeader();
+
+  const startY = drawReportInfo();
+
+  return {
+    pdf,
+    colors,
+    drawSummary,
+    drawTable,
+    drawFooter,
+    startY,
+  };
+}

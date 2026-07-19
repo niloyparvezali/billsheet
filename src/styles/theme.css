@@ -23,6 +23,7 @@
   --danger: #ff7980;
   --danger-bg: #3d171d;
   --info: #7dd3fc;
+  --info-bg: rgba(125, 211, 252, 0.16);
   --status-paid-bg: #0c4a42;
   --status-pending-bg: #3b2026;
   --status-paid-text: #65e3a9;
@@ -76,6 +77,7 @@
   --danger: #fb7185;
   --danger-bg: #3f1724;
   --info: #67e8f9;
+  --info-bg: rgba(34, 211, 238, 0.16);
   --status-paid-bg: #0f4b5c;
   --status-pending-bg: #3d1e2c;
   --status-paid-text: #7dd3fc;
@@ -129,6 +131,7 @@
   --danger: #d9485f;
   --danger-bg: #ffe9ed;
   --info: #1f8fb8;
+  --info-bg: #e6f7fe;
   --status-paid-bg: #e6f8f0;
   --status-pending-bg: #fff1e7;
   --status-paid-text: #1f9d71;
@@ -182,6 +185,7 @@
   --danger: #ff7980;
   --danger-bg: #3d171d;
   --info: #7dd3fc;
+  --info-bg: rgba(125, 211, 252, 0.16);
   --status-paid-bg: #0c4a42;
   --status-pending-bg: #3b2026;
   --status-paid-text: #65e3a9;

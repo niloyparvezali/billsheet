@@ -1,5 +1,6 @@
 import { FiEdit2, FiTrash2 } from "react-icons/fi";
 import StatusBadge from "./StatusBadge";
+import { getDisplayPackages } from "../utils/users";
 
 export default function UsersTable({
   list,
@@ -14,12 +15,19 @@ export default function UsersTable({
   startIndex,
   endIndex,
 }) {
+  const getUserStatusValue = (user) => (user?.status || (user?.active === false ? "Inactive" : "Active"));
   const renderCardStats = (user) => [
-    { label: "Bill", value: money(user.monthlyBill) },
+    { label: "Amount", value: money(user.monthlyBill) },
     { label: "Paid", value: money(0) },
     { label: "Due", value: money(Math.max(0, Number(user.monthlyBill || 0))) },
-    { label: "Status", value: <StatusBadge status={user.status || "Active"} className="user-inline-badge" /> },
+    { label: "Status", value: <StatusBadge status={getUserStatusValue(user)} className="user-inline-badge" /> },
   ];
+  const renderPackageChips = (user) => {
+    const packageChips = getDisplayPackages(user);
+    return packageChips.length > 0 ? packageChips.map((item) => (
+      <span className="user-category" key={item}>{item}</span>
+    )) : <span className="user-category">Uncategorized</span>;
+  };
 
   return (
     <div className="table-wrap">
@@ -28,8 +36,9 @@ export default function UsersTable({
           <tr>
             <th style={{ width: "70px" }}>SL</th>
             <th>Name</th>
-            <th style={{ width: "170px" }}>Category</th>
-            <th style={{ width: "170px" }}>Monthly Bill</th>
+            <th style={{ width: "230px" }}>Package / Category</th>
+            <th style={{ width: "170px" }}>Amount</th>
+            <th style={{ width: "140px" }}>Status</th>
             <th style={{ width: "190px" }}>Phone</th>
             <th style={{ width: "170px" }}>Created</th>
             <th className="actions-header">Action</th>
@@ -42,10 +51,15 @@ export default function UsersTable({
               <td data-label="Name">
                 <strong className="user-name">{user.name}</strong>
               </td>
-              <td data-label="Category">
-                <span className="user-category">{user.category}</span>
+              <td data-label="Package / Category">
+                <div className="user-package-list">
+                  {renderPackageChips(user)}
+                </div>
               </td>
-              <td data-label="Monthly Bill">{money(user.monthlyBill)}</td>
+              <td data-label="Amount">{money(user.monthlyBill)}</td>
+              <td data-label="Status">
+                <StatusBadge status={getUserStatusValue(user)} className="user-inline-badge" />
+              </td>
               <td data-label="Phone">{user.phone || "—"}</td>
               <td data-label="Created">{formatDate(user.createdAt)}</td>
               <td className="actions actions-cell" data-label="Action">
@@ -67,7 +81,9 @@ export default function UsersTable({
             <div className="user-card-header">
               <div className="user-card-heading">
                 <h3>{user.name}</h3>
-                <span className="user-category">{user.category || "Uncategorized"}</span>
+                <div className="user-package-list">
+                  {renderPackageChips(user)}
+                </div>
               </div>
             </div>
 

@@ -4,6 +4,8 @@ import {
   FiArrowLeft,
   FiBriefcase,
   FiCalendar,
+  FiEye,
+  FiEyeOff,
   FiLock,
   FiMail,
   FiPhone,
@@ -13,31 +15,71 @@ import {
 import toast from "react-hot-toast";
 import { useAuth } from "../context/AuthContext";
 
-const keypadDigits = ["1", "2", "3", "4", "5", "6", "7", "8", "9"];
-
 const phoneErrorMessage = (value) => {
-  if (!value) return "Phone number is required.";
-  if (!/^01\d{9}$/.test(value.replace(/\D/g, ""))) {
-    return "Use exactly 11 digits starting with 01.";
+  const raw = String(value ?? "").trim();
+  if (!raw) return "Enter your mobile number.";
+  if (!/^\d*$/.test(raw)) return "Numbers only.";
+  const digits = raw.replace(/\D/g, "");
+  if (digits.length > 11) return "Only 11 digits are allowed.";
+  if (digits.length < 11) {
+    return `Enter ${11 - digits.length} more digit${11 - digits.length === 1 ? "" : "s"}.`;
   }
+  if (!digits.startsWith("01")) return "Number must start with 01.";
   return "";
 };
 
 const passcodeErrorMessage = (value) => {
-  if (!value) return "Passcode is required.";
-  if (!/^\d{6}$/.test(value)) {
-    return "Use exactly 6 numeric digits.";
+  const raw = String(value ?? "").trim();
+  if (!raw) return "Enter your passcode.";
+  if (!/^\d*$/.test(raw)) return "Digits only.";
+  if (raw.length < 6) {
+    return `Enter ${6 - raw.length} more digit${6 - raw.length === 1 ? "" : "s"}.`;
   }
+  if (raw.length > 6) return "Only 6 digits are allowed.";
   return "";
 };
 
 const formatPhoneDisplay = (value = "") => {
-  const digits = value.replace(/\D/g, "").slice(0, 11);
+  const digits = String(value ?? "").replace(/\D/g, "").slice(0, 11);
   if (!digits) return "";
-  const head = digits.slice(0, 2);
-  const middle = digits.slice(2, 6);
-  const tail = digits.slice(6);
-  return [head, middle, tail].filter(Boolean).join(" ");
+  const first = digits.slice(0, 3);
+  const second = digits.slice(3, 7);
+  const third = digits.slice(7, 11);
+  return [first, second, third].filter(Boolean).join(" ");
+};
+
+const sanitizePhoneValue = (value = "") => String(value ?? "").replace(/\D/g, "").slice(0, 11);
+
+const handlePhoneKeyDown = (event) => {
+  const allowedKeys = [
+    "Backspace",
+    "Delete",
+    "Tab",
+    "ArrowLeft",
+    "ArrowRight",
+    "Home",
+    "End",
+    "Enter",
+  ];
+  if (allowedKeys.includes(event.key) || /^\d$/.test(event.key)) return;
+  if (event.ctrlKey || event.metaKey || event.altKey) return;
+  event.preventDefault();
+};
+
+const handlePasscodeKeyDown = (event) => {
+  const allowedKeys = [
+    "Backspace",
+    "Delete",
+    "Tab",
+    "ArrowLeft",
+    "ArrowRight",
+    "Home",
+    "End",
+    "Enter",
+  ];
+  if (allowedKeys.includes(event.key) || /^\d$/.test(event.key)) return;
+  if (event.ctrlKey || event.metaKey || event.altKey) return;
+  event.preventDefault();
 };
 
 export default function Login() {
@@ -51,12 +93,14 @@ export default function Login() {
   const location = useLocation();
   const navigate = useNavigate();
   const phoneInputRef = useRef(null);
+  const passcodeInputRef = useRef(null);
   const passcodeDisplayRef = useRef(null);
   const [mode, setMode] = useState("login");
   const [busy, setBusy] = useState(false);
   const [activeInput, setActiveInput] = useState("phone");
   const [phone, setPhone] = useState("");
   const [passcode, setPasscode] = useState("");
+  const [showPasscode, setShowPasscode] = useState(false);
   const [form, setForm] = useState({
     fullName: "",
     companyName: "",
@@ -68,6 +112,7 @@ export default function Login() {
   });
   const [errors, setErrors] = useState({});
   const from = location.state?.from?.pathname || "/";
+  const autoLoginAttemptedRef = useRef("");
 
   useEffect(() => {
     if (mode !== "login") return;
@@ -76,23 +121,38 @@ export default function Login() {
     return () => window.clearTimeout(frame);
   }, [mode]);
 
+  useEffect(() => {
+    if (mode !== "login" || busy) return;
+    const phoneIsValid = !phoneErrorMessage(phone);
+    const passcodeIsValid = !passcodeErrorMessage(passcode);
+    if (!phoneIsValid || !passcodeIsValid) return;
+
+    const signature = `${phone}|${passcode}`;
+    if (autoLoginAttemptedRef.current === signature) return;
+
+    autoLoginAttemptedRef.current = signature;
+    void attemptLogin(phone, passcode);
+  }, [busy, mode, phone, passcode]);
+
   if (user) return <Navigate to={from} replace />;
 
   const updatePhone = (value) => {
-    const digits = value.replace(/\D/g, "").slice(0, 11);
+    const digits = sanitizePhoneValue(value);
     setPhone(digits);
     setErrors((current) => ({
       ...current,
       phone: phoneErrorMessage(digits),
+      login: "",
     }));
   };
 
   const updatePasscode = (value) => {
-    const digits = value.replace(/\D/g, "").slice(0, 6);
+    const digits = String(value ?? "").replace(/\D/g, "").slice(0, 6);
     setPasscode(digits);
     setErrors((current) => ({
       ...current,
       passcode: passcodeErrorMessage(digits),
+      login: "",
     }));
   };
 
@@ -100,6 +160,7 @@ export default function Login() {
     const nextErrors = {
       phone: phoneErrorMessage(nextPhone),
       passcode: passcodeErrorMessage(nextPasscode),
+      login: "",
     };
     setErrors(nextErrors);
     if (nextErrors.phone || nextErrors.passcode) return;
@@ -110,44 +171,15 @@ export default function Login() {
       toast.success("Signed in successfully.");
       navigate(from, { replace: true });
     } catch (error) {
-      toast.error(error.message || "Unable to sign you in right now.");
+      const message = error.message || "Phone number or passcode does not match, or the user does not exist.";
+      setErrors((current) => ({
+        ...current,
+        login: message,
+      }));
+      toast.error(message);
     } finally {
       setBusy(false);
     }
-  };
-
-  const handleKeypadDigit = (digit) => {
-    if (activeInput === "phone") {
-      const nextPhone = `${phone}${digit}`.replace(/\D/g, "").slice(0, 11);
-      updatePhone(nextPhone);
-      if (nextPhone.length === 11) {
-        setActiveInput("passcode");
-        window.setTimeout(() => passcodeDisplayRef.current?.focus(), 80);
-      }
-      return;
-    }
-    if (passcode.length >= 6) return;
-    const nextPasscode = `${passcode}${digit}`.replace(/\D/g, "").slice(0, 6);
-    updatePasscode(nextPasscode);
-    if (nextPasscode.length === 6) {
-      void attemptLogin(phone, nextPasscode);
-    }
-  };
-
-  const handleKeypadDelete = () => {
-    if (activeInput === "phone") {
-      updatePhone(phone.slice(0, -1));
-      return;
-    }
-    updatePasscode(passcode.slice(0, -1));
-  };
-
-  const handleKeypadClear = () => {
-    if (activeInput === "phone") {
-      updatePhone("");
-      return;
-    }
-    updatePasscode("");
   };
 
   const submitLogin = async (event) => {
@@ -221,21 +253,31 @@ export default function Login() {
       <label className="auth-field">
         <span>Phone number</span>
         <div
-          className={`auth-input ${errors.phone ? "error" : ""} ${activeInput === "phone" ? "active" : ""}`}
+          className={`auth-input auth-input-phone ${errors.phone ? "error" : ""} ${activeInput === "phone" ? "active" : ""}`}
         >
           <FiPhone />
           <input
             ref={phoneInputRef}
-            type="text"
-            inputMode="none"
-            readOnly
-            autoComplete="off"
+            type="tel"
+            inputMode="numeric"
+            autoComplete="tel"
+            maxLength={13}
+            pattern="[0-9]*"
             value={formatPhoneDisplay(phone)}
             onFocus={() => setActiveInput("phone")}
             onClick={() => setActiveInput("phone")}
-            onKeyDown={(event) => event.preventDefault()}
-            onPaste={(event) => event.preventDefault()}
-            placeholder="Enter Phone Number"
+            onKeyDown={handlePhoneKeyDown}
+            onChange={(event) => {
+              const digits = sanitizePhoneValue(event.target.value);
+              updatePhone(digits);
+            }}
+            onPaste={(event) => {
+              event.preventDefault();
+              const pasted = sanitizePhoneValue(event.clipboardData?.getData("text") || "");
+              updatePhone(pasted);
+            }}
+            placeholder="01X XXXX XXXX"
+            aria-label="Phone number"
           />
         </div>
         {errors.phone ? (
@@ -249,58 +291,57 @@ export default function Login() {
           ref={passcodeDisplayRef}
           role="button"
           tabIndex={0}
-          className={`passcode-display ${passcode.length ? "filled" : ""} ${activeInput === "passcode" ? "active" : ""}`}
-          onClick={() => setActiveInput("passcode")}
+          className={`passcode-display ${passcode.length ? "filled" : ""} ${activeInput === "passcode" ? "active" : ""} ${showPasscode ? "revealed" : ""}`}
+          onClick={() => {
+            setActiveInput("passcode");
+            passcodeInputRef.current?.focus();
+          }}
           onFocus={() => setActiveInput("passcode")}
           onKeyDown={(event) => {
             if (event.key === "Enter" || event.key === " ") {
               event.preventDefault();
               setActiveInput("passcode");
+              passcodeInputRef.current?.focus();
             }
           }}
         >
-          {Array.from({ length: 6 }, (_, index) => (
-            <span
-              key={index}
-              className={index < passcode.length ? "dot filled" : "dot"}
-            />
-          ))}
-        </div>
-        <div className="keypad" role="group" aria-label="Numeric keypad">
-          {keypadDigits.map((digit) => (
-            <button
-              key={digit}
-              type="button"
-              className="keypad-btn keypad-btn-number"
-              onClick={() => handleKeypadDigit(digit)}
-            >
-              {digit}
-            </button>
-          ))}
+          <input
+            ref={passcodeInputRef}
+            type={showPasscode ? "text" : "password"}
+            inputMode="numeric"
+            autoComplete="current-password"
+            maxLength={6}
+            pattern="[0-9]*"
+            value={passcode}
+            onChange={(event) => updatePasscode(event.target.value)}
+            onFocus={() => setActiveInput("passcode")}
+            onKeyDown={handlePasscodeKeyDown}
+            onPaste={(event) => {
+              event.preventDefault();
+              updatePasscode(event.clipboardData?.getData("text") || "");
+            }}
+            className={`passcode-input ${showPasscode ? "revealed" : ""}`}
+            aria-label="Passcode"
+            placeholder="••••••"
+          />
+          <div className="passcode-visual" aria-hidden="true">
+            {Array.from({ length: 6 }, (_, index) => (
+              <span
+                key={index}
+                className={index < passcode.length ? "dot filled" : "dot"}
+              />
+            ))}
+          </div>
           <button
             type="button"
-            className="keypad-btn keypad-btn-backspace"
-            onClick={handleKeypadDelete}
-            aria-label="Backspace"
+            className="auth-passcode-toggle"
+            onClick={(event) => {
+              event.stopPropagation();
+              setShowPasscode((current) => !current);
+            }}
+            aria-label={showPasscode ? "Hide passcode" : "Show passcode"}
           >
-            ⌫
-          </button>
-
-          <button
-            type="button"
-            className="keypad-btn keypad-btn-zero"
-            onClick={() => handleKeypadDigit("0")}
-          >
-            0
-          </button>
-
-          <button
-            type="button"
-            className="keypad-btn keypad-btn-clear"
-            onClick={handleKeypadClear}
-            aria-label="Clear"
-          >
-            C
+            {showPasscode ? <FiEye /> : <FiEyeOff />}
           </button>
         </div>
         {errors.passcode ? (
@@ -366,22 +407,35 @@ export default function Login() {
       </label>
       <label className="auth-field">
         <span>Phone number</span>
-        <div className={`auth-input ${errors.phone ? "error" : ""}`}>
+        <div className={`auth-input auth-input-phone ${errors.phone ? "error" : ""}`}>
           <FiPhone />
           <input
             type="tel"
             inputMode="numeric"
             autoComplete="tel"
+            maxLength={13}
+            pattern="[0-9]*"
             value={form.phone}
             onChange={(event) => {
-              const digits = event.target.value.replace(/\D/g, "").slice(0, 11);
+              const digits = sanitizePhoneValue(event.target.value);
               setForm({ ...form, phone: digits });
               setErrors((current) => ({
                 ...current,
                 phone: phoneErrorMessage(digits),
               }));
             }}
-            placeholder="01XXXXXXXXX"
+            onKeyDown={handlePhoneKeyDown}
+            onPaste={(event) => {
+              event.preventDefault();
+              const digits = sanitizePhoneValue(event.clipboardData?.getData("text") || "");
+              setForm({ ...form, phone: digits });
+              setErrors((current) => ({
+                ...current,
+                phone: phoneErrorMessage(digits),
+              }));
+            }}
+            placeholder="015 6006 0333"
+            aria-label="Phone number"
           />
         </div>
         {errors.phone ? (
@@ -495,16 +549,16 @@ export default function Login() {
         {mode === "login" ? (
           <form onSubmit={submitLogin} className="auth-form">
             {renderLoginFields()}
-
-            {mode !== "login" && (
-              <button
-                className="primary auth-submit"
-                type="submit"
-                disabled={busy}
-              >
-                {busy ? "Please wait..." : "Sign in"}
-              </button>
-            )}
+            <button
+              className="primary auth-submit auth-submit-login"
+              type="submit"
+              disabled={busy}
+            >
+              {busy ? "Please wait..." : "Sign in"}
+            </button>
+            {errors.login ? (
+              <small className="auth-error">{errors.login}</small>
+            ) : null}
           </form>
         ) : mode === "register" ? (
           <form onSubmit={submitRegister} className="auth-form">
@@ -521,15 +575,23 @@ export default function Login() {
           <form onSubmit={submitForgot} className="auth-form">
             <label className="auth-field">
               <span>Registered phone number</span>
-              <div className={`auth-input ${errors.phone ? "error" : ""}`}>
+              <div className={`auth-input auth-input-phone ${errors.phone ? "error" : ""}`}>
                 <FiPhone />
                 <input
                   type="tel"
                   inputMode="numeric"
                   autoComplete="tel"
+                  maxLength={13}
+                  pattern="[0-9]*"
                   value={phone}
                   onChange={(event) => updatePhone(event.target.value)}
-                  placeholder="01XXXXXXXXX"
+                  onKeyDown={handlePhoneKeyDown}
+                  onPaste={(event) => {
+                    event.preventDefault();
+                    updatePhone(event.clipboardData?.getData("text") || "");
+                  }}
+                  placeholder="015 6006 0333"
+                  aria-label="Registered phone number"
                 />
               </div>
               {errors.phone ? (
@@ -552,7 +614,7 @@ export default function Login() {
               className="auth-pill auth-create"
               onClick={() => setMode("register")}
             >
-              <FiUserPlus />
+              <FiUserPlus className="auth-pill-icon" />
               <span>Create account</span>
             </button>
           ) : mode === "register" ? (
@@ -561,7 +623,7 @@ export default function Login() {
               className="auth-pill auth-create"
               onClick={() => setMode("login")}
             >
-              <FiArrowLeft />
+              <FiArrowLeft className="auth-pill-icon" />
               <span>Back to sign in</span>
             </button>
           ) : null}
@@ -572,7 +634,7 @@ export default function Login() {
               className="auth-pill auth-forgot"
               onClick={() => setMode("forgot")}
             >
-              Forgot passcode
+              <span>Forgot passcode</span>
             </button>
           ) : mode === "forgot" ? (
             <button
@@ -580,7 +642,7 @@ export default function Login() {
               className="auth-pill auth-forgot"
               onClick={() => setMode("login")}
             >
-              Back to sign in
+              <span>Back to sign in</span>
             </button>
           ) : null}
         </div>

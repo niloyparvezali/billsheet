@@ -18,65 +18,80 @@ import useOwnedCollection from "../hooks/useOwnedCollection";
 import Modal from "../components/Modal";
 import ConfirmModal from "../components/ConfirmModal";
 import { formatDate, money } from "../utils/date";
+import { getDisplayPackages, normalizeBangladeshPhone, normalizePackages } from "../utils/users";
+
+const todayValue = () => {
+  const today = new Date();
+  const year = today.getFullYear();
+  const month = `${today.getMonth() + 1}`.padStart(2, "0");
+  const day = `${today.getDate()}`.padStart(2, "0");
+  return `${year}-${month}-${day}`;
+};
 
 const blank = {
   name: "",
   category: "",
+  packages: [],
   monthlyBill: "",
   phone: "",
   address: "",
-  joinDate: "",
-  leaveDate: "",
+  joinDate: todayValue(),
   status: "Active",
+  statusHistory: [],
 };
 
 export default function Users() {
   const searchRef = useRef(null);
   const { user: signedInUser } = useAuth();
-  const { data: allUsers } = useOwnedCollection("users");
-  const users = useMemo(
-    () => allUsers.filter((user) => user.active !== false),
-    [allUsers],
-  );
+  const { data: allUsers = [] } = useOwnedCollection("users");
+  const users = useMemo(() => (allUsers || []).filter(Boolean), [allUsers]);
   const { data: savedCategories, error: categoryError } =
     useOwnedCollection("categories");
   const [search, setSearch] = useState("");
   const [form, setForm] = useState(null);
   const [category, setCategory] = useState(false);
+  const [formError, setFormError] = useState("");
   const [newCategories, setNewCategories] = useState([]);
   const [deleteUser, setDeleteUser] = useState(null);
   const [categoryToRemove, setCategoryToRemove] = useState(null);
   const categories = useMemo(() => {
-    const seenIds = new Set(savedCategories.map((item) => item.id));
+    const seenIds = new Set((savedCategories || []).map((item) => item.id));
     const merged = [
-      ...savedCategories,
+      ...(savedCategories || []),
       ...newCategories.filter((newItem) => !seenIds.has(newItem.id)),
     ];
-    const currentCategory = form?.category?.trim();
-    if (
-      currentCategory &&
-      !merged.some(
-        (item) =>
-          item.name?.trim().toLowerCase() === currentCategory.toLowerCase(),
-      )
-    ) {
-      merged.push({ id: `current-${currentCategory}`, name: currentCategory });
-    }
+    const selectedPackages = normalizePackages(form?.packages || form?.category || []);
+    selectedPackages.forEach((packageName) => {
+      if (
+        packageName &&
+        !merged.some(
+          (item) => item.name?.trim().toLowerCase() === packageName.toLowerCase(),
+        )
+      ) {
+        merged.push({ id: `current-${packageName}`, name: packageName });
+      }
+    });
     return merged
       .filter((item) => item.name)
       .sort((a, b) => a.name.localeCompare(b.name));
-  }, [savedCategories, newCategories, form?.category]);
+  }, [savedCategories, newCategories, form?.packages, form?.category]);
   const list = useMemo(
     () =>
       users
-        .filter((user) =>
-          [user.name, user.category, user.phone].some((value) =>
+        .filter((user) => {
+          const displayPackages = getDisplayPackages(user).join(" ");
+          return [user.name, user.category, displayPackages, user.phone].some((value) =>
             String(value || "")
               .toLowerCase()
               .includes(search.toLowerCase()),
-          ),
-        )
-        .sort((a, b) => a.name.localeCompare(b.name)),
+          );
+        })
+        .sort((a, b) => {
+          const aActive = String(a?.status || (a?.active === false ? "Inactive" : "Active")).trim().toLowerCase() !== "inactive";
+          const bActive = String(b?.status || (b?.active === false ? "Inactive" : "Active")).trim().toLowerCase() !== "inactive";
+          if (aActive !== bActive) return aActive ? -1 : 1;
+          return (a?.name || "").localeCompare(b?.name || "");
+        }),
     [users, search],
   );
   const USERS_PER_PAGE = 50;
@@ -100,25 +115,43 @@ export default function Users() {
       toast.error("Name is required");
       return;
     }
+    const normalizedPhone = normalizeBangladeshPhone(form.phone || "");
+    if (form.phone && !/^\+8801[3-9]\d{8}$/.test(normalizedPhone)) {
+      toast.error("Enter a valid Bangladesh phone number beginning with +880");
+      return;
+    }
     if (!form.id && !signedInUser) {
       toast.error("Please sign in again before adding a user");
       return;
     }
     try {
+      const normalizedStatus = String(form.status || "Active").trim();
+      const normalizedStatusValue = normalizedStatus === "Inactive" ? "Inactive" : "Active";
+      const isActive = normalizedStatusValue !== "Inactive";
+      const previousStatus = String(form?.status || (form?.active === false ? "Inactive" : "Active")).trim().toLowerCase();
+      const nextStatus = normalizedStatusValue.toLowerCase();
+      const historyEntries = Array.isArray(form?.statusHistory) ? form.statusHistory : [];
+      const statusChanged = previousStatus && previousStatus !== nextStatus;
+      const nextHistory = statusChanged
+        ? [...historyEntries, { status: normalizedStatusValue, date: new Date().toISOString() }]
+        : historyEntries;
+      const selectedPackages = normalizePackages(form?.packages || form?.category || []);
       const data = {
         name: form.name.trim(),
-        category: form.category,
+        category: selectedPackages[0] || form.category || "",
+        packages: selectedPackages,
         monthlyBill: Number(form.monthlyBill || 0),
-        phone: form.phone.trim(),
+        phone: normalizedPhone,
         address: form.address.trim(),
-        joinDate: form.joinDate || null,
-        leaveDate: form.leaveDate || null,
-        status: form.status || "Active",
+        joinDate: form.joinDate || todayValue(),
+        inactiveDate: isActive ? null : serverTimestamp(),
+        status: normalizedStatusValue,
+        active: isActive,
+        statusHistory: nextHistory,
         ...(form.id
           ? {}
           : {
               ownerId: signedInUser.uid,
-              active: true,
               createdAt: serverTimestamp(),
             }),
       };
@@ -130,17 +163,22 @@ export default function Users() {
       else await addDoc(collection(db, "users"), data);
       toast.success("User saved");
       setForm(null);
+      setFormError("");
     } catch (error) {
-      toast.error(error.message);
+      setFormError(error.message || "Could not save user");
+      toast.error(error.message || "Could not save user");
     }
   };
   const remove = async (id) => {
     try {
+      const existingUser = (allUsers || []).find((item) => item.id === id);
+      const historyEntries = Array.isArray(existingUser?.statusHistory) ? existingUser.statusHistory : [];
       await updateDoc(doc(db, "users", id), {
         active: false,
         status: "Inactive",
-        leaveDate: new Date().toISOString(),
+        inactiveDate: serverTimestamp(),
         disconnectedAt: serverTimestamp(),
+        statusHistory: [...historyEntries, { status: "Inactive", date: new Date().toISOString() }],
       });
       toast.success("User deactivated; payment history kept");
     } catch (error) {
@@ -151,25 +189,46 @@ export default function Users() {
   };
 
   const removeCategory = async (category) => {
-    const inUse = allUsers.some(
-      (user) =>
-        user.category?.trim().toLowerCase() ===
-        category.name.trim().toLowerCase(),
-    );
-    if (inUse) {
-      toast.error("This category is used by a customer and cannot be removed");
+    if (!category?.id) {
+      toast.error("Could not delete category because its ID is missing.");
+      setCategoryToRemove(null);
       return;
     }
+
+    const inUse = allUsers.some((user) => {
+      const packages = getDisplayPackages(user);
+      return packages.some(
+        (packageName) =>
+          packageName.trim().toLowerCase() === category.name.trim().toLowerCase(),
+      );
+    });
+    if (inUse) {
+      toast.error(
+        "This category is currently assigned to one or more users and cannot be deleted.",
+      );
+      setCategoryToRemove(null);
+      return;
+    }
+
+    const optimisticRemoval = {
+      id: category.id,
+      name: category.name,
+    };
+    setNewCategories((current) =>
+      current.filter((item) => item.id !== category.id),
+    );
+    setCategoryToRemove(null);
+
     try {
       await deleteDoc(doc(db, "categories", category.id));
-      setNewCategories((current) =>
-        current.filter((item) => item.id !== category.id),
-      );
-      toast.success(`${category.name} category removed`);
+      toast.success("Category deleted successfully.");
     } catch (error) {
-      toast.error(`Could not remove category: ${error.message}`);
-    } finally {
-      setCategoryToRemove(null);
+      setNewCategories((current) => {
+        const alreadyPresent = current.some((item) => item.id === optimisticRemoval.id);
+        if (alreadyPresent) return current;
+        return [...current, optimisticRemoval];
+      });
+      toast.error(`Could not delete category: ${error.message}`);
     }
   };
 
@@ -243,7 +302,6 @@ export default function Users() {
           close={() => setCategory(false)}
           onAdded={(item) => {
             setNewCategories((current) => [...current, item]);
-            setForm((current) => ({ ...current, category: item.name }));
           }}
           onRemoved={(id) =>
             setNewCategories((current) =>
@@ -265,9 +323,9 @@ export default function Users() {
       )}
       {categoryToRemove && (
         <ConfirmModal
-          title="Remove category"
-          message={`Remove the category “${categoryToRemove.name}”? This cannot be undone.`}
-          confirmText="Remove"
+          title="Delete category"
+          message="Are you sure you want to delete this category?"
+          confirmText="Delete"
           cancelText="Cancel"
           onConfirm={() => removeCategory(categoryToRemove)}
           onCancel={() => setCategoryToRemove(null)}

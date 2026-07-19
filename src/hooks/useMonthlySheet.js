@@ -1,5 +1,5 @@
-import { useCallback, useMemo } from "react";
-import { computePaymentSummary, getMonthPaymentTransactions } from "../utils/payments";
+import { useMemo } from "react";
+import { buildMonthlySheetLedgerRow, getMonthPaymentTransactions, isUserActiveForPeriod } from "../utils/payments";
 
 const period = (month, year) => Number(year) * 12 + Number(month);
 export default function useMonthlySheet({
@@ -12,30 +12,22 @@ export default function useMonthlySheet({
   statusOrder,
 }) {
   const activeUsers = useMemo(
-    () => users.filter((user) => user.active !== false),
-    [users],
+    () => (users || []).filter((user) => isUserActiveForPeriod(user, { month, year })),
+    [month, users, year],
   );
-  const activeUserIds = useMemo(
-    () => new Set(activeUsers.map((user) => user.id)),
-    [activeUsers],
-  );
-  const payments = useMemo(
-    () =>
-      allPayments.filter((payment) => {
-        const isRemoved = Boolean(
-          payment?.isDeleted || payment?.deletedAt || payment?.status === "removed",
-        );
-        return (
-          !isRemoved &&
-          Number(payment.month) === month &&
-          Number(payment.year) === year
-        );
-      }),
-    [allPayments, month, year],
-  );
+  const payments = useMemo(() => {
+    const targetMonth = Number(month);
+    const targetYear = Number(year);
+    return (allPayments || []).filter((payment) => {
+      const isRemoved = Boolean(
+        payment?.isDeleted || payment?.deletedAt || payment?.status === "removed",
+      );
+      return !isRemoved && Number(payment.month) === targetMonth && Number(payment.year) === targetYear;
+    });
+  }, [allPayments, month, year]);
   const paymentsByUser = useMemo(() => {
     const map = new Map();
-    allPayments.forEach((payment) => {
+    (allPayments || []).forEach((payment) => {
       const isRemoved = Boolean(
         payment?.isDeleted || payment?.deletedAt || payment?.status === "removed",
       );
@@ -48,22 +40,6 @@ export default function useMonthlySheet({
   }, [allPayments]);
   const searchTerm = useMemo(() => search.trim().toLowerCase(), [search]);
   const currentPeriod = period(month, year);
-  const dueFor = useCallback(
-    (user) => {
-      const bill = Number(user.monthlyBill || 0);
-      const history = paymentsByUser.get(user.id) || [];
-      const previous = history
-        .filter(
-          (payment) => period(payment.month, payment.year) < currentPeriod,
-        )
-        .sort((a, b) => period(b.month, b.year) - period(a.month, a.year))[0];
-      const missedMonths = previous
-        ? Math.max(1, currentPeriod - period(previous.month, previous.year))
-        : 1;
-      return Number(previous?.due || 0) + bill * missedMonths;
-    },
-    [currentPeriod, paymentsByUser],
-  );
   const rows = useMemo(() => {
     const paymentIndex = new Map();
     payments.forEach((payment) => {
@@ -73,53 +49,42 @@ export default function useMonthlySheet({
       paymentIndex.set(payment.userId, existing);
     });
 
-    const currentUsers = activeUsers.map((user) => ({
-      user,
-      payments: getMonthPaymentTransactions({
-        payments: paymentIndex.get(user.id) || [],
-        userId: user.id,
-        userName: user.name,
-        month,
-        year,
-      }),
-    }));
-    const archivedUsers = payments
-      .filter((payment) => !activeUserIds.has(payment.userId))
-      .map((payment) => ({
-        user: {
-          id: payment.userId,
-          name: payment.userName || "Former customer",
-          category: payment.userCategory || "—",
-          monthlyBill: payment.monthlyBill || 0,
-          archived: true,
-        },
-        payments: [payment],
-      }));
-
-    return [...currentUsers, ...archivedUsers]
-      .sort((a, b) => a.user.name.localeCompare(b.user.name))
-      .map(({ user, payments: userPayments }) => {
-        const openingDue = dueFor(user);
-        const bill = Number(user.monthlyBill || 0);
-        const summary = computePaymentSummary({
-          bill,
+    return activeUsers
+      .map((user) => {
+        const userPayments = getMonthPaymentTransactions({
+          payments: paymentIndex.get(user.id) || [],
+          userId: user.id,
+          userName: user.name,
+          month,
+          year,
+        });
+        const history = (paymentsByUser.get(user.id) || []).filter(
+          (payment) => period(payment.month, payment.year) < currentPeriod,
+        );
+        const row = buildMonthlySheetLedgerRow({
+          user,
           payments: userPayments || [],
+          history,
+          month,
+          year,
         });
         return {
           user,
-          payment: [...userPayments].sort((left, right) => {
-            const leftTime = Number(left?.paymentDate?.seconds || left?.createdAt?.seconds || 0);
-            const rightTime = Number(right?.paymentDate?.seconds || right?.createdAt?.seconds || 0);
-            return rightTime - leftTime;
-          })[0] || null,
-          openingDue,
-          currentPaid: summary.totalPaid,
-          due: summary.outstandingBalance,
-          carryForward: summary.carryForward,
-          status: summary.status,
+          payment: row.payment,
+          openingDue: row.openingDue,
+          openingAdvance: row.openingAdvance,
+          currentPaid: row.currentPaid,
+          due: row.currentDue,
+          carryForward: row.currentAdvance,
+          status: row.status,
+          totalPayable: row.totalPayable,
+          totalPaid: row.totalPaid,
+          currentDue: row.currentDue,
+          currentAdvance: row.currentAdvance,
         };
-      });
-  }, [activeUsers, activeUserIds, payments, dueFor]);
+      })
+      .sort((a, b) => a.user.name.localeCompare(b.user.name));
+  }, [activeUsers, currentPeriod, month, payments, paymentsByUser, year]);
   const paid = rows.filter((row) => Number(row.currentPaid || 0) > 0);
   const total = rows.reduce((sum, row) => sum + Number(row.currentPaid || 0), 0);
   const totalDue = rows.reduce((sum, row) => sum + Number(row.due || 0), 0);

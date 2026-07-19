@@ -13,7 +13,8 @@ import ConfirmModal from "./ConfirmModal";
 import { db } from "../firebase/config";
 import useOwnedCollection from "../hooks/useOwnedCollection";
 import { money } from "../utils/date";
-import { computePaymentSummary, getMonthPaymentTransactions } from "../utils/payments";
+import { computePaymentSummary, formatBalanceDisplayValue, getMonthPaymentTransactions } from "../utils/payments";
+import { buildTransactionRecord, derivePaymentLedgerMetrics, TRANSACTION_TYPES } from "../utils/transactions.js";
 
 export default function PaymentModal({ data, month, year, ownerId, close }) {
   const [amount, setAmount] = useState("");
@@ -53,10 +54,70 @@ export default function PaymentModal({ data, month, year, ownerId, close }) {
       setSaving(false);
       return;
     }
+    if (paid < 0) {
+      toast.error("Payment amount cannot be negative.");
+      setSaving(false);
+      return;
+    }
+    if (paid === 0) {
+      toast.error("Payment amount must be greater than zero.");
+      setSaving(false);
+      return;
+    }
+    if (!Number.isFinite(addedDue) || addedDue < 0) {
+      toast.error("Additional due must be zero or a positive number.");
+      setSaving(false);
+      return;
+    }
     const paymentTimestamp = new Date();
     const paymentDateText = paymentTimestamp.toISOString().split("T")[0];
     const paymentTimeText = paymentTimestamp.toTimeString().split(" ")[0].slice(0, 5);
     const notes = addedDue > 0 ? `Additional due: ${addedDue}` : "";
+    const previousPaid = Number(alreadyPaid || 0);
+    const ledgerMetrics = derivePaymentLedgerMetrics({
+      billAmount: bill,
+      amount: paid,
+      previousPaid,
+      previousDue: outstandingBalance,
+      previousAdvance: carryForward,
+    });
+    const currentPaid = ledgerMetrics.currentPaid;
+    const currentDue = ledgerMetrics.currentDue;
+    const currentAdvance = ledgerMetrics.currentAdvance;
+    const transaction = buildTransactionRecord({
+      userId: data.user.id,
+      customerId: data.user.id,
+      customerName: data.user.name,
+      month,
+      year,
+      transactionType: TRANSACTION_TYPES.PAYMENT,
+      amount: paid,
+      billAmount: bill,
+      previousPaid,
+      currentPaid,
+      previousDue: outstandingBalance,
+      currentDue,
+      previousAdvance: carryForward,
+      currentAdvance,
+      status: "Completed",
+      remarks: notes,
+      createdBy: ownerId || "",
+      createdAt: paymentTimestamp,
+      updatedAt: paymentTimestamp,
+      metadata: {
+        ownerId,
+        userName: data.user.name,
+        userCategory: data.user.category,
+        monthlyBill: bill,
+        extraDue: addedDue,
+        paymentDateText,
+        paymentTime: paymentTimeText,
+        paymentType: "Payment",
+        createdBy: ownerId || "",
+        status: "Completed",
+        notes,
+      },
+    });
     const base = {
       ownerId,
       userId: data.user.id,
@@ -69,13 +130,14 @@ export default function PaymentModal({ data, month, year, ownerId, close }) {
       year,
       amount: paid,
       extraDue: addedDue,
-      transactionId: "",
+      transactionId: transaction.transactionId,
       paymentDateText,
       paymentTime: paymentTimeText,
       paymentType: "Payment",
       createdBy: ownerId || "",
       status: "Completed",
       notes,
+      ...transaction,
     };
     try {
       const paymentRef = doc(collection(db, "payments"));
@@ -85,6 +147,7 @@ export default function PaymentModal({ data, month, year, ownerId, close }) {
         transactionId: paymentRef.id,
         paymentDate: serverTimestamp(),
         createdAt: serverTimestamp(),
+        updatedAt: serverTimestamp(),
       });
       await batch.commit();
       toast.success(`${data.user.name}'s payment has been saved successfully.`);
@@ -115,7 +178,7 @@ export default function PaymentModal({ data, month, year, ownerId, close }) {
         <p className="payment-note">
           Bill Amount: <b>{money(bill)}</b> · Already Paid: <b>{money(alreadyPaid)}</b>
           <br />
-          Outstanding Balance: <b>{money(outstandingBalance)}</b> · Carry Forward: <b>{money(carryForward)}</b>
+          Outstanding Balance: <b style={{ color: "#fda4af" }}>{formatBalanceDisplayValue({ due: outstandingBalance, carryForward: 0 })}</b> · Carry Forward: <b style={{ color: "#4ade80" }}>{formatBalanceDisplayValue({ due: 0, carryForward })}</b>
         </p>
         <label>
           Payment Amount

@@ -8,7 +8,7 @@ export default function useOwnedCollection(name) {
   const { user } = useAuth();
 
   const q = useMemo(() => {
-    if (!db || !user) return null;
+    if (!db || !user?.uid) return null;
     return query(collection(db, name), where("ownerId", "==", user.uid));
   }, [name, user?.uid]);
 

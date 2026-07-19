@@ -1,9 +1,11 @@
+import { exportMonthlySheetPdf } from "../utils/pdf";
 import PaymentModal from "../components/PaymentModal";
 import useMonthlySheet from "../hooks/useMonthlySheet";
 import StatusBadge from "../components/StatusBadge";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import {
+  collection,
   doc,
   getDoc,
   serverTimestamp,
@@ -29,7 +31,11 @@ import ConfirmModal from "../components/ConfirmModal";
 import { useAuth } from "../context/AuthContext";
 import { monthNames, money, formatDate, formatTime } from "../utils/date";
 import { Send } from "lucide-react";
-import { reversePaymentRecord, voidPaymentRecord } from "../utils/payments";
+import {
+  buildPaymentRemovalEvent,
+  formatBalanceDisplayValue,
+} from "../utils/payments";
+import { buildReversalTransactionRecord } from "../utils/transactions";
 
 const defaultSmsTemplate =
   "Dear {name}, your monthly bill is {bill}. Please pay by {duedate}. Thank you.";
@@ -99,7 +105,10 @@ export default function MonthlySheet() {
     return () => window.removeEventListener("keydown", onKeyDown);
   }, []);
 
-  const pageCount = Math.max(1, Math.ceil(filteredRows.length / ITEMS_PER_PAGE));
+  const pageCount = Math.max(
+    1,
+    Math.ceil(filteredRows.length / ITEMS_PER_PAGE),
+  );
   const currentPageIndex = Math.min(currentPage, pageCount);
   const pagedRows = useMemo(
     () =>
@@ -111,12 +120,14 @@ export default function MonthlySheet() {
   );
   const showingFrom =
     filteredRows.length === 0 ? 0 : (currentPageIndex - 1) * ITEMS_PER_PAGE + 1;
-  const showingTo = Math.min(currentPageIndex * ITEMS_PER_PAGE, filteredRows.length);
+  const showingTo = Math.min(
+    currentPageIndex * ITEMS_PER_PAGE,
+    filteredRows.length,
+  );
 
   const [confirmDelete, setConfirmDelete] = useState(null);
   const [smsRecipient, setSmsRecipient] = useState(null);
   const [voidReason, setVoidReason] = useState("");
-  const [voidMode, setVoidMode] = useState("void");
 
   const summaryCards = useMemo(
     () => [
@@ -152,7 +163,7 @@ export default function MonthlySheet() {
       },
       {
         label: "Total Due",
-        value: money(totalDue),
+        value: formatBalanceDisplayValue({ due: totalDue, carryForward: 0 }),
         accent: "red",
         icon: <FiAlertCircle />,
       },
@@ -164,40 +175,39 @@ export default function MonthlySheet() {
     if (!payment?.id) return;
     try {
       const timestamp = new Date();
-      const baseRecord = voidMode === "reverse"
-        ? reversePaymentRecord({
-            payment,
-            reversedBy: signedInUser?.uid || signedInUser?.email || "admin",
-            reason: voidReason.trim() || "Reversed by admin",
-            reverseDate: timestamp,
-            reverseTime: timestamp.toTimeString().split(" ")[0].slice(0, 5),
-          })
-        : voidPaymentRecord({
-            payment,
-            voidedBy: signedInUser?.uid || signedInUser?.email || "admin",
-            reason: voidReason.trim() || "Voided by admin",
-            voidDate: timestamp,
-            voidTime: timestamp.toTimeString().split(" ")[0].slice(0, 5),
-          });
-      if (!baseRecord) throw new Error("No payment record found");
+      const removalEvent = buildPaymentRemovalEvent({
+        payment,
+        mode: "void",
+        actor: signedInUser?.uid || signedInUser?.email || "admin",
+        reason: voidReason.trim() || "Voided by admin",
+        timestamp,
+      });
+      if (!removalEvent) throw new Error("No payment record found");
+
       const batch = writeBatch(db);
-      batch.update(doc(db, "payments", payment.id), {
-        ...baseRecord,
+      const originalPaymentRef = doc(db, "payments", payment.id);
+      const reversalRef = doc(collection(db, "payments"));
+      batch.update(originalPaymentRef, {
+        ...removalEvent.originalRecord,
         deletedAt: serverTimestamp(),
-        status: baseRecord.status,
-        voidedBy: baseRecord.voidedBy,
-        voidDate: baseRecord.voidDate,
-        voidTime: baseRecord.voidTime,
-        reason: baseRecord.reason,
+        updatedAt: serverTimestamp(),
+      });
+      batch.set(reversalRef, {
+        ...removalEvent.reversalRecord,
+        id: reversalRef.id,
+        transactionId: reversalRef.id,
+        deletedAt: serverTimestamp(),
+        paymentDate: serverTimestamp(),
+        createdAt: serverTimestamp(),
+        updatedAt: serverTimestamp(),
       });
       await batch.commit();
-      toast.success(`Payment marked as ${baseRecord.status}`);
+      toast.success(`Payment marked as ${removalEvent.reversalRecord.status}`);
     } catch (error) {
       toast.error(error.message || "Could not void payment");
     } finally {
       setConfirmDelete(null);
       setVoidReason("");
-      setVoidMode("void");
     }
   };
 
@@ -241,6 +251,33 @@ export default function MonthlySheet() {
       .map((part) => part[0])
       .join("")
       .toUpperCase();
+  const handleExportPDF = () => {
+    exportMonthlySheetPdf({
+      rows: filteredRows,
+
+      month: monthNames[month - 1],
+
+      year,
+
+      summary: {
+        totalUsers: rows.length,
+        paidUsers: paid.length,
+        pendingUsers: rows.length - paid.length,
+        totalBill,
+        totalCollection: total,
+        totalDue: formatBalanceDisplayValue({
+          due: totalDue,
+          carryForward: 0,
+        }),
+      },
+
+      // We'll replace this with the company name from Settings later
+      companyName: "Bill Sheet",
+
+      // We'll replace this with the current selected theme later
+      theme: "forest",
+    });
+  };
 
   return (
     <div className="page monthly-sheet-page">
@@ -272,14 +309,21 @@ export default function MonthlySheet() {
             onChange={(e) => setYear(+e.target.value)}
           />
         </div>
-        <button className="monthly-sheet-export-btn" type="button">
+        <button
+          className="monthly-sheet-export-btn"
+          type="button"
+          onClick={handleExportPDF}
+        >
           <FiDownload /> Export
         </button>
       </div>
 
       <div className="monthly-sheet-summary-grid">
         {summaryCards.map((card) => (
-          <div key={card.label} className={`summary-card summary-card--${card.accent}`}>
+          <div
+            key={card.label}
+            className={`summary-card summary-card--${card.accent}`}
+          >
             <div className="summary-card-icon">{card.icon}</div>
             <div className="summary-card-number">{card.value}</div>
             <div className="summary-card-label">{card.label}</div>
@@ -297,16 +341,21 @@ export default function MonthlySheet() {
             onChange={(e) => setSearch(e.target.value)}
           />
         </label>
-        <div className="search-shortcut">Ctrl + K</div>
       </div>
 
-      <section className={rows.length ? "panel monthly-table-panel" : "panel sheet-empty"}>
+      <section
+        className={
+          rows.length ? "panel monthly-table-panel" : "panel sheet-empty"
+        }
+      >
         {rows.length ? (
           <>
             <div className="monthly-table-topbar">
               <div>
                 <div className="monthly-table-kicker">Collection overview</div>
-                <h3>{monthNames[month - 1]} {year}</h3>
+                <h3>
+                  {monthNames[month - 1]} {year}
+                </h3>
               </div>
               <div className="monthly-table-topbar-meta">
                 <span>{filteredRows.length} visible</span>
@@ -343,15 +392,156 @@ export default function MonthlySheet() {
                 </tr>
               </thead>
               <tbody>
-                {pagedRows.map(({ user, payment, openingDue, due, currentPaid, status }, i) => {
-                  const isPaid = Number(currentPaid || payment?.amount || 0) > 0;
-                  const rowIndex =
-                    (currentPageIndex - 1) * ITEMS_PER_PAGE + (i + 1);
-                  const badgeStatus = status || (isPaid && Number(due) > 0 ? "Partial" : isPaid ? "Paid" : "Pending");
+                {pagedRows.map(
+                  (
+                    {
+                      user,
+                      payment,
+                      openingDue,
+                      openingAdvance,
+                      due,
+                      carryForward,
+                      currentPaid,
+                      status,
+                    },
+                    i,
+                  ) => {
+                    const isPaid =
+                      Number(currentPaid || payment?.amount || 0) > 0;
+                    const rowIndex =
+                      (currentPageIndex - 1) * ITEMS_PER_PAGE + (i + 1);
+                    const badgeStatus =
+                      status ||
+                      (isPaid && Number(due) > 0
+                        ? "Partial"
+                        : isPaid
+                          ? "Paid"
+                          : "Pending");
+                    const balanceLabel = formatBalanceDisplayValue({
+                      due,
+                      carryForward,
+                    });
+                    const balanceClassName =
+                      due > 0
+                        ? "due-pill"
+                        : carryForward > 0
+                          ? "balance-pill balance-pill--advance"
+                          : "balance-pill";
+                    return (
+                      <tr className="monthly-row" key={user.id}>
+                        <td data-label="SL">{rowIndex}</td>
+                        <td data-label="Customer">
+                          <div className="customer-cell">
+                            <div className="customer-avatar">
+                              {getInitials(user.name)}
+                            </div>
+                            <div>
+                              <div className="customer-name">{user.name}</div>
+                              <div className="customer-phone">
+                                {user.phone || "No phone saved"}
+                              </div>
+                            </div>
+                          </div>
+                        </td>
+                        <td data-label="Bill">
+                          <div className="bill-pill">
+                            {money(user.monthlyBill)}
+                          </div>
+                        </td>
+                        <td data-label="Paid">
+                          <div className="balance-pill">
+                            {money(currentPaid || payment?.amount || 0)}
+                          </div>
+                        </td>
+                        <td data-label="Balance">
+                          <div className={balanceClassName}>{balanceLabel}</div>
+                        </td>
+                        <td data-label="Status">
+                          <StatusBadge status={badgeStatus} />
+                        </td>
+                        <td data-label="Payment Date">
+                          {payment?.paymentDate ? (
+                            <div className="payment-date-group">
+                              <strong>{formatDate(payment.paymentDate)}</strong>
+                              <small>{formatTime(payment.paymentDate)}</small>
+                            </div>
+                          ) : (
+                            <span className="muted-pill">No payment</span>
+                          )}
+                        </td>
+                        <td className="actions-cell" data-label="Actions">
+                          <button
+                            className="action-btn action-btn--sms"
+                            onClick={() => setSmsRecipient(user)}
+                            title="Send SMS"
+                            type="button"
+                          >
+                            <Send size={16} />
+                          </button>
+                          <button
+                            className="action-btn action-btn--edit"
+                            onClick={() =>
+                              setEditing({ user, payment, openingDue })
+                            }
+                            title="Edit"
+                            type="button"
+                          >
+                            <FiEdit2 />
+                          </button>
+                          {payment && (
+                            <button
+                              className="action-btn action-btn--delete"
+                              onClick={() => setConfirmDelete(payment)}
+                              title="Void"
+                              type="button"
+                            >
+                              <FiTrash2 />
+                            </button>
+                          )}
+                        </td>
+                      </tr>
+                    );
+                  },
+                )}
+              </tbody>
+            </table>
+            <div className="monthly-sheet-mobile-list" role="list">
+              {pagedRows.map(
+                ({
+                  user,
+                  payment,
+                  openingDue,
+                  openingAdvance,
+                  due,
+                  carryForward,
+                  currentPaid,
+                  status,
+                }) => {
+                  const isPaid =
+                    Number(currentPaid || payment?.amount || 0) > 0;
+                  const badgeStatus =
+                    status ||
+                    (isPaid && Number(due) > 0
+                      ? "Partial"
+                      : isPaid
+                        ? "Paid"
+                        : "Pending");
+                  const balanceLabel = formatBalanceDisplayValue({
+                    due,
+                    carryForward,
+                  });
+                  const balanceClassName =
+                    due > 0
+                      ? "due-pill"
+                      : carryForward > 0
+                        ? "balance-pill balance-pill--advance"
+                        : "balance-pill";
                   return (
-                    <tr className="monthly-row" key={user.id}>
-                      <td data-label="SL">{rowIndex}</td>
-                      <td data-label="Customer">
+                    <article
+                      className="monthly-sheet-customer-card"
+                      key={user.id}
+                    >
+                      <div className="monthly-sheet-customer-card-header">
                         <div className="customer-cell">
                           <div className="customer-avatar">
                             {getInitials(user.name)}
@@ -363,149 +553,100 @@ export default function MonthlySheet() {
                             </div>
                           </div>
                         </div>
-                      </td>
-                      <td data-label="Bill">
-                        <div className="bill-pill">{money(user.monthlyBill)}</div>
-                      </td>
-                      <td data-label="Paid">
-                        <div className="balance-pill">{money(currentPaid || payment?.amount || 0)}</div>
-                      </td>
-                      <td data-label="Due">
-                        <div className={due > 0 ? "due-pill" : "balance-pill"}>{money(due)}</div>
-                      </td>
-                      <td data-label="Status">
-                        <StatusBadge status={badgeStatus} />
-                      </td>
-                      <td data-label="Payment Date">
-                        {payment?.paymentDate ? (
-                          <div className="payment-date-group">
-                            <strong>{formatDate(payment.paymentDate)}</strong>
-                            <small>{formatTime(payment.paymentDate)}</small>
+                      </div>
+
+                      <div className="monthly-sheet-customer-card-grid">
+                        <div className="monthly-sheet-customer-card-item">
+                          <span className="monthly-sheet-customer-card-label">
+                            Bill
+                          </span>
+                          <div className="monthly-sheet-customer-card-value">
+                            <span className="bill-pill">
+                              {money(user.monthlyBill)}
+                            </span>
                           </div>
-                        ) : (
-                          <span className="muted-pill">No payment</span>
-                        )}
-                      </td>
-                      <td className="actions-cell" data-label="Actions">
+                        </div>
+                        <div className="monthly-sheet-customer-card-item">
+                          <span className="monthly-sheet-customer-card-label">
+                            Paid
+                          </span>
+                          <div className="monthly-sheet-customer-card-value">
+                            <span className="balance-pill">
+                              {money(currentPaid || payment?.amount || 0)}
+                            </span>
+                          </div>
+                        </div>
+                        <div className="monthly-sheet-customer-card-item">
+                          <span className="monthly-sheet-customer-card-label">
+                            Balance
+                          </span>
+                          <div className="monthly-sheet-customer-card-value">
+                            <span className={balanceClassName}>
+                              {balanceLabel}
+                            </span>
+                          </div>
+                        </div>
+                        <div className="monthly-sheet-customer-card-item">
+                          <span className="monthly-sheet-customer-card-label">
+                            Status
+                          </span>
+                          <div className="monthly-sheet-customer-card-value">
+                            <StatusBadge status={badgeStatus} />
+                          </div>
+                        </div>
+                        <div className="monthly-sheet-customer-card-item monthly-sheet-customer-card-item--wide">
+                          <span className="monthly-sheet-customer-card-label">
+                            Payment Date
+                          </span>
+                          <div className="monthly-sheet-customer-card-value">
+                            {payment?.paymentDate ? (
+                              <div className="payment-date-group">
+                                <strong>
+                                  {formatDate(payment.paymentDate)}
+                                </strong>
+                                <small>{formatTime(payment.paymentDate)}</small>
+                              </div>
+                            ) : (
+                              <span className="muted-pill">No payment</span>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="monthly-sheet-customer-card-actions">
                         <button
-                          className="action-btn action-btn--sms"
+                          className="monthly-card-action-btn monthly-card-action-btn--sms"
                           onClick={() => setSmsRecipient(user)}
-                          title="Send SMS"
                           type="button"
                         >
                           <Send size={16} />
+                          <span>SMS</span>
                         </button>
                         <button
-                          className="action-btn action-btn--edit"
-                          onClick={() => setEditing({ user, payment, openingDue })}
-                          title="Edit"
+                          className="monthly-card-action-btn monthly-card-action-btn--edit"
+                          onClick={() =>
+                            setEditing({ user, payment, openingDue })
+                          }
                           type="button"
                         >
                           <FiEdit2 />
+                          <span>Edit</span>
                         </button>
                         {payment && (
                           <button
-                            className="action-btn action-btn--delete"
+                            className="monthly-card-action-btn monthly-card-action-btn--delete"
                             onClick={() => setConfirmDelete(payment)}
-                            title="Void"
                             type="button"
                           >
                             <FiTrash2 />
+                            <span>Void</span>
                           </button>
                         )}
-                      </td>
-                    </tr>
+                      </div>
+                    </article>
                   );
-                })}
-              </tbody>
-            </table>
-            <div className="monthly-sheet-mobile-list" role="list">
-              {pagedRows.map(({ user, payment, openingDue, due, currentPaid, status }) => {
-                const isPaid = Number(currentPaid || payment?.amount || 0) > 0;
-                const badgeStatus = status || (isPaid && Number(due) > 0 ? "Partial" : isPaid ? "Paid" : "Pending");
-                return (
-                  <article className="monthly-sheet-customer-card" key={user.id}>
-                    <div className="monthly-sheet-customer-card-header">
-                      <div className="customer-cell">
-                        <div className="customer-avatar">{getInitials(user.name)}</div>
-                        <div>
-                          <div className="customer-name">{user.name}</div>
-                          <div className="customer-phone">{user.phone || "No phone saved"}</div>
-                        </div>
-                      </div>
-                    </div>
-
-                    <div className="monthly-sheet-customer-card-grid">
-                      <div className="monthly-sheet-customer-card-item">
-                        <span className="monthly-sheet-customer-card-label">Bill</span>
-                        <div className="monthly-sheet-customer-card-value">
-                          <span className="bill-pill">{money(user.monthlyBill)}</span>
-                        </div>
-                      </div>
-                      <div className="monthly-sheet-customer-card-item">
-                        <span className="monthly-sheet-customer-card-label">Paid</span>
-                        <div className="monthly-sheet-customer-card-value">
-                          <span className="balance-pill">{money(currentPaid || payment?.amount || 0)}</span>
-                        </div>
-                      </div>
-                      <div className="monthly-sheet-customer-card-item">
-                        <span className="monthly-sheet-customer-card-label">Due</span>
-                        <div className="monthly-sheet-customer-card-value">
-                          <span className={due > 0 ? "due-pill" : "balance-pill"}>{money(due)}</span>
-                        </div>
-                      </div>
-                      <div className="monthly-sheet-customer-card-item">
-                        <span className="monthly-sheet-customer-card-label">Status</span>
-                        <div className="monthly-sheet-customer-card-value">
-                          <StatusBadge status={badgeStatus} />
-                        </div>
-                      </div>
-                      <div className="monthly-sheet-customer-card-item monthly-sheet-customer-card-item--wide">
-                        <span className="monthly-sheet-customer-card-label">Payment Date</span>
-                        <div className="monthly-sheet-customer-card-value">
-                          {payment?.paymentDate ? (
-                            <div className="payment-date-group">
-                              <strong>{formatDate(payment.paymentDate)}</strong>
-                              <small>{formatTime(payment.paymentDate)}</small>
-                            </div>
-                          ) : (
-                            <span className="muted-pill">No payment</span>
-                          )}
-                        </div>
-                      </div>
-                    </div>
-
-                    <div className="monthly-sheet-customer-card-actions">
-                      <button
-                        className="monthly-card-action-btn monthly-card-action-btn--sms"
-                        onClick={() => setSmsRecipient(user)}
-                        type="button"
-                      >
-                        <Send size={16} />
-                        <span>SMS</span>
-                      </button>
-                      <button
-                        className="monthly-card-action-btn monthly-card-action-btn--edit"
-                        onClick={() => setEditing({ user, payment, openingDue })}
-                        type="button"
-                      >
-                        <FiEdit2 />
-                        <span>Edit</span>
-                      </button>
-                      {payment && (
-                        <button
-                          className="monthly-card-action-btn monthly-card-action-btn--delete"
-                          onClick={() => setConfirmDelete(payment)}
-                          type="button"
-                        >
-                          <FiTrash2 />
-                          <span>Void</span>
-                        </button>
-                      )}
-                    </div>
-                  </article>
-                );
-              })}
+                },
+              )}
             </div>
           </>
         ) : (
@@ -567,14 +708,13 @@ export default function MonthlySheet() {
       {confirmDelete && (
         <ConfirmModal
           title="Void payment"
-          message={`Mark ${confirmDelete.userName || confirmDelete.customerName || "this payment"} as voided or reversed? This preserves the original transaction record and recalculates totals from active transactions.`}
+          message={`Mark ${confirmDelete.userName || confirmDelete.customerName || "this payment"} as voided? This preserves the original transaction record and recalculates totals from active transactions.`}
           confirmText="Void"
           cancelText="Cancel"
           onConfirm={() => remove(confirmDelete)}
           onCancel={() => {
             setConfirmDelete(null);
             setVoidReason("");
-            setVoidMode("void");
           }}
         >
           <div className="form" style={{ marginTop: 12 }}>
@@ -589,10 +729,7 @@ export default function MonthlySheet() {
             </label>
             <label>
               Action
-              <select value={voidMode} onChange={(event) => setVoidMode(event.target.value)}>
-                <option value="void">Voided</option>
-                <option value="reverse">Reversed</option>
-              </select>
+              <div style={{ marginTop: 6, fontWeight: 600 }}>Voided</div>
             </label>
           </div>
         </ConfirmModal>
