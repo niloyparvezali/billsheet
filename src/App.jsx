@@ -8,9 +8,6 @@ import MonthlySheet from "./pages/MonthlySheet";
 import Reports from "./pages/Reports";
 import TransactionHistory from "./pages/TransactionHistory";
 import Settings from "./pages/Settings";
-import { applyTheme, getStoredTheme } from "./utils/theme";
-
-applyTheme(getStoredTheme());
 
 function Protected({ children }) {
   const { user, loading } = useAuth();

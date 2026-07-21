@@ -11,10 +11,10 @@ export const PDF_THEMES = {
     secondary: [45, 106, 79],
     accent: [64, 145, 108],
 
-    success: [22, 163, 74],
-    warning: [245, 158, 11],
-    danger: [220, 38, 38],
-    info: [37, 99, 235],
+    success: [34, 197, 94],
+    warning: [249, 115, 22],
+    danger: [239, 68, 68],
+    info: [59, 130, 246],
 
     text: [40, 40, 40],
     light: [247, 249, 251],
@@ -30,10 +30,10 @@ export const PDF_THEMES = {
     secondary: [50, 130, 184],
     accent: [77, 168, 218],
 
-    success: [22, 163, 74],
-    warning: [245, 158, 11],
-    danger: [220, 38, 38],
-    info: [37, 99, 235],
+    success: [34, 197, 94],
+    warning: [249, 115, 22],
+    danger: [239, 68, 68],
+    info: [59, 130, 246],
 
     text: [40, 40, 40],
     light: [247, 249, 251],

@@ -13,8 +13,8 @@ import ConfirmModal from "./ConfirmModal";
 import { db } from "../firebase/config";
 import useOwnedCollection from "../hooks/useOwnedCollection";
 import { money } from "../utils/date";
-import { computePaymentSummary, formatBalanceDisplayValue, getMonthPaymentTransactions } from "../utils/payments";
-import { buildTransactionRecord, derivePaymentLedgerMetrics, TRANSACTION_TYPES } from "../utils/transactions.js";
+import { buildBillingLedger, computePaymentSummary, formatBalanceDisplayValue, getMonthPaymentTransactions } from "../utils/payments";
+import { buildTransactionRecord, TRANSACTION_TYPES } from "../utils/transactions.js";
 
 export default function PaymentModal({ data, month, year, ownerId, close }) {
   const [amount, setAmount] = useState("");
@@ -45,27 +45,27 @@ export default function PaymentModal({ data, month, year, ownerId, close }) {
     setExtraDue("");
   }, [outstandingBalance, data.user.id, data.user.name, month, year]);
 
+  const validatePaymentInputs = ({ paid, addedDue }) => {
+    if (!Number.isFinite(paid) || paid < 0) {
+      toast.error("Please enter a valid amount.");
+      return false;
+    }
+    if (!Number.isFinite(addedDue) || addedDue < 0) {
+      toast.error("Additional due must be zero or a positive number.");
+      return false;
+    }
+    if (paid <= 0 && addedDue <= 0) {
+      toast.error("Enter either a payment amount or an additional due.");
+      return false;
+    }
+    return true;
+  };
+
   const savePayment = async () => {
     setSaving(true);
     const paid = Number(amount || 0);
     const addedDue = Number(extraDue || 0);
-    if (!Number.isFinite(paid) || paid <= 0) {
-      toast.error("Please enter a valid amount.");
-      setSaving(false);
-      return;
-    }
-    if (paid < 0) {
-      toast.error("Payment amount cannot be negative.");
-      setSaving(false);
-      return;
-    }
-    if (paid === 0) {
-      toast.error("Payment amount must be greater than zero.");
-      setSaving(false);
-      return;
-    }
-    if (!Number.isFinite(addedDue) || addedDue < 0) {
-      toast.error("Additional due must be zero or a positive number.");
+    if (!validatePaymentInputs({ paid, addedDue })) {
       setSaving(false);
       return;
     }
@@ -74,16 +74,23 @@ export default function PaymentModal({ data, month, year, ownerId, close }) {
     const paymentTimeText = paymentTimestamp.toTimeString().split(" ")[0].slice(0, 5);
     const notes = addedDue > 0 ? `Additional due: ${addedDue}` : "";
     const previousPaid = Number(alreadyPaid || 0);
-    const ledgerMetrics = derivePaymentLedgerMetrics({
-      billAmount: bill,
-      amount: paid,
-      previousPaid,
+    const billingLedger = buildBillingLedger({
+      bill,
       previousDue: outstandingBalance,
-      previousAdvance: carryForward,
+      carryForward,
+      paid,
+      additionalDue: addedDue,
     });
-    const currentPaid = ledgerMetrics.currentPaid;
-    const currentDue = ledgerMetrics.currentDue;
-    const currentAdvance = ledgerMetrics.currentAdvance;
+    const currentPaid = billingLedger.currentBillPaid;
+    const currentDue = billingLedger.currentBillRemaining + billingLedger.previousDueRemaining;
+    const currentAdvance = billingLedger.carryForwardNext;
+    const transactionStatus = billingLedger.currentBillPaid === 0
+      ? "Pending"
+      : billingLedger.currentBillPaid < bill
+        ? "Partial"
+        : billingLedger.previousDueRemaining === 0 && billingLedger.carryForwardNext > 0
+          ? "Advance"
+          : "Paid";
     const transaction = buildTransactionRecord({
       userId: data.user.id,
       customerId: data.user.id,
@@ -99,7 +106,7 @@ export default function PaymentModal({ data, month, year, ownerId, close }) {
       currentDue,
       previousAdvance: carryForward,
       currentAdvance,
-      status: "Completed",
+      status: transactionStatus,
       remarks: notes,
       createdBy: ownerId || "",
       createdAt: paymentTimestamp,
@@ -114,7 +121,7 @@ export default function PaymentModal({ data, month, year, ownerId, close }) {
         paymentTime: paymentTimeText,
         paymentType: "Payment",
         createdBy: ownerId || "",
-        status: "Completed",
+        status: transactionStatus,
         notes,
       },
     });
@@ -164,8 +171,8 @@ export default function PaymentModal({ data, month, year, ownerId, close }) {
     if (saving) return;
 
     const paid = Number(amount || 0);
-    if (!Number.isFinite(paid) || paid <= 0) {
-      toast.error("Please enter a valid amount.");
+    const addedDue = Number(extraDue || 0);
+    if (!validatePaymentInputs({ paid, addedDue })) {
       return;
     }
 
@@ -178,13 +185,13 @@ export default function PaymentModal({ data, month, year, ownerId, close }) {
         <p className="payment-note">
           Bill Amount: <b>{money(bill)}</b> · Already Paid: <b>{money(alreadyPaid)}</b>
           <br />
-          Outstanding Balance: <b style={{ color: "#fda4af" }}>{formatBalanceDisplayValue({ due: outstandingBalance, carryForward: 0 })}</b> · Carry Forward: <b style={{ color: "#4ade80" }}>{formatBalanceDisplayValue({ due: 0, carryForward })}</b>
+          Outstanding Balance: <b style={{ color: "#EF4444" }}>{formatBalanceDisplayValue({ due: outstandingBalance, carryForward: 0 })}</b> · Carry Forward: <b style={{ color: "#3B82F6" }}>{formatBalanceDisplayValue({ due: 0, carryForward })}</b>
         </p>
         <label>
           Payment Amount
           <input
             type="number"
-            min="0.01"
+            min="0"
             step="0.01"
             autoFocus
             value={amount}

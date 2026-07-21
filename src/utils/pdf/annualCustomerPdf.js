@@ -1,5 +1,6 @@
 import { createPdfLayout } from "./pdfLayout";
 import { pdfMoney, pdfBalance } from "./pdfHelpers";
+import { getDisplayBalanceValues, getDisplayPaymentStatus } from "../payments";
 import { formatDate } from "../date";
 export function exportAnnualCustomerPdf({
   businessName = "Bill Sheet",
@@ -26,7 +27,15 @@ export function exportAnnualCustomerPdf({
   });
   let currentY = drawSummary(
     [
-      ["Previous Due", pdfMoney(summary.previousDue || 0)],
+      [
+        "Opening Balance",
+        pdfBalance({
+          due: Number(summary.previousDue || 0),
+          carryForward: Number(summary.previousAdvance || 0),
+        }),
+      ],
+      ["Previous Year Due", pdfMoney(summary.previousDue || 0)],
+      ["Previous Year Advance", pdfMoney(summary.previousAdvance || 0)],
       ["Annual Bill", pdfMoney(summary.annualBill || 0)],
       [
         "Paid This Year",
@@ -35,8 +44,30 @@ export function exportAnnualCustomerPdf({
       [
         "Remaining Due",
         pdfBalance({
-          due: summary.outstandingBalance || summary.totalDue || 0,
+          due: summary.remainingDue || summary.outstandingBalance || summary.totalDue || 0,
           carryForward: 0,
+        }),
+      ],
+      [
+        "Remaining Advance",
+        pdfBalance({
+          due: 0,
+          carryForward:
+            summary.remainingAdvance ||
+            summary.creditCarryForward ||
+            summary.carryForward ||
+            summary.totalAdvance ||
+            0,
+        }),
+      ],
+      [
+        "Closing Balance",
+        pdfBalance({
+          due: Number(summary.closingBalance || 0) > 0 ? Number(summary.closingBalance || 0) : 0,
+          carryForward:
+            Number(summary.closingBalance || 0) < 0
+              ? Math.abs(Number(summary.closingBalance || 0))
+              : 0,
         }),
       ],
       [
@@ -44,6 +75,7 @@ export function exportAnnualCustomerPdf({
         pdfBalance({
           due: 0,
           carryForward:
+            summary.remainingAdvance ||
             summary.creditCarryForward ||
             summary.carryForward ||
             summary.totalAdvance ||
@@ -57,24 +89,33 @@ export function exportAnnualCustomerPdf({
   drawTable({
     startY: currentY,
 
-    head: [["Month", "Bill", "Paid", "Remaining", "Payment Date", "Status"]],
+    head: [["Month", "Bill", "Paid", "Balance", "Status"]],
 
-    body: history.map((entry) => [
-      entry.monthName || "-",
+    body: history.map((entry) => {
+      const balanceValue = Number(entry.balance ?? entry.endingBalance ?? 0);
+      const isInactiveEntry =
+        entry?.status === "Not Joined" ||
+        entry?.status === "Inactive" ||
+        entry?.status === "N/A" ||
+        entry?.status === "na";
 
-      pdfMoney(entry.monthlyBill ?? entry.bill ?? 0),
+      return [
+        entry.monthName || "-",
 
-      pdfMoney(entry.paid ?? 0),
+        isInactiveEntry || entry.bill == null ? "-" : pdfMoney(entry.monthlyBill ?? entry.bill ?? 0),
 
-      pdfBalance({
-        due: entry.remainingDue ?? entry.due ?? 0,
-        carryForward: entry.advance ?? entry.carryForward ?? 0,
-      }),
+        isInactiveEntry || entry.paid == null ? "-" : pdfMoney(entry.paid ?? 0),
 
-      entry.paymentDate ? formatDate(entry.paymentDate) : "-",
+        isInactiveEntry || entry.balance == null
+          ? "-"
+          : pdfBalance({
+              due: balanceValue < 0 ? Math.abs(balanceValue) : 0,
+              carryForward: balanceValue > 0 ? balanceValue : 0,
+            }),
 
-      entry.status || "-",
-    ]),
+        isInactiveEntry ? "-" : entry.status || "-",
+      ];
+    }),
   });
   drawFooter();
 

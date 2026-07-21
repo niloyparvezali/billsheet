@@ -87,6 +87,8 @@ export const applyTheme = (value) => {
   return theme;
 };
 
+export const initializeTheme = () => applyTheme(getStoredTheme());
+
 export const getThemeConfig = (value) => themePresets[normalizeTheme(value)] || themePresets.forest;
 
 export const readThemeColors = () => {

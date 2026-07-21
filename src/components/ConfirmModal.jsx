@@ -8,9 +8,10 @@ export default function ConfirmModal({
   onConfirm,
   onCancel,
   children,
+  modalClassName,
 }) {
   return (
-    <Modal title={title} onClose={onCancel}>
+    <Modal title={title} onClose={onCancel} className={modalClassName}>
       <p>{message}</p>
       {children}
       <div className="modal-actions">

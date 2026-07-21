@@ -15,11 +15,12 @@ export default function FloatingSearchButton({ targetRef, selector }) {
     element.scrollIntoView({
       behavior: "smooth",
       block: "center",
+      inline: "nearest",
     });
 
     setTimeout(() => {
-      element.focus?.();
-    }, 400);
+      element.focus?.({ preventScroll: true });
+    }, 120);
   };
 
   return (

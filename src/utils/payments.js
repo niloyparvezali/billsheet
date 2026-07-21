@@ -1,4 +1,4 @@
-import { buildReversalTransactionRecord, createTransactionStatus, resolveTransactionType } from "./transactions.js";
+import { buildReversalTransactionRecord, createTransactionStatus, derivePaymentLedgerMetrics, resolveTransactionType } from "./transactions.js";
 
 export const normalizePaymentStatus = (value) => String(value || "").trim().toLowerCase();
 
@@ -37,7 +37,7 @@ export const matchesPaymentToUser = (payment, userLike = {}) => {
     .filter(Boolean)
     .map((value) => normalizeIdentityValue(value));
 
-  if (targetValues.length === 0) return true;
+  if (targetValues.length === 0) return false;
 
   const paymentValues = [
     payment?.userId,
@@ -48,6 +48,8 @@ export const matchesPaymentToUser = (payment, userLike = {}) => {
   ]
     .filter(Boolean)
     .map((value) => normalizeIdentityValue(value));
+
+  if (paymentValues.length === 0) return false;
 
   return targetValues.some((value) => paymentValues.includes(value));
 };
@@ -209,6 +211,202 @@ export const formatBalanceDisplayValue = ({ due = 0, carryForward = 0 } = {}) =>
   return "৳0";
 };
 
+export const getDisplayBalanceValues = ({
+  due = 0,
+  carryForward = 0,
+  currentDue = null,
+  currentAdvance = null,
+  bill = 0,
+  amount = 0,
+  previousDue = 0,
+  previousAdvance = 0,
+  previousPaid = 0,
+  additionalDue = 0,
+} = {}) => {
+  const explicitDue = currentDue != null ? Number(currentDue || 0) : due != null ? Number(due || 0) : null;
+  const explicitCarryForward = currentAdvance != null ? Number(currentAdvance || 0) : carryForward != null ? Number(carryForward || 0) : null;
+
+  const hasLedgerContext = [
+    Number(bill || 0),
+    Number(amount || 0),
+    Number(previousDue || 0),
+    Number(previousAdvance || 0),
+    Number(previousPaid || 0),
+    Number(additionalDue || 0),
+  ].some((value) => value !== 0);
+
+  if (hasLedgerContext) {
+    const ledger = derivePaymentLedgerMetrics({
+      billAmount: Number(bill || 0),
+      amount: Number(amount || 0),
+      previousPaid: Number(previousPaid || 0),
+      previousDue: Number(previousDue || 0),
+      previousAdvance: Number(previousAdvance || 0),
+      additionalDue: Number(additionalDue || 0),
+    });
+
+    return {
+      due: Math.max(0, ledger.currentDue),
+      carryForward: Math.max(0, ledger.currentAdvance),
+    };
+  }
+
+  if (currentDue != null || currentAdvance != null) {
+    return {
+      due: Math.max(0, Number(explicitDue ?? 0)),
+      carryForward: Math.max(0, Number(explicitCarryForward ?? 0)),
+    };
+  }
+
+  return {
+    due: Math.max(0, Number(explicitDue ?? 0)),
+    carryForward: Math.max(0, Number(explicitCarryForward ?? 0)),
+  };
+};
+
+export const buildBillingLedger = ({
+  bill = 0,
+  previousDue = 0,
+  carryForward = 0,
+  paid = 0,
+  additionalDue = 0,
+} = {}) => {
+  const safeBill = Number(bill || 0);
+  const safePreviousDue = Number(previousDue || 0);
+  const safeCarryForward = Number(carryForward || 0);
+  const safePaid = Number(paid || 0);
+  const safeAdditionalDue = Number(additionalDue || 0);
+
+  const availablePayment = safePaid + safeCarryForward;
+  const currentBillPaid = Math.min(availablePayment, safeBill);
+  const currentBillRemaining = Math.max(0, safeBill - currentBillPaid);
+  const remainingAfterBill = Math.max(0, availablePayment - currentBillPaid);
+  const priorDue = safePreviousDue + safeAdditionalDue;
+  const previousDuePaid = Math.min(remainingAfterBill, priorDue);
+  const previousDueRemaining = Math.max(0, priorDue - previousDuePaid);
+  const carryForwardNext = Math.max(0, remainingAfterBill - previousDuePaid);
+
+  return {
+    bill: safeBill,
+    previousDue: safePreviousDue,
+    additionalDue: safeAdditionalDue,
+    carryForward: safeCarryForward,
+    paid: safePaid,
+    availablePayment,
+    currentBillPaid,
+    currentBillRemaining,
+    remainingAfterBill,
+    previousDuePaid,
+    previousDueRemaining,
+    carryForwardNext,
+  };
+};
+
+const getSafeDate = (value) => {
+  if (value instanceof Date && !Number.isNaN(value.getTime())) {
+    return new Date(value);
+  }
+  return new Date();
+};
+
+const getMonthEndBoundary = (month, year) => {
+  const safeMonth = Number(month || 0);
+  const safeYear = Number(year || 0);
+  if (!Number.isFinite(safeMonth) || !Number.isFinite(safeYear) || safeMonth < 1 || safeMonth > 12) {
+    return null;
+  }
+  return new Date(safeYear, safeMonth, 0, 23, 59, 59, 999);
+};
+
+const resolveBillingStatus = ({
+  bill = 0,
+  paid = 0,
+  currentBillPaid = 0,
+  currentBillRemaining = 0,
+  previousDueRemaining = 0,
+  carryForwardNext = 0,
+  month = null,
+  year = null,
+  currentDate = null,
+} = {}) => {
+  const safeBill = Number(bill || 0);
+  const safePaid = Number(paid || 0);
+  const safeCurrentBillPaid = Number(currentBillPaid || 0);
+  const safeCurrentBillRemaining = Number(currentBillRemaining || 0);
+  const safePreviousDueRemaining = Number(previousDueRemaining || 0);
+  const safeCarryForwardNext = Number(carryForwardNext || 0);
+  const normalizedCurrentDate = getSafeDate(currentDate);
+  const hasPeriodContext = Number.isFinite(Number(month)) && Number.isFinite(Number(year)) && Number(month) >= 1 && Number(month) <= 12;
+
+  if (!hasPeriodContext) {
+    if (safeBill > 0) {
+      if (safeCurrentBillPaid === 0) {
+        return safeCurrentBillRemaining + safePreviousDueRemaining > 0 ? "Pending" : "Paid";
+      }
+      if (safeCurrentBillPaid < safeBill) {
+        return "Partial";
+      }
+      if (safePreviousDueRemaining === 0 && safeCarryForwardNext > 0) {
+        return "Advance";
+      }
+      return "Paid";
+    }
+
+    if (safePreviousDueRemaining > 0 || safeCurrentBillRemaining > 0) {
+      return "Due";
+    }
+    if (safeCarryForwardNext > 0) {
+      return "Advance";
+    }
+    if (safePaid > 0 || safeCurrentBillPaid > 0) {
+      return "Paid";
+    }
+    return "Pending";
+  }
+
+  const targetPeriodKey = getPeriodKey(month, year);
+  const currentPeriodKey = getPeriodKey(normalizedCurrentDate.getMonth() + 1, normalizedCurrentDate.getFullYear());
+  const monthEndBoundary = getMonthEndBoundary(month, year);
+  const isFuturePeriod = targetPeriodKey > currentPeriodKey;
+  const isPeriodClosed = targetPeriodKey < currentPeriodKey || Boolean(monthEndBoundary && normalizedCurrentDate.getTime() > monthEndBoundary.getTime());
+
+  if (safeBill > 0) {
+    if (safeCurrentBillPaid === 0) {
+      if (isFuturePeriod || !isPeriodClosed) {
+        return "Pending";
+      }
+      return "Due";
+    }
+
+    if (safeCurrentBillPaid < safeBill) {
+      if (isFuturePeriod || !isPeriodClosed) {
+        return "Partial";
+      }
+      return "Due";
+    }
+
+    if (safePreviousDueRemaining === 0 && safeCarryForwardNext > 0) {
+      return "Advance";
+    }
+
+    return "Paid";
+  }
+
+  if (safePreviousDueRemaining > 0 || safeCurrentBillRemaining > 0) {
+    return isFuturePeriod || !isPeriodClosed ? "Pending" : "Due";
+  }
+
+  if (safeCarryForwardNext > 0) {
+    return "Advance";
+  }
+
+  if (safePaid > 0 || safeCurrentBillPaid > 0) {
+    return "Paid";
+  }
+
+  return "Pending";
+};
+
 export const formatAnnualReportBalanceValue = ({ due = 0, advance = 0, carryForward = 0 } = {}) => {
   const currentDue = Number(due || 0);
   const currentCarryForward = Number(advance || carryForward || 0);
@@ -271,13 +469,38 @@ export const getMonthPaymentTransactions = ({
 }) => {
   const targetMonth = Number(month);
   const targetYear = Number(year);
-
-  return (payments || []).filter((payment) => {
-    const matchesUser = matchesPaymentToUser(payment, { id: userId, userId, name: userName, userName });
+  const candidates = (payments || []).filter((payment) => {
     const sameMonth = Number(payment?.month) === targetMonth;
     const sameYear = Number(payment?.year) === targetYear;
-    return matchesUser && sameMonth && sameYear;
+    return sameMonth && sameYear;
   });
+
+  if (!userId && !userName) {
+    return candidates;
+  }
+
+  const filtered = candidates.filter((payment) => {
+    return matchesPaymentToUser(payment, {
+      id: userId,
+      userId,
+      name: userName,
+      userName,
+    });
+  });
+
+  if (filtered.length > 0) {
+    return filtered;
+  }
+
+  const hasExplicitIdentity = candidates.some((payment) => Boolean(
+    payment?.userId ||
+    payment?.userName ||
+    payment?.customerId ||
+    payment?.customerName ||
+    payment?.ownerId,
+  ));
+
+  return hasExplicitIdentity ? [] : candidates;
 };
 
 export const countRowsByStatus = (rows = []) => {
@@ -304,41 +527,172 @@ export const countRowsByStatus = (rows = []) => {
   return counts;
 };
 
-export const computePaymentSummary = ({ bill = 0, payments = [], openingDue = 0, openingAdvance = 0 }) => {
+export const getDisplayPaymentStatus = ({
+  status = "",
+  bill = 0,
+  paid = 0,
+  due = 0,
+  advance = 0,
+  month = null,
+  currentMonth = null,
+  currentDate = null,
+  isInactiveEntry = false,
+  preserveExplicitStatus = false,
+} = {}) => {
+  const normalizedStatus = String(status || "").trim().toLowerCase();
+  const safeBill = Number(bill || 0);
+  const safePaid = Number(paid || 0);
+  const safeDue = Number(due || 0);
+  const safeAdvance = Number(advance || 0);
+  const normalizedMonth = Number(month || 0);
+  const normalizedCurrentMonth = Number(currentMonth || 0);
+  const hasMonthContext = Number.isFinite(normalizedMonth) && normalizedMonth >= 1 && normalizedMonth <= 12;
+  const hasCurrentMonthContext = Number.isFinite(normalizedCurrentMonth) && normalizedCurrentMonth >= 1 && normalizedCurrentMonth <= 12;
+  const hasCurrentDateContext = currentDate instanceof Date && !Number.isNaN(currentDate.getTime());
+  const normalizedCurrentDate = hasCurrentDateContext ? new Date(currentDate) : null;
+
+  const isFutureMonth = hasMonthContext && hasCurrentMonthContext && normalizedMonth > normalizedCurrentMonth;
+  const isCurrentMonth = hasMonthContext && hasCurrentMonthContext && normalizedMonth === normalizedCurrentMonth;
+  const isMonthInPast = hasMonthContext && hasCurrentMonthContext && normalizedMonth < normalizedCurrentMonth;
+  const lastDayOfCurrentMonth = hasCurrentDateContext ? new Date(normalizedCurrentDate.getFullYear(), normalizedCurrentDate.getMonth() + 1, 0).getDate() : 0;
+  const isCurrentMonthActiveWindow = isCurrentMonth && hasCurrentDateContext && normalizedCurrentDate !== null && safePaid === 0 && normalizedCurrentDate.getDate() < lastDayOfCurrentMonth;
+  const isCurrentMonthClosed = isCurrentMonth && hasCurrentDateContext && normalizedCurrentDate !== null && normalizedCurrentDate.getDate() >= lastDayOfCurrentMonth;
+
+  if (isInactiveEntry || ["not joined", "inactive", "n/a", "na", "none"].includes(normalizedStatus)) {
+    return { label: "N/A", tone: "neutral", className: "status-neutral" };
+  }
+
+  if (["active"].includes(normalizedStatus)) {
+    return { label: "Active", tone: "active", className: "status-active" };
+  }
+
+  if (["inactive"].includes(normalizedStatus)) {
+    return { label: "Inactive", tone: "inactive", className: "status-inactive" };
+  }
+
+  if (["voided", "reversed", "removed", "deleted", "cancelled", "canceled", "failed", "declined"].includes(normalizedStatus)) {
+    return { label: normalizedStatus === "reversed" ? "Reversed" : normalizedStatus === "removed" ? "Removed" : normalizedStatus === "deleted" ? "Deleted" : normalizedStatus === "cancelled" || normalizedStatus === "canceled" ? "Canceled" : normalizedStatus === "failed" ? "Failed" : normalizedStatus === "declined" ? "Declined" : "Voided", tone: "voided", className: "status-voided" };
+  }
+
+  if (preserveExplicitStatus && normalizedStatus) {
+    const explicitLabel = normalizedStatus.charAt(0).toUpperCase() + normalizedStatus.slice(1);
+    return {
+      label: explicitLabel,
+      tone: normalizedStatus,
+      className: `status-${normalizedStatus}`,
+    };
+  }
+
+  const {
+    currentBillPaid,
+    currentBillRemaining,
+    previousDuePaid,
+    previousDueRemaining,
+    carryForwardNext,
+  } = buildBillingLedger({
+    bill: safeBill,
+    paid: safePaid,
+    carryForward: safeAdvance,
+    due: safeDue,
+  });
+
+  const resolvedStatus = resolveBillingStatus({
+    bill: safeBill,
+    paid: safePaid,
+    currentBillPaid,
+    currentBillRemaining,
+    previousDueRemaining,
+    carryForwardNext,
+    month: normalizedMonth,
+    year: hasCurrentDateContext && normalizedCurrentDate ? normalizedCurrentDate.getFullYear() : new Date().getFullYear(),
+    currentDate: normalizedCurrentDate || new Date(),
+  });
+
+  return {
+    label: resolvedStatus,
+    tone: resolvedStatus.toLowerCase(),
+    className: `status-${resolvedStatus.toLowerCase()}`,
+  };
+};
+
+const getPaymentAdditionalDueAmount = (payment = {}) => {
+  const candidates = [
+    payment?.extraDue,
+    payment?.additionalDue,
+    payment?.additionalDueAmount,
+    payment?.extraAmountDue,
+    payment?.dueAmount,
+  ];
+
+  const metadata = payment?.metadata || {};
+  candidates.push(
+    metadata?.extraDue,
+    metadata?.additionalDue,
+    metadata?.additionalDueAmount,
+    metadata?.extraAmountDue,
+    metadata?.dueAmount,
+  );
+
+  for (const candidate of candidates) {
+    const numericValue = Number(candidate);
+    if (Number.isFinite(numericValue) && numericValue >= 0) {
+      return numericValue;
+    }
+  }
+
+  return 0;
+};
+
+export const computePaymentSummary = ({ bill = 0, payments = [], openingDue = 0, openingAdvance = 0, additionalDue = 0, month = null, year = null, currentDate = null } = {}) => {
   const safeBill = Number(bill || 0);
   const safeOpeningDue = Number(openingDue || 0);
   const safeOpeningAdvance = Number(openingAdvance || 0);
+  const safeAdditionalDue = Number(additionalDue || 0);
   const activePayments = getActivePayments(payments);
   const totalPaid = activePayments.reduce(
     (sum, payment) => sum + Number(payment.amount || 0),
     0,
   );
-  const totalReceivable = safeOpeningDue + safeBill;
-  const balanceAfterPayments = totalReceivable - totalPaid;
-  const outstandingBalance = Math.max(0, balanceAfterPayments);
-  const advance = Math.max(0, totalPaid - totalReceivable);
-  const carryForward = Math.max(0, totalPaid - safeBill);
-  const previousDue = safeOpeningDue;
-  const previousAdvance = safeOpeningAdvance;
-  const currentDue = outstandingBalance;
-  const currentAdvance = advance;
-  const status = advance > 0
-    ? "Advance"
-    : totalPaid === 0
-      ? "Pending"
-      : outstandingBalance > 0
-        ? "Partial"
-        : "Paid";
+  const paymentAdditionalDue = activePayments.reduce(
+    (sum, payment) => sum + getPaymentAdditionalDueAmount(payment),
+    0,
+  );
+  const totalAdditionalDue = safeAdditionalDue + paymentAdditionalDue;
+  const billingLedger = buildBillingLedger({
+    bill: safeBill,
+    previousDue: safeOpeningDue,
+    carryForward: safeOpeningAdvance,
+    paid: totalPaid,
+    additionalDue: totalAdditionalDue,
+  });
+
+  const status = resolveBillingStatus({
+    bill: safeBill,
+    paid: totalPaid,
+    currentBillPaid: billingLedger.currentBillPaid,
+    currentBillRemaining: billingLedger.currentBillRemaining,
+    previousDueRemaining: billingLedger.previousDueRemaining,
+    carryForwardNext: billingLedger.carryForwardNext,
+    month,
+    year,
+    currentDate,
+  });
+
   return {
     totalPaid,
-    totalReceivable,
-    outstandingBalance,
-    advance,
-    carryForward,
-    previousDue,
-    previousAdvance,
-    currentDue,
-    currentAdvance,
+    totalReceivable: safeBill + safeOpeningDue + totalAdditionalDue,
+    outstandingBalance: billingLedger.currentBillRemaining + billingLedger.previousDueRemaining,
+    advance: billingLedger.carryForwardNext,
+    carryForward: billingLedger.carryForwardNext,
+    previousDue: safeOpeningDue,
+    previousAdvance: safeOpeningAdvance,
+    currentDue: billingLedger.currentBillRemaining + billingLedger.previousDueRemaining,
+    currentAdvance: billingLedger.carryForwardNext,
+    currentBillPaid: billingLedger.currentBillPaid,
+    currentBillRemaining: billingLedger.currentBillRemaining,
+    previousDuePaid: billingLedger.previousDuePaid,
+    previousDueRemaining: billingLedger.previousDueRemaining,
+    availablePayment: billingLedger.availablePayment,
     status,
   };
 };
@@ -349,25 +703,19 @@ export const buildMonthlySheetLedgerRow = ({
   history = [],
   month,
   year,
+  isActiveForPeriod = isUserActiveForPeriod,
+  currentDate = new Date(),
 }) => {
   const bill = getEffectiveBillForPeriod(user, { month, year });
-  const isLifecycleActive = isUserActiveForPeriod(user, { month, year });
+  const isLifecycleActive = isActiveForPeriod(user, { month, year });
   const lifecycleInactive = !isLifecycleActive;
-  const monthPayments = (() => {
-    const filtered = getMonthPaymentTransactions({
-      payments,
-      userId: user?.id,
-      userName: user?.name,
-      month,
-      year,
-    });
-    if (filtered.length > 0) return filtered;
-
-    return (payments || []).filter((payment) => {
-      const { month: paymentMonth, year: paymentYear } = getPaymentMonthYear(payment);
-      return Number(paymentMonth) === Number(month) && Number(paymentYear) === Number(year);
-    });
-  })();
+  const monthPayments = getMonthPaymentTransactions({
+    payments,
+    userId: user?.id,
+    userName: user?.name,
+    month,
+    year,
+  });
 
   const priorPeriods = [...history]
     .map((payment) => {
@@ -381,7 +729,7 @@ export const buildMonthlySheetLedgerRow = ({
     .filter((entry) => {
       const paymentMonth = Number(entry.month || 0);
       const paymentYear = Number(entry.year || 0);
-      return isUserActiveForPeriod(user, { month: paymentMonth, year: paymentYear });
+      return isActiveForPeriod(user, { month: paymentMonth, year: paymentYear });
     })
     .sort((left, right) => {
       const leftKey = Number(left.year) * 100 + Number(left.month);
@@ -400,7 +748,7 @@ export const buildMonthlySheetLedgerRow = ({
       .map((entry) => entry.payment);
 
     const priorSummary = computePaymentSummary({
-      bill,
+      bill: getEffectiveBillForPeriod(user, { month: priorMonth, year: priorYear }),
       payments: priorPeriodPayments,
       openingDue,
       openingAdvance,
@@ -414,7 +762,11 @@ export const buildMonthlySheetLedgerRow = ({
     payments: monthPayments,
     openingDue: lifecycleInactive ? 0 : openingDue,
     openingAdvance: lifecycleInactive ? 0 : openingAdvance,
+    month,
+    year,
+    currentDate,
   });
+
   const latestPayment = [...monthPayments].sort((left, right) => {
     const leftTime = Number(left?.paymentDate?.seconds || left?.createdAt?.seconds || 0);
     const rightTime = Number(right?.paymentDate?.seconds || right?.createdAt?.seconds || 0);
@@ -590,24 +942,16 @@ export const buildMonthlyReportSummary = ({
 export const buildYearlyCustomerReportSummary = ({ user, payments = [], year }) => {
   const safeYear = Number(year);
   const activePayments = getActivePayments(payments || []);
-  const parseDateValue = (value) => {
-    if (!value) return null;
-    if (typeof value?.toDate === "function") return value.toDate();
-    const date = value instanceof Date ? value : new Date(value);
-    return Number.isNaN(date.getTime()) ? null : date;
-  };
   const joinDate = parseDateValue(user?.joinDate || user?.joinedAt || user?.memberSince || user?.createdAt || null);
-  const inactiveAt = parseDateValue(user?.inactiveDate || user?.leaveDate || user?.archivedAt || user?.deactivatedAt || user?.inactiveAt || null);
-  const yearStart = new Date(safeYear, 0, 1);
-  const yearEnd = new Date(safeYear, 11, 31, 23, 59, 59);
+  const leaveDate = parseDateValue(user?.inactiveDate || user?.leaveDate || user?.archivedAt || user?.deactivatedAt || user?.inactiveAt || null);
   const months = Array.from({ length: 12 }, (_, index) => {
     const month = index + 1;
     const monthStart = new Date(safeYear, index, 1);
     const monthEnd = new Date(safeYear, index + 1, 0, 23, 59, 59);
     const isActiveForMonth = isUserActiveForPeriod(user, { month, year: safeYear });
-    const beforeJoin = Boolean(joinDate && joinDate >= yearStart && joinDate <= yearEnd && joinDate > monthEnd);
-    const afterInactive = Boolean(inactiveAt && inactiveAt >= yearStart && inactiveAt <= yearEnd && inactiveAt < monthStart);
-    const isInactiveMonth = !isActiveForMonth || beforeJoin || afterInactive;
+    const beforeJoin = Boolean(joinDate && joinDate > monthEnd);
+    const afterLeave = Boolean(leaveDate && leaveDate < monthStart);
+    const isInactiveMonth = !isActiveForMonth || beforeJoin || afterLeave;
     const monthPayments = (activePayments || []).filter((payment) => {
       const { month: paymentMonth, year: paymentYear } = getPaymentMonthYear(payment);
       return matchesPaymentToUser(payment, user) && Number(paymentMonth) === Number(month) && Number(paymentYear) === safeYear;
@@ -636,9 +980,10 @@ export const buildYearlyCustomerReportSummary = ({ user, payments = [], year }) 
       history,
       month,
       year: safeYear,
+      isActiveForPeriod: isUserActiveForPeriod,
     });
     const reportingBill = getEffectiveBillForPeriod(user, {
-      month: Math.max(1, month - 1),
+      month,
       year: safeYear,
     });
     return {
@@ -662,6 +1007,7 @@ export const buildYearlyCustomerReportSummary = ({ user, payments = [], year }) 
     }),
     month: 1,
     year: safeYear,
+    isActiveForPeriod: isUserActiveForPeriod,
   });
   const openingBalance = Number(openingRow.openingDue || 0) - Number(openingRow.openingAdvance || 0);
   const annualBill = months.reduce((sum, entry) => sum + (entry.bill ? Number(entry.bill || 0) : 0), 0);
@@ -686,6 +1032,8 @@ export const buildYearlyCustomerReportSummary = ({ user, payments = [], year }) 
     closingBalanceStatus,
     previousDue: Number(openingRow.openingDue || 0),
     previousAdvance: Number(openingRow.openingAdvance || 0),
+    remainingDue: totalDue,
+    remainingAdvance: totalAdvance,
     paidThisYear: totalPaid,
     outstandingBalance: totalDue,
     creditCarryForward: totalAdvance,
@@ -811,10 +1159,89 @@ export const buildPaymentRemovalEvent = ({
   };
 };
 
+export const buildVoidPaymentActionRecords = ({
+  payment,
+  voidedBy = "",
+  reason = "",
+  reasonType = "",
+  voidDate = null,
+  voidTime = "",
+  ownerId = "",
+  paymentDateText = "",
+  paymentTime = "",
+} = {}) => {
+  if (!payment) return null;
+  const timestamp = voidDate || payment?.voidDate || new Date();
+  const timeValue = voidTime || payment?.voidTime || "";
+  const relatedTransactionId = payment?.transactionId || payment?.id || "";
+  const relatedPaymentId = payment?.id || "";
+
+  const originalRecord = {
+    ...payment,
+    status: "Voided",
+    isDeleted: true,
+    deletedAt: timestamp,
+    voidedBy: voidedBy || payment?.voidedBy || "",
+    reversedBy: payment?.reversedBy || "",
+    reason: reason || payment?.reason || "Voided by admin",
+    reasonType: reasonType || payment?.reasonType || payment?.voidReasonType || "",
+    voidDate: timestamp,
+    voidTime: timeValue,
+    reverseDate: payment?.reverseDate || timestamp,
+    reverseTime: payment?.reverseTime || timeValue,
+    updatedAt: timestamp,
+    paymentType: payment?.paymentType || "Payment",
+    transactionType: payment?.transactionType || "payment",
+  };
+
+  const voidActionRecord = {
+    ownerId: ownerId || payment?.ownerId || "",
+    userId: payment?.userId || payment?.customerId || "",
+    userName: payment?.userName || payment?.customerName || "",
+    customerId: payment?.customerId || payment?.userId || "",
+    customerName: payment?.customerName || payment?.userName || "",
+    userCategory: payment?.userCategory || "",
+    monthlyBill: Number(payment?.monthlyBill || payment?.billAmount || payment?.bill || 0),
+    month: Number(payment?.month || 0),
+    year: Number(payment?.year || 0),
+    amount: 0,
+    extraDue: Number(payment?.extraDue || payment?.additionalDue || 0),
+    paymentDateText: paymentDateText || payment?.paymentDateText || "",
+    paymentTime: paymentTime || payment?.paymentTime || timeValue,
+    paymentType: "Void Payment",
+    transactionType: "payment_reversal",
+    transactionId: relatedTransactionId || "",
+    relatedPaymentId: relatedPaymentId,
+    relatedTransactionId: relatedTransactionId,
+    status: "Voided",
+    remarks: reason || payment?.reason || "Voided by admin",
+    reason: reason || payment?.reason || "Voided by admin",
+    reasonType: reasonType || payment?.reasonType || payment?.voidReasonType || "",
+    voidedBy: voidedBy || payment?.voidedBy || "",
+    reversedBy: payment?.reversedBy || "",
+    voidDate: timestamp,
+    voidTime: timeValue,
+    reverseDate: payment?.reverseDate || timestamp,
+    reverseTime: payment?.reverseTime || timeValue,
+    isDeleted: true,
+    deletedAt: timestamp,
+    createdAt: timestamp,
+    updatedAt: timestamp,
+    originalAmount: Number(payment?.amount || 0),
+    originalStatus: payment?.status || "",
+  };
+
+  return {
+    originalRecord,
+    voidActionRecord,
+  };
+};
+
 export const voidPaymentRecord = ({
   payment,
   voidedBy,
   reason,
+  reasonType,
   voidDate,
   voidTime,
 }) => {
@@ -829,6 +1256,7 @@ export const voidPaymentRecord = ({
     voidedBy: voidedBy || payment?.voidedBy || "",
     reversedBy: payment?.reversedBy || "",
     reason: reason || payment?.reason || "Voided by admin",
+    reasonType: reasonType || payment?.reasonType || payment?.voidReasonType || "",
     voidDate: timestamp,
     voidTime: timeValue,
     reverseDate: payment?.reverseDate || timestamp,
@@ -836,7 +1264,7 @@ export const voidPaymentRecord = ({
   };
 };
 
-export const createTransactionRowFromPayment = (payment, index = 0) => {
+export const createTransactionRowFromPayment = (payment, index = 0, ledgerRow = null) => {
   if (!payment) return null;
 
   const timestampValue = payment?.paymentDate || payment?.createdAt || payment?.timestamp;
@@ -857,10 +1285,12 @@ export const createTransactionRowFromPayment = (payment, index = 0) => {
   const paymentTime = payment?.paymentTime || (dateTime ? dateTime.toLocaleTimeString([], { hour: "numeric", minute: "2-digit" }) : "");
   const bill = Number(payment?.monthlyBill || payment?.bill || payment?.billAmount || 0);
   const amount = Number(payment?.amount || 0);
-  const due = Math.max(0, bill - amount);
+  const due = Number(ledgerRow?.currentDue ?? payment?.currentDue ?? payment?.due ?? 0);
+  const carryForward = Number(ledgerRow?.currentAdvance ?? payment?.currentAdvance ?? payment?.carryForward ?? 0);
   const resolvedType = resolveTransactionType(payment);
   const resolvedStatus = createTransactionStatus({ transactionType: resolvedType, status: payment?.status || payment?.transactionStatus });
   const normalizedStatus = String(resolvedStatus || payment?.status || "Pending").trim().toLowerCase();
+  const ledgerStatus = ledgerRow?.status || payment?.status || payment?.ledgerStatus || "Pending";
   const contributesToRevenue = ![
     "removed",
     "voided",
@@ -882,12 +1312,19 @@ export const createTransactionRowFromPayment = (payment, index = 0) => {
     amount,
     bill,
     due,
+    carryForward,
+    currentDue: due,
+    currentAdvance: carryForward,
+    previousDue: Number(ledgerRow?.previousDue ?? payment?.previousDue ?? 0),
+    previousAdvance: Number(ledgerRow?.previousAdvance ?? payment?.previousAdvance ?? 0),
     paymentDate,
     paymentTime,
     dateTime,
     transactionType: resolvedType,
     ledgerStatus: resolvedStatus,
-    status: resolvedStatus || payment?.status || "Pending",
+    status: ["voided", "reversed", "removed", "deleted", "cancelled", "canceled", "failed", "declined"].includes(normalizedStatus)
+      ? resolvedStatus || payment?.status || "Pending"
+      : ledgerStatus,
     notes: payment?.notes || payment?.remarks || "",
     createdBy: payment?.createdBy || payment?.ownerId || "",
     isRemoved: Boolean(payment?.isDeleted || payment?.deletedAt || payment?.status === "removed"),

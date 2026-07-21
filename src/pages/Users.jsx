@@ -1,7 +1,9 @@
 import { FiEdit2, FiPlus, FiSearch, FiTrash2, FiUsers } from "react-icons/fi";
+import { useNavigate } from "react-router-dom";
 import UsersTable from "../components/UsersTable";
 import CategoryModal from "../components/CategoryModal";
 import UserForm from "../components/UserForm";
+import PaymentModal from "../components/PaymentModal";
 import { useMemo, useState, useRef, useEffect } from "react";
 import {
   addDoc,
@@ -42,6 +44,7 @@ const blank = {
 
 export default function Users() {
   const searchRef = useRef(null);
+  const navigate = useNavigate();
   const { user: signedInUser } = useAuth();
   const { data: allUsers = [] } = useOwnedCollection("users");
   const users = useMemo(() => (allUsers || []).filter(Boolean), [allUsers]);
@@ -54,6 +57,7 @@ export default function Users() {
   const [newCategories, setNewCategories] = useState([]);
   const [deleteUser, setDeleteUser] = useState(null);
   const [categoryToRemove, setCategoryToRemove] = useState(null);
+  const [paymentModalUser, setPaymentModalUser] = useState(null);
   const categories = useMemo(() => {
     const seenIds = new Set((savedCategories || []).map((item) => item.id));
     const merged = [
@@ -188,6 +192,36 @@ export default function Users() {
     }
   };
 
+  const openAddPayment = (user) => {
+    if (!user) return;
+    navigate("/monthly-sheet", {
+      state: {
+        selectedCustomerId: user.id,
+        selectedCustomerName: user.name,
+      },
+    });
+  };
+
+  const openPaymentHistory = (user) => {
+    if (!user) return;
+    navigate("/history", {
+      state: {
+        selectedCustomerId: user.id,
+        selectedCustomerName: user.name,
+      },
+    });
+  };
+
+  const openAnnualReport = (user) => {
+    if (!user) return;
+    navigate("/reports", {
+      state: {
+        customerId: user.id,
+        customerName: user.name,
+      },
+    });
+  };
+
   const removeCategory = async (category) => {
     if (!category?.id) {
       toast.error("Could not delete category because its ID is missing.");
@@ -269,6 +303,9 @@ export default function Users() {
           list={paginatedUsers}
           setForm={setForm}
           setDeleteUser={setDeleteUser}
+          onAddPayment={openAddPayment}
+          onViewHistory={openPaymentHistory}
+          onViewAnnualReport={openAnnualReport}
           money={money}
           formatDate={formatDate}
           currentPage={currentPage}
@@ -293,6 +330,15 @@ export default function Users() {
             onSubmit={save}
           />
         </Modal>
+      )}
+      {paymentModalUser && (
+        <PaymentModal
+          data={{ user: paymentModalUser }}
+          month={new Date().getMonth() + 1}
+          year={new Date().getFullYear()}
+          ownerId={signedInUser?.uid || ""}
+          close={() => setPaymentModalUser(null)}
+        />
       )}
       {category && (
         <CategoryModal

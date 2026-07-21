@@ -6,6 +6,7 @@ import {
   pdfBalance,
 } from "./pdfHelpers";
 import { money } from "../date";
+import { getDisplayBalanceValues, getDisplayPaymentStatus } from "../payments";
 
 export function exportTransactionPdf({
   rows,
@@ -53,17 +54,41 @@ export function exportTransactionPdf({
 
     head: [["Name", "Month", "Amount", "Balance", "Status", "Date"]],
 
-    body: rows.map((row) => [
-      row.Customer,
-      row.Month,
-      pdfMoney(row.Amount),
-      pdfBalance({
+    body: rows.map((row) => {
+      const displayBalance = getDisplayBalanceValues({
         due: row.Due,
         carryForward: row.CarryForward,
-      }),
-      row.Status,
-      row.PaymentDate,
-    ]),
+        currentDue: row.CurrentDue,
+        currentAdvance: row.CurrentAdvance,
+        bill: Number(row.Bill || 0),
+        amount: Number(row.Amount || 0),
+        previousDue: Number(row.PreviousDue || 0),
+        previousAdvance: Number(row.PreviousAdvance || 0),
+        previousPaid: Number(row.PreviousPaid || 0),
+        additionalDue: Number(row.AdditionalDue || 0),
+      });
+
+      return [
+        row.Customer,
+        row.Month,
+        pdfMoney(row.Amount),
+        pdfBalance({
+          due: displayBalance.due,
+          carryForward: displayBalance.carryForward,
+        }),
+        getDisplayPaymentStatus({
+          status: row.Status,
+          bill: Number(row.Bill || 0),
+          paid: Number(row.Amount || 0),
+          due: Number(displayBalance.due || 0),
+          advance: Number(displayBalance.carryForward || 0),
+          month: Number(row.Month || 0),
+          currentMonth: new Date().getMonth() + 1,
+          currentDate: new Date(),
+        }).label,
+        row.PaymentDate,
+      ];
+    }),
 
     didParseCell(data) {
       if (data.section !== "body") return;

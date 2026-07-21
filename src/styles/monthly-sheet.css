@@ -28,7 +28,7 @@
 
 .monthly-sheet-hero p {
   margin: 0;
-  color: rgba(255,255,255,0.72);
+  color: rgba(255, 255, 255, 0.72);
   font-size: 15px;
   line-height: 1.6;
 }
@@ -36,33 +36,28 @@
 .monthly-sheet-header-actions {
   display: flex;
   align-items: center;
-  gap: 10px;
-  flex-wrap: wrap;
-  justify-content: flex-start;
-  padding: 0 0 18px;
-  margin-bottom: 0;
-}
-
-.monthly-sheet-control {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 8px;
-  border-radius: 999px;
-  background: rgba(255,255,255,0.03);
-  border: 1px solid rgba(255,255,255,0.06);
+  gap: 12px;
+  padding-bottom: 18px;
 }
 
 .monthly-sheet-mini-select,
-.monthly-sheet-mini-input {
-  height: 38px;
-  border: none;
+.monthly-sheet-mini-input,
+.monthly-sheet-export-btn {
+  height: 42px;
   border-radius: 999px;
-  background: rgba(255,255,255,0.04);
+  border: 1px solid rgba(255, 255, 255, 0.065);
+  background: rgba(255, 255, 255, 0.04);
   color: #f7fbf8;
-  padding: 0 12px;
   font-size: 14px;
-  outline: none;
+  box-sizing: border-box;
+}
+.monthly-sheet-mini-select {
+  width: 88px;
+}
+
+.monthly-sheet-mini-select option {
+  color: #0f172a;
+  background: #ffffff;
 }
 
 .monthly-sheet-mini-input {
@@ -77,15 +72,26 @@
   padding: 0 16px;
   border-radius: 999px;
   color: #f7fbf8;
-  background: rgba(255,255,255,0.04);
-  border: 1px solid rgba(255,255,255,0.065);
-  transition: transform 250ms ease, box-shadow 250ms ease, background 250ms ease;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.065);
+  transition:
+    transform 250ms ease,
+    box-shadow 250ms ease,
+    background 250ms ease;
 }
 
 .monthly-sheet-export-btn:hover {
   transform: translateY(-2px);
-  background: rgba(255,255,255,0.06);
-  box-shadow: 0 10px 24px rgba(0,0,0,0.22);
+  background: rgba(255, 255, 255, 0.06);
+  box-shadow: 0 10px 24px rgba(0, 0, 0, 0.22);
+}
+
+.monthly-sheet-summary-mobile-card {
+  display: none;
+}
+
+.monthly-sheet-financial-mobile-card {
+  display: none;
 }
 
 .monthly-sheet-summary-grid {
@@ -97,10 +103,13 @@
 .summary-card {
   padding: 16px;
   border-radius: 20px;
-  background: rgba(255,255,255,0.03);
-  border: 1px solid rgba(255,255,255,0.06);
-  box-shadow: 0 12px 30px rgba(0,0,0,0.25);
-  transition: transform 250ms ease, box-shadow 250ms ease, border-color 250ms ease;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.25);
+  transition:
+    transform 250ms ease,
+    box-shadow 250ms ease,
+    border-color 250ms ease;
   min-height: 96px;
   display: flex;
   flex-direction: column;
@@ -111,8 +120,8 @@
 
 .summary-card:hover {
   transform: translateY(-3px);
-  box-shadow: 0 18px 36px rgba(0,0,0,0.3);
-  border-color: rgba(255,255,255,0.1);
+  box-shadow: 0 18px 36px rgba(0, 0, 0, 0.3);
+  border-color: rgba(255, 255, 255, 0.1);
 }
 
 .summary-card-icon {
@@ -122,7 +131,7 @@
   display: grid;
   place-items: center;
   font-size: 18px;
-  background: rgba(255,255,255,0.05);
+  background: rgba(255, 255, 255, 0.05);
 }
 
 .summary-card-number {
@@ -135,17 +144,34 @@
 .summary-card-label {
   font-size: 12px;
   font-weight: 600;
-  color: rgba(255,255,255,0.68);
+  color: rgba(255, 255, 255, 0.68);
   line-height: 1.3;
 }
 
-.summary-card--forest .summary-card-icon { background: rgba(45,212,191,0.15); color: #5eead4; }
-.summary-card--green .summary-card-icon { background: rgba(74,222,128,0.15); color: #86efac; }
-.summary-card--amber .summary-card-icon { background: rgba(250,204,21,0.14); color: #fde68a; }
-.summary-card--ocean .summary-card-icon { background: rgba(56,189,248,0.14); color: #7dd3fc; }
-.summary-card--blue .summary-card-icon { background: rgba(96,165,250,0.16); color: #93c5fd; }
-.summary-card--red .summary-card-icon { background: rgba(248,113,113,0.16); color: #fda4af; }
-
+.summary-card--forest .summary-card-icon {
+  background: rgba(45, 212, 191, 0.15);
+  color: #5eead4;
+}
+.summary-card--green .summary-card-icon {
+  background: rgba(74, 222, 128, 0.15);
+  color: #86efac;
+}
+.summary-card--amber .summary-card-icon {
+  background: rgba(250, 204, 21, 0.14);
+  color: #fde68a;
+}
+.summary-card--ocean .summary-card-icon {
+  background: rgba(56, 189, 248, 0.14);
+  color: #7dd3fc;
+}
+.summary-card--blue .summary-card-icon {
+  background: rgba(96, 165, 250, 0.16);
+  color: #93c5fd;
+}
+.summary-card--red .summary-card-icon {
+  background: rgba(248, 113, 113, 0.16);
+  color: #fda4af;
+}
 .monthly-sheet-search-shell {
   display: flex;
   align-items: center;
@@ -153,9 +179,9 @@
   gap: 12px;
   padding: 10px 14px;
   border-radius: 999px;
-  background: rgba(255,255,255,0.03);
-  border: 1px solid rgba(255,255,255,0.06);
-  box-shadow: 0 12px 30px rgba(0,0,0,0.18);
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.18);
 }
 
 .search-field {
@@ -163,7 +189,7 @@
   display: flex;
   align-items: center;
   gap: 10px;
-  color: rgba(255,255,255,0.62);
+  color: rgba(255, 255, 255, 0.62);
 }
 
 .search-field input {
@@ -179,27 +205,47 @@
   padding: 7px 10px;
   border-radius: 999px;
   font-size: 12px;
-  color: rgba(255,255,255,0.64);
-  background: rgba(255,255,255,0.04);
-  border: 1px solid rgba(255,255,255,0.06);
+  color: rgba(255, 255, 255, 0.64);
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.06);
 }
 
 .monthly-table-panel {
   padding: 20px;
   border-radius: 24px;
-  background: rgba(255,255,255,0.03);
-  border: 1px solid rgba(255,255,255,0.06);
-  box-shadow: 0 18px 45px rgba(0,0,0,0.22);
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  box-shadow: 0 18px 45px rgba(0, 0, 0, 0.22);
 }
 
 .monthly-table-topbar {
   display: flex;
-  justify-content: space-between;
   align-items: center;
-  gap: 12px;
-  padding-bottom: 16px;
+  padding: 12px 0 14px;
   margin-bottom: 10px;
-  border-bottom: 1px solid rgba(255,255,255,0.06);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.monthly-table-topbar-copy {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.monthly-table-kicker {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.58);
+}
+
+.monthly-table-topbar h3 {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  color: #f7fbf8;
 }
 
 .monthly-table-kicker {
@@ -226,11 +272,11 @@
 
 .monthly-table-topbar-meta span {
   font-size: 12px;
-  color: rgba(255,255,255,0.56);
+  color: rgba(255, 255, 255, 0.56);
   padding: 7px 10px;
   border-radius: 999px;
-  background: rgba(255,255,255,0.04);
-  border: 1px solid rgba(255,255,255,0.05);
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.05);
 }
 
 .monthly-table {
@@ -244,7 +290,7 @@
   font-size: 12px;
   text-transform: uppercase;
   letter-spacing: 0.16em;
-  color: rgba(255,255,255,0.56);
+  color: rgba(255, 255, 255, 0.56);
   text-align: left;
   border: none;
   background: transparent;
@@ -252,14 +298,16 @@
 
 .monthly-table td {
   padding: 16px 14px;
-  background: rgba(255,255,255,0.02);
-  border-bottom: 1px solid rgba(255,255,255,0.05);
-  transition: background 250ms ease, transform 250ms ease;
+  background: rgba(255, 255, 255, 0.02);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+  transition:
+    background 250ms ease,
+    transform 250ms ease;
   vertical-align: middle;
 }
 
 .monthly-table tbody tr:hover td {
-  background: rgba(255,255,255,0.05);
+  background: rgba(255, 255, 255, 0.05);
 }
 
 .monthly-table tbody tr:last-child td {
@@ -274,8 +322,130 @@
 .monthly-sheet-mobile-list {
   display: none;
   flex-direction: column;
-  gap: 12px;
+  gap: 10px;
   margin-top: 8px;
+}
+
+.monthly-sheet-mobile-item {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  border-radius: 16px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(255, 255, 255, 0.04);
+  color: var(--text-primary);
+  text-align: left;
+  cursor: pointer;
+  transition: transform 180ms ease, border-color 180ms ease, background 180ms ease, box-shadow 180ms ease;
+}
+
+.monthly-sheet-mobile-item:hover,
+.monthly-sheet-mobile-item:focus-visible {
+  transform: translateY(-1px);
+  border-color: rgba(45, 212, 191, 0.24);
+  background: rgba(255, 255, 255, 0.06);
+  box-shadow: 0 10px 24px rgba(0, 0, 0, 0.14);
+  outline: none;
+}
+
+.monthly-sheet-mobile-item .users-mobile-avatar {
+  width: 38px;
+  height: 38px;
+  border-radius: 13px;
+  font-size: 13px;
+}
+
+.monthly-sheet-mobile-item .users-mobile-item-content {
+  min-width: 0;
+  flex: 1 1 auto;
+  gap: 6px;
+}
+
+.monthly-sheet-mobile-item .users-mobile-item-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  min-width: 0;
+}
+
+.monthly-sheet-mobile-item .users-mobile-item-title {
+  font-size: 14px;
+  line-height: 1.25;
+}
+
+.monthly-sheet-mobile-item .users-mobile-item-status {
+  margin-left: 0;
+  display: inline-flex;
+  align-items: center;
+}
+
+.monthly-sheet-mobile-item .users-mobile-item-status .status {
+  padding: 5px 10px;
+  font-size: 11px;
+  min-height: 24px;
+}
+
+.monthly-sheet-mobile-item .users-mobile-item-bottom {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  min-width: 0;
+}
+
+.monthly-sheet-mobile-item .users-mobile-item-meta {
+  min-width: 0;
+  flex: 1 1 auto;
+  gap: 0;
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.68);
+}
+
+.monthly-sheet-mobile-item .users-mobile-item-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+  margin-left: 4px;
+}
+
+.monthly-sheet-mobile-sms-btn,
+.users-mobile-item-chevron-btn {
+  border: 0;
+  border-radius: 999px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  background: rgba(255, 255, 255, 0.06);
+  color: var(--text-primary);
+  cursor: pointer;
+  transition: transform 160ms ease, background 160ms ease;
+}
+
+.monthly-sheet-mobile-sms-btn {
+  min-height: 28px;
+  padding: 0 10px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+}
+
+.users-mobile-item-chevron-btn {
+  width: 28px;
+  height: 28px;
+}
+
+.monthly-sheet-mobile-sms-btn:hover,
+.users-mobile-item-chevron-btn:hover,
+.monthly-sheet-mobile-sms-btn:focus-visible,
+.users-mobile-item-chevron-btn:focus-visible {
+  transform: translateY(-1px);
+  background: rgba(255, 255, 255, 0.1);
+  outline: none;
 }
 
 .monthly-sheet-customer-card {
@@ -284,9 +454,9 @@
   gap: 12px;
   padding: 16px;
   border-radius: 18px;
-  background: rgba(255,255,255,0.03);
-  border: 1px solid rgba(255,255,255,0.06);
-  box-shadow: 0 12px 30px rgba(0,0,0,0.18);
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.18);
 }
 
 .monthly-sheet-customer-card-header {
@@ -308,8 +478,8 @@
   gap: 6px;
   padding: 10px 12px;
   border-radius: 14px;
-  background: rgba(255,255,255,0.04);
-  border: 1px solid rgba(255,255,255,0.05);
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.05);
   min-width: 0;
   overflow-wrap: anywhere;
 }
@@ -323,7 +493,7 @@
   font-weight: 700;
   letter-spacing: 0.16em;
   text-transform: uppercase;
-  color: rgba(255,255,255,0.58);
+  color: rgba(255, 255, 255, 0.58);
 }
 
 .monthly-sheet-customer-card-value {
@@ -348,22 +518,34 @@
   gap: 8px;
   padding: 0 12px;
   border-radius: 999px;
-  border: 1px solid rgba(255,255,255,0.06);
+  border: 1px solid rgba(255, 255, 255, 0.06);
   color: #f7fbf8;
-  background: rgba(255,255,255,0.04);
+  background: rgba(255, 255, 255, 0.04);
   font-size: 13px;
   font-weight: 600;
-  transition: transform 250ms ease, box-shadow 250ms ease, background 250ms ease;
+  transition:
+    transform 250ms ease,
+    box-shadow 250ms ease,
+    background 250ms ease;
 }
 
 .monthly-card-action-btn:hover {
   transform: translateY(-1px);
-  box-shadow: 0 10px 20px rgba(0,0,0,0.16);
+  box-shadow: 0 10px 20px rgba(0, 0, 0, 0.16);
 }
 
-.monthly-card-action-btn--sms { background: rgba(59,130,246,0.14); color: #93c5fd; }
-.monthly-card-action-btn--edit { background: rgba(52,211,153,0.13); color: #86efac; }
-.monthly-card-action-btn--delete { background: rgba(248,113,113,0.13); color: #fda4af; }
+.monthly-card-action-btn--sms {
+  background: rgba(59, 130, 246, 0.14);
+  color: #93c5fd;
+}
+.monthly-card-action-btn--edit {
+  background: rgba(52, 211, 153, 0.13);
+  color: #86efac;
+}
+.monthly-card-action-btn--delete {
+  background: rgba(248, 113, 113, 0.13);
+  color: #fda4af;
+}
 
 .customer-cell {
   display: flex;
@@ -382,8 +564,12 @@
   color: #f7fbf8;
   font-size: 13px;
   font-weight: 700;
-  background: linear-gradient(135deg, rgba(45,212,191,0.24), rgba(56,189,248,0.24));
-  border: 1px solid rgba(255,255,255,0.08);
+  background: linear-gradient(
+    135deg,
+    rgba(45, 212, 191, 0.24),
+    rgba(56, 189, 248, 0.24)
+  );
+  border: 1px solid rgba(255, 255, 255, 0.08);
 }
 
 .customer-name {
@@ -398,7 +584,7 @@
 
 .customer-phone {
   font-size: 12px;
-  color: rgba(255,255,255,0.56);
+  color: rgba(255, 255, 255, 0.56);
   margin-top: 3px;
   white-space: nowrap;
   overflow: hidden;
@@ -417,18 +603,18 @@
   border-radius: 999px;
   font-size: 13px;
   font-weight: 700;
-  background: rgba(255,255,255,0.04);
+  background: rgba(255, 255, 255, 0.04);
   color: #f7fbf8;
 }
 
 .due-pill {
-  color: #fda4af;
-  background: rgba(248,113,113,0.12);
+  color: #EF4444;
+  background: rgba(239, 68, 68, 0.12);
 }
 
 .balance-pill--advance {
-  color: #86efac;
-  background: rgba(34,197,94,0.16);
+  color: #3B82F6;
+  background: rgba(59, 130, 246, 0.16);
 }
 
 .payment-date-group {
@@ -444,7 +630,7 @@
 
 .payment-date-group small {
   font-size: 12px;
-  color: rgba(255,255,255,0.56);
+  color: rgba(255, 255, 255, 0.56);
 }
 
 .actions-cell {
@@ -459,20 +645,32 @@
   border-radius: 12px;
   display: grid;
   place-items: center;
-  border: 1px solid rgba(255,255,255,0.06);
-  background: rgba(255,255,255,0.04);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  background: rgba(255, 255, 255, 0.04);
   color: #f7fbf8;
-  transition: transform 250ms ease, box-shadow 250ms ease, background 250ms ease;
+  transition:
+    transform 250ms ease,
+    box-shadow 250ms ease,
+    background 250ms ease;
 }
 
 .action-btn:hover {
   transform: scale(1.05);
-  box-shadow: 0 10px 24px rgba(0,0,0,0.2);
+  box-shadow: 0 10px 24px rgba(0, 0, 0, 0.2);
 }
 
-.action-btn--sms { background: rgba(59,130,246,0.14); color: #93c5fd; }
-.action-btn--edit { background: rgba(52,211,153,0.13); color: #86efac; }
-.action-btn--delete { background: rgba(248,113,113,0.13); color: #fda4af; }
+.action-btn--sms {
+  background: rgba(59, 130, 246, 0.14);
+  color: #93c5fd;
+}
+.action-btn--edit {
+  background: rgba(52, 211, 153, 0.13);
+  color: #86efac;
+}
+.action-btn--delete {
+  background: rgba(248, 113, 113, 0.13);
+  color: #fda4af;
+}
 
 .monthly-sheet-footer {
   display: flex;
@@ -481,14 +679,14 @@
   gap: 12px;
   margin-top: 16px;
   padding-top: 16px;
-  border-top: 1px solid rgba(255,255,255,0.06);
+  border-top: 1px solid rgba(255, 255, 255, 0.06);
   flex-wrap: wrap;
 }
 
 .monthly-sheet-footer-info,
 .monthly-sheet-footer-page {
   font-size: 13px;
-  color: rgba(255,255,255,0.58);
+  color: rgba(255, 255, 255, 0.58);
 }
 
 .monthly-sheet-footer-nav {
@@ -500,15 +698,17 @@
 .monthly-sheet-footer-nav button {
   border-radius: 999px;
   padding: 9px 14px;
-  background: rgba(255,255,255,0.04);
+  background: rgba(255, 255, 255, 0.04);
   color: #f7fbf8;
-  border: 1px solid rgba(255,255,255,0.06);
-  transition: transform 250ms ease, background 250ms ease;
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  transition:
+    transform 250ms ease,
+    background 250ms ease;
 }
 
 .monthly-sheet-footer-nav button:hover:not(:disabled) {
   transform: translateY(-2px);
-  background: rgba(255,255,255,0.08);
+  background: rgba(255, 255, 255, 0.08);
 }
 
 .sheet-empty-content {
@@ -518,8 +718,12 @@
   gap: 12px;
   padding: 48px 20px;
   border-radius: 24px;
-  border: 1px dashed rgba(255,255,255,0.12);
-  background: linear-gradient(135deg, rgba(255,255,255,0.02), rgba(255,255,255,0.015));
+  border: 1px dashed rgba(255, 255, 255, 0.12);
+  background: linear-gradient(
+    135deg,
+    rgba(255, 255, 255, 0.02),
+    rgba(255, 255, 255, 0.015)
+  );
 }
 
 .sheet-empty-content span {
@@ -528,7 +732,7 @@
   display: grid;
   place-items: center;
   border-radius: 18px;
-  background: rgba(45,212,191,0.14);
+  background: rgba(45, 212, 191, 0.14);
   color: #5eead4;
   font-size: 24px;
 }
@@ -541,7 +745,7 @@
 
 .sheet-empty-content p {
   margin: 0;
-  color: rgba(255,255,255,0.64);
+  color: rgba(255, 255, 255, 0.64);
   max-width: 560px;
 }
 
@@ -550,30 +754,6 @@
     grid-template-columns: repeat(3, minmax(0, 1fr));
   }
 }
-
-@media (max-width: 900px) {
-  .monthly-sheet-header-actions {
-    flex-direction: column;
-    align-items: flex-start;
-  }
-  .monthly-sheet-summary-grid {
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-  }
-  .monthly-table-topbar {
-    flex-direction: column;
-    align-items: flex-start;
-  }
-  .monthly-sheet-footer {
-    flex-direction: column;
-    align-items: flex-start;
-  }
-  .monthly-table th,
-  .monthly-table td {
-    padding-left: 10px;
-    padding-right: 10px;
-  }
-}
-
 @media (max-width: 800px) {
   .monthly-sheet-hero {
     flex-direction: column;
@@ -584,6 +764,137 @@
   }
   .monthly-sheet-search-shell {
     border-radius: 20px;
+  }
+}
+@media (max-width: 768px) {
+  .monthly-sheet-header-actions {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: nowrap;
+  }
+
+  .monthly-sheet-mini-select {
+    width: 120px;
+    height: 40px;
+    flex: none;
+  }
+
+  .monthly-sheet-mini-input {
+    width: 82px;
+    height: 40px;
+    flex: none;
+  }
+
+  .monthly-sheet-export-btn {
+    width: 110px;
+    height: 40px;
+    margin-left: auto;
+    flex: none;
+  }
+  .monthly-sheet-summary-grid {
+    display: none;
+  }
+
+  .monthly-sheet-summary-mobile-card {
+    display: flex;
+    align-items: stretch;
+    border-radius: 20px;
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    background: rgba(255, 255, 255, 0.035);
+    box-shadow: 0 12px 30px rgba(0, 0, 0, 0.16);
+    overflow: hidden;
+  }
+
+  .monthly-sheet-summary-mobile-column {
+    flex: 1 1 0;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    padding: 14px 10px;
+    text-align: center;
+    position: relative;
+  }
+
+  .monthly-sheet-summary-mobile-column + .monthly-sheet-summary-mobile-column {
+    border-left: 1px solid rgba(255, 255, 255, 0.08);
+  }
+
+  .monthly-sheet-summary-mobile-column .summary-card-icon {
+    width: 32px;
+    height: 32px;
+    border-radius: 10px;
+    font-size: 16px;
+    margin-bottom: 2px;
+  }
+
+  .monthly-sheet-summary-mobile-column .summary-card-number {
+    font-size: 22px;
+    line-height: 1.05;
+  }
+
+  .monthly-sheet-summary-mobile-column .summary-card-label {
+    font-size: 11px;
+    text-align: center;
+    line-height: 1.25;
+  }
+
+  .monthly-sheet-financial-mobile-card {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    margin-top: 10px;
+  }
+
+  .monthly-sheet-financial-mobile-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px 14px;
+    border-radius: 16px;
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    background: rgba(255, 255, 255, 0.035);
+    box-shadow: 0 12px 30px rgba(0, 0, 0, 0.16);
+  }
+
+  .monthly-sheet-financial-mobile-icon {
+    width: 44px;
+    height: 44px;
+    display: grid;
+    place-items: center;
+    border-radius: 12px;
+    background: rgba(45, 212, 191, 0.14);
+    color: #5eead4;
+    font-size: 20px;
+    flex: 0 0 auto;
+  }
+
+  .monthly-sheet-financial-mobile-copy {
+    display: flex;
+    flex: 1 1 auto;
+    flex-direction: column;
+    justify-content: center;
+    gap: 2px;
+    min-width: 0;
+  }
+
+  .monthly-sheet-financial-mobile-value {
+    font-size: 16px;
+    font-weight: 800;
+    color: #f7fbf8;
+    line-height: 1.1;
+  }
+
+  .monthly-sheet-financial-mobile-label {
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: rgba(255, 255, 255, 0.6);
+    line-height: 1.25;
   }
 }
 

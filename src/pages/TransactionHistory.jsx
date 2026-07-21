@@ -2,13 +2,17 @@ import { FiCalendar, FiFileText, FiSearch } from "react-icons/fi";
 
 import { useEffect, useMemo, useState } from "react";
 import useOwnedCollection from "../hooks/useOwnedCollection";
-import { money, formatDate, monthNames } from "../utils/date";
+import { money, monthNames } from "../utils/date";
 import { exportTransactionPdf } from "../utils/pdf";
 import {
+  buildMonthlySheetLedgerRow,
   createTransactionRowFromPayment,
-  filterPaymentsByYear,
   formatBalanceDisplayValue,
+  getDisplayBalanceValues,
+  getMonthPaymentTransactions,
   getPaymentMonthYear,
+  getPeriodKey,
+  matchesPaymentToUser,
 } from "../utils/payments";
 
 const parsePaymentTimestamp = (payment) => {
@@ -39,42 +43,194 @@ const getMonthLabel = (payment) => {
   return payment?.month || "--";
 };
 
-const createTransactionRow = (payment, index) =>
-  createTransactionRowFromPayment(payment, index);
+const getRowDateTime = (row) => {
+  const timestampValue =
+    row?.dateTime || row?.paymentDate || row?.createdAt || row?.timestamp;
+  if (!timestampValue) return null;
+  if (typeof timestampValue?.toDate === "function")
+    return timestampValue.toDate();
+  if (timestampValue instanceof Date) return timestampValue;
+  if (
+    typeof timestampValue === "string" ||
+    typeof timestampValue === "number"
+  ) {
+    const parsed = new Date(timestampValue);
+    return Number.isNaN(parsed.getTime()) ? null : parsed;
+  }
+  if (typeof timestampValue?.seconds === "number") {
+    return new Date(timestampValue.seconds * 1000);
+  }
+  return null;
+};
 
-const getTransactionStatusBadgeClass = (row) => {
-  const normalizedStatus = String(row?.status || "")
+const getRowMonthSectionKey = (
+  row,
+  fallbackYear = new Date().getFullYear(),
+) => {
+  const parsedDate = getRowDateTime(row);
+  if (parsedDate) {
+    return `${parsedDate.getFullYear()}-${String(parsedDate.getMonth() + 1).padStart(2, "0")}`;
+  }
+  const explicitMonth = Number(row?.month || row?.paymentMonth || 0);
+  const explicitYear = Number(
+    row?.year || row?.paymentYear || fallbackYear || 0,
+  );
+  if (
+    explicitMonth >= 1 &&
+    explicitMonth <= 12 &&
+    Number.isFinite(explicitYear)
+  ) {
+    return `${explicitYear}-${String(explicitMonth).padStart(2, "0")}`;
+  }
+  return `${fallbackYear}-00`;
+};
+
+const getRowMonthSectionLabel = (
+  row,
+  fallbackYear = new Date().getFullYear(),
+) => {
+  const parsedDate = getRowDateTime(row);
+  if (parsedDate) {
+    const monthName = monthNames[parsedDate.getMonth()] || "Month";
+    return `${monthName} ${parsedDate.getFullYear()}`;
+  }
+  const explicitMonth = Number(row?.month || row?.paymentMonth || 0);
+  const explicitYear = Number(
+    row?.year || row?.paymentYear || fallbackYear || 0,
+  );
+  if (
+    explicitMonth >= 1 &&
+    explicitMonth <= 12 &&
+    Number.isFinite(explicitYear)
+  ) {
+    const monthName = monthNames[explicitMonth - 1] || "Month";
+    return `${monthName} ${explicitYear}`;
+  }
+  return `${monthNames[0] || "Month"} ${fallbackYear}`;
+};
+
+const isVoidActionRow = (row) => {
+  const paymentType = String(row?.paymentType || row?.transactionType || "")
     .trim()
     .toLowerCase();
-
-  if (["completed", "paid"].includes(normalizedStatus)) return "status-paid";
-  if (["advance"].includes(normalizedStatus)) return "status-advance";
-  if (["partial"].includes(normalizedStatus)) return "status-partial";
-  if (["due"].includes(normalizedStatus)) return "status-due";
-  if (
-    [
-      "voided",
-      "reversed",
-      "removed",
-      "deleted",
-      "cancelled",
-      "canceled",
-      "failed",
-      "declined",
-    ].includes(normalizedStatus)
-  )
-    return "status-voided";
-
-  return row?.isRemoved
-    ? "status-voided"
-    : row?.amount > 0
-      ? "status-paid"
-      : "status-pending";
+  const relatedReference =
+    row?.relatedPaymentId || row?.relatedTransactionId || "";
+  const status = String(row?.status || "")
+    .trim()
+    .toLowerCase();
+  const amount = Number(row?.amount || 0);
+  return (
+    Boolean(relatedReference) ||
+    paymentType === "void payment" ||
+    (status === "voided" && amount === 0 && paymentType.includes("reversal"))
+  );
 };
+
+const sortRowsForDisplay = (rows = []) => {
+  const copies = [...rows];
+  copies.sort((left, right) => {
+    const leftTime = getRowDateTime(left)?.getTime?.() || 0;
+    const rightTime = getRowDateTime(right)?.getTime?.() || 0;
+    const leftRelatedRef =
+      left?.relatedPaymentId || left?.relatedTransactionId || "";
+    const rightRelatedRef =
+      right?.relatedPaymentId || right?.relatedTransactionId || "";
+    const leftIsVoidAction = isVoidActionRow(left);
+    const rightIsVoidAction = isVoidActionRow(right);
+
+    if (leftIsVoidAction && leftRelatedRef) {
+      const matchesOriginal =
+        leftRelatedRef === right?.id ||
+        leftRelatedRef === right?.transactionId ||
+        leftRelatedRef === right?.customerId ||
+        leftRelatedRef === right?.paymentId;
+      if (matchesOriginal) return 1;
+    }
+
+    if (rightIsVoidAction && rightRelatedRef) {
+      const matchesOriginal =
+        rightRelatedRef === left?.id ||
+        rightRelatedRef === left?.transactionId ||
+        rightRelatedRef === left?.customerId ||
+        rightRelatedRef === left?.paymentId;
+      if (matchesOriginal) return -1;
+    }
+
+    return rightTime - leftTime;
+  });
+  return copies;
+};
+
+const createTransactionRow = (payment, index, ledgerRow) =>
+  createTransactionRowFromPayment(payment, index, ledgerRow);
+
+const normalizeStoredTransactionStatus = (value) => {
+  const normalized = String(value || "").trim().toLowerCase();
+  return normalized || null;
+};
+
+const normalizeStatusValue = (value) => String(value || "").trim().toLowerCase();
+
+const getPermanentBalanceSnapshot = (payment = {}, row = {}) => ({
+  bill: Number(payment?.billAmount ?? payment?.monthlyBill ?? payment?.bill ?? row?.bill ?? row?.monthlyBill ?? 0),
+  amount: Number(payment?.currentPaid ?? payment?.amount ?? row?.currentPaid ?? row?.amount ?? 0),
+  due: Number(payment?.currentDue ?? payment?.due ?? row?.currentDue ?? row?.due ?? 0),
+  carryForward: Number(payment?.currentAdvance ?? payment?.carryForward ?? row?.currentAdvance ?? row?.carryForward ?? 0),
+  previousDue: Number(payment?.previousDue ?? row?.previousDue ?? 0),
+  previousAdvance: Number(payment?.previousAdvance ?? row?.previousAdvance ?? 0),
+  previousPaid: Number(payment?.previousPaid ?? row?.previousPaid ?? 0),
+  additionalDue: Number(payment?.additionalDue ?? payment?.extraDue ?? row?.additionalDue ?? row?.extraDue ?? 0),
+});
+
+const getPermanentTransactionStatus = (row, payment = null) => {
+  const explicitStatus = normalizeStatusValue(
+    payment?.status ||
+      payment?.originalStatus ||
+      payment?.transactionStatus ||
+      payment?.paymentStatus ||
+      payment?.ledgerStatus ||
+      row?.status,
+  );
+
+  if (["voided", "reversed", "removed"].includes(explicitStatus)) {
+    if (isVoidActionRow(row)) {
+      return explicitStatus;
+    }
+    const originalStatus = normalizeStoredTransactionStatus(payment?.originalStatus || row?.originalStatus);
+    if (originalStatus) {
+      return originalStatus;
+    }
+  }
+
+  return explicitStatus || normalizeStoredTransactionStatus(row?.status);
+};
+
+const getTransactionStatusDetails = (row, payment = null) => {
+  const explicitStatus = getPermanentTransactionStatus(row, payment);
+
+  if (explicitStatus) {
+    const label = explicitStatus.charAt(0).toUpperCase() + explicitStatus.slice(1);
+    return {
+      label,
+      tone: explicitStatus,
+      className: `status-${explicitStatus}`,
+    };
+  }
+
+  return {
+    label: "—",
+    tone: "neutral",
+    className: "status-neutral",
+  };
+};
+
+const getTransactionStatusBadgeClass = (row, payment = null) =>
+  getTransactionStatusDetails(row, payment).className;
 
 export default function TransactionHistory() {
   const currentYear = new Date().getFullYear();
-  const [selectedYear, setSelectedYear] = useState(currentYear);
+  const currentMonth = `${currentYear}-${String(new Date().getMonth() + 1).padStart(2, "0")}`;
+  const [selectedMonth, setSelectedMonth] = useState(currentMonth);
   const [search, setSearch] = useState("");
   const [filterMode, setFilterMode] = useState("date");
   const [fromDate, setFromDate] = useState("");
@@ -82,25 +238,36 @@ export default function TransactionHistory() {
   const [currentPage, setCurrentPage] = useState(1);
 
   const { data: payments, loading } = useOwnedCollection("payments");
+  const { data: users = [] } = useOwnedCollection("users");
 
   const searchTerm = useMemo(() => search.trim().toLowerCase(), [search]);
-
-  const yearOptions = useMemo(() => {
-    const years = new Set();
-    (payments || []).forEach((payment) => {
-      const { year } = getPaymentMonthYear(payment);
-      if (Number.isFinite(Number(year))) {
-        years.add(Number(year));
-      }
-    });
-    years.add(currentYear);
-    return Array.from(years).sort((left, right) => right - left);
-  }, [payments, currentYear]);
+  const selectedMonthValue = useMemo(() => {
+    if (!selectedMonth) return null;
+    const [yearValue, monthValue] = selectedMonth.split("-");
+    return {
+      year: Number(yearValue) || currentYear,
+      month: Number(monthValue) || 1,
+    };
+  }, [selectedMonth, currentYear]);
 
   const filteredPayments = useMemo(() => {
-    let data = filterPaymentsByYear(payments || [], selectedYear);
+    const allPayments = payments || [];
+    let data = [...allPayments];
 
-    // Search by customer name or transaction metadata.
+    const hasExplicitRange = Boolean(fromDate || toDate);
+    const shouldUseMonthFilter = !(searchTerm || hasExplicitRange);
+
+    if (shouldUseMonthFilter && selectedMonthValue) {
+      data = allPayments.filter((payment) => {
+        const { month: paymentMonth, year: paymentYear } =
+          getPaymentMonthYear(payment);
+        return (
+          Number(paymentYear) === Number(selectedMonthValue.year) &&
+          Number(paymentMonth) === Number(selectedMonthValue.month)
+        );
+      });
+    }
+
     if (searchTerm) {
       data = data.filter((p) => {
         const haystacks = [
@@ -109,6 +276,8 @@ export default function TransactionHistory() {
           p.transactionId,
           p.notes,
           p.paymentType,
+          p.reason,
+          p.reasonType,
         ];
         return haystacks.some((value) =>
           String(value || "")
@@ -118,7 +287,6 @@ export default function TransactionHistory() {
       });
     }
 
-    // From date
     if (fromDate) {
       const from = new Date(fromDate);
       data = data.filter((p) => {
@@ -127,7 +295,6 @@ export default function TransactionHistory() {
       });
     }
 
-    // To date
     if (toDate) {
       const to = new Date(toDate);
       to.setHours(23, 59, 59, 999);
@@ -136,25 +303,102 @@ export default function TransactionHistory() {
         return value > 0 && value <= to.getTime();
       });
     }
-    // Always newest first, preserving each payment as its own immutable transaction row.
+
     data.sort((a, b) => getPaymentTime(b) - getPaymentTime(a));
 
     return data;
-  }, [payments, searchTerm, fromDate, toDate, selectedYear]);
+  }, [filterMode, payments, searchTerm, fromDate, toDate, selectedMonthValue]);
 
   useEffect(() => {
     setCurrentPage(1);
-  }, [searchTerm, fromDate, toDate, selectedYear]);
+  }, [filterMode, searchTerm, fromDate, toDate, selectedMonth]);
 
   const TRANSACTIONS_PER_PAGE = 20;
 
   const transactionRows = useMemo(
     () =>
-      filteredPayments.map((payment, index) =>
-        createTransactionRow(payment, index),
+      sortRowsForDisplay(
+        filteredPayments.map((payment, index) => {
+          const user = (users || []).find((candidate) => matchesPaymentToUser(payment, candidate)) || {
+            id: payment?.userId || payment?.customerId || payment?.id || "",
+            userId: payment?.userId || payment?.customerId || payment?.id || "",
+            name: payment?.userName || payment?.customerName || "Customer",
+            userName: payment?.userName || payment?.customerName || "Customer",
+            customerId: payment?.customerId || payment?.userId || payment?.id || "",
+            customerName: payment?.customerName || payment?.userName || "Customer",
+            monthlyBill: Number(payment?.monthlyBill || payment?.bill || payment?.billAmount || 0),
+          };
+          const { month: paymentMonth, year: paymentYear } = getPaymentMonthYear(payment);
+          const resolvedMonth = Number(paymentMonth || 0);
+          const resolvedYear = Number(paymentYear || 0);
+          const currentPeriodKey = getPeriodKey(resolvedMonth, resolvedYear);
+          const currentPeriodPayments = getMonthPaymentTransactions({
+            payments: payments || [],
+            userId: user?.id || user?.userId || user?.customerId || "",
+            userName: user?.name || user?.userName || user?.customerName || "",
+            month: resolvedMonth,
+            year: resolvedYear,
+          });
+          const history = (payments || []).filter((candidate) => {
+            if (!matchesPaymentToUser(candidate, user)) return false;
+            const { month: candidateMonth, year: candidateYear } = getPaymentMonthYear(candidate);
+            return getPeriodKey(candidateMonth, candidateYear) < currentPeriodKey;
+          });
+          const ledgerRow = buildMonthlySheetLedgerRow({
+            user,
+            payments: currentPeriodPayments,
+            history,
+            month: resolvedMonth,
+            year: resolvedYear,
+          });
+          const row = createTransactionRow(payment, index, ledgerRow);
+
+          const permanentSnapshot = getPermanentBalanceSnapshot(payment, row);
+          const permanentStatus = getPermanentTransactionStatus(row, payment);
+
+          row.bill = permanentSnapshot.bill;
+          row.amount = permanentSnapshot.amount;
+          row.due = permanentSnapshot.due;
+          row.carryForward = permanentSnapshot.carryForward;
+          row.currentDue = permanentSnapshot.due;
+          row.currentAdvance = permanentSnapshot.carryForward;
+          row.previousDue = permanentSnapshot.previousDue;
+          row.previousAdvance = permanentSnapshot.previousAdvance;
+          row.previousPaid = permanentSnapshot.previousPaid;
+          row.additionalDue = permanentSnapshot.additionalDue;
+
+          if (permanentStatus) {
+            row.status = permanentStatus;
+            row.ledgerStatus = permanentStatus;
+            row.transactionStatus = permanentStatus;
+          }
+
+          return row;
+        }),
       ),
-    [filteredPayments],
+    [filteredPayments, payments, users],
   );
+
+  const voidedOriginalReferences = useMemo(() => {
+    const references = new Set();
+
+    transactionRows.forEach((row) => {
+      if (!isVoidActionRow(row)) return;
+      const relatedReference = row.relatedPaymentId || row.relatedTransactionId || "";
+      if (relatedReference) {
+        references.add(String(relatedReference));
+      }
+    });
+
+    return references;
+  }, [transactionRows]);
+
+  const isVoidedOriginalTransaction = (row) => {
+    const identifiers = [row?.id, row?.transactionId, row?.paymentId, row?.customerId]
+      .filter(Boolean)
+      .map((value) => String(value));
+    return identifiers.some((value) => voidedOriginalReferences.has(value));
+  };
 
   const pageCount = Math.max(
     1,
@@ -169,6 +413,27 @@ export default function TransactionHistory() {
       ),
     [transactionRows, currentPageIndex],
   );
+  const groupedPagePayments = useMemo(() => {
+    const groups = new Map();
+    pagePayments.forEach((row) => {
+      const sectionKey = getRowMonthSectionKey(
+        row,
+        selectedMonthValue?.year || currentYear,
+      );
+      if (!groups.has(sectionKey)) {
+        groups.set(sectionKey, {
+          key: sectionKey,
+          label: getRowMonthSectionLabel(
+            row,
+            selectedMonthValue?.year || currentYear,
+          ),
+          rows: [],
+        });
+      }
+      groups.get(sectionKey).rows.push(row);
+    });
+    return Array.from(groups.values());
+  }, [pagePayments, selectedMonthValue, currentYear]);
   const showingFrom =
     transactionRows.length === 0
       ? 0
@@ -199,22 +464,32 @@ export default function TransactionHistory() {
     };
   }, [transactionRows]);
 
-  const yearRangeLabel = useMemo(() => {
-    const yearStart = new Date(selectedYear, 0, 1);
-    const yearEnd = new Date(selectedYear, 11, 31, 23, 59, 59, 999);
-    return {
-      start: yearStart.toLocaleDateString("en-US", {
-        month: "long",
-        day: "numeric",
-        year: "numeric",
-      }),
-      end: yearEnd.toLocaleDateString("en-US", {
-        month: "long",
-        day: "numeric",
-        year: "numeric",
-      }),
-    };
-  }, [selectedYear]);
+  const historyHeaderLabel = useMemo(() => {
+    if (filterMode === "date" && (fromDate || toDate)) {
+      const startLabel = fromDate
+        ? new Date(fromDate).toLocaleDateString("en-GB", {
+            day: "2-digit",
+            month: "short",
+            year: "numeric",
+          })
+        : "Start";
+      const endLabel = toDate
+        ? new Date(toDate).toLocaleDateString("en-GB", {
+            day: "2-digit",
+            month: "short",
+            year: "numeric",
+          })
+        : "End";
+      return `Transactions from ${startLabel} to ${endLabel}.`;
+    }
+
+    if (selectedMonthValue) {
+      const monthName = monthNames[selectedMonthValue.month - 1] || "Month";
+      return `Transactions for ${monthName} ${selectedMonthValue.year}.`;
+    }
+
+    return "Showing transactions across all months.";
+  }, [filterMode, fromDate, toDate, selectedMonthValue]);
 
   const exportRows = useMemo(
     () =>
@@ -226,14 +501,23 @@ export default function TransactionHistory() {
         Year: row.year || "--",
         Amount: row.amount || 0,
         Due: row.due || 0,
-        CarryForward:
-          row.carryForward ||
-          Math.max(0, Number(row.amount || 0) - Number(row.bill || 0)),
+        CarryForward: getDisplayBalanceValues({
+          due: row.due,
+          carryForward: row.carryForward,
+          currentDue: row.currentDue,
+          currentAdvance: row.currentAdvance,
+          bill: Number(row.bill || 0),
+          amount: Number(row.amount || 0),
+          previousDue: Number(row.previousDue || 0),
+          previousAdvance: Number(row.previousAdvance || 0),
+          previousPaid: Number(row.previousPaid || 0),
+          additionalDue: Number(row.additionalDue ?? row.extraDue ?? 0),
+        }).carryForward,
         PaymentDate: row.paymentDate || "--",
         PaymentTime: row.paymentTime || "--",
         PaymentType: row.paymentType || "Payment",
         CreatedBy: row.createdBy || "--",
-        Status: row.status || "Pending",
+        Status: getTransactionStatusDetails(row, row).label,
         Notes: row.notes || "",
       })),
     [transactionRows],
@@ -244,7 +528,7 @@ export default function TransactionHistory() {
       rows: exportRows,
       companyName: "Bill Sheet",
       theme: "forest",
-      year: selectedYear,
+      year: selectedMonthValue?.year || currentYear,
     });
 
   return (
@@ -253,33 +537,27 @@ export default function TransactionHistory() {
         <div>
           <h2>📒 Transaction History</h2>
 
-          <p>
-            {`Transactions for ${selectedYear} from ${yearRangeLabel.start} to ${yearRangeLabel.end}.`}
-          </p>
+          <p>Browse transactions by month, date range, or customer name.</p>
         </div>
         <div className="transaction-actions">
           <div className="year-selector-shell">
-
-            <select
-              id="year-selector"
-              className="year-selector"
-              value={selectedYear}
-              onChange={(event) => setSelectedYear(Number(event.target.value))}
-            >
-              {yearOptions.map((year) => (
-                <option key={year} value={year}>
-                  {year}
-                </option>
-              ))}
-            </select>
+            <label className="year-selector-shell">
+              <input
+                id="month-selector"
+                className="year-selector"
+                type="month"
+                value={selectedMonth}
+                onChange={(event) => setSelectedMonth(event.target.value)}
+              />
+            </label>
           </div>
           <button
-            className="btn btn-primary"
+            className="btn btn-primary transaction-history-pdf-btn"
             onClick={handleExportPdf}
             disabled={!filteredPayments.length}
           >
             <FiFileText />
-            Download PDF
+            <span>Export PDF</span>
           </button>
         </div>
       </div>
@@ -355,148 +633,170 @@ export default function TransactionHistory() {
           <div className="transaction-head">
             <div>Date</div>
             <div>Name</div>
-
-            <div>Month</div>
-
             <div>Bill</div>
-
             <div>Paid</div>
-
             <div>Balance</div>
-
             <div>Status</div>
           </div>
 
           <div className="transaction-body">
             {loading ? (
               <p className="empty">Loading transactions…</p>
-            ) : pagePayments.length ? (
-              pagePayments.map((row) => {
-                const monthLabel = getMonthLabel({
-                  month: row.month,
-                }).substring(0, 3);
-                const dueValue = Number(row.due || 0);
-                const carryForwardValue = Number(
-                  row.carryForward ??
-                    Math.max(
-                      0,
-                      Number(row.amount || 0) - Number(row.bill || 0),
-                    ),
-                );
-                const balanceStyle =
-                  dueValue > 0
-                    ? { color: "#fda4af" }
-                    : carryForwardValue > 0
-                      ? { color: "#4ade80" }
-                      : undefined;
-                const balanceLabel = formatBalanceDisplayValue({
-                  due: dueValue,
-                  carryForward: carryForwardValue,
-                });
+            ) : groupedPagePayments.length ? (
+              groupedPagePayments.map((group) => (
+                <div key={group.key} className="transaction-month-group">
+                  <div className="transaction-month-group-body">
+                    {group.rows.map((row) => {
+                      const displayBalance = getDisplayBalanceValues({
+                        due: row.due,
+                        carryForward: row.carryForward,
+                        currentDue: row.currentDue,
+                        currentAdvance: row.currentAdvance,
+                        bill: Number(row.bill || row.monthlyBill || 0),
+                        amount: Number(row.amount || 0),
+                        previousDue: Number(row.previousDue || 0),
+                        previousAdvance: Number(row.previousAdvance || 0),
+                        previousPaid: Number(row.previousPaid || 0),
+                        additionalDue: Number(row.additionalDue ?? row.extraDue ?? 0),
+                      });
+                      const dueValue = Number(displayBalance.due || 0);
+                      const carryForwardValue = Number(displayBalance.carryForward || 0);
+                      const balanceStyle =
+                        dueValue > 0
+                          ? { color: "#fda4af" }
+                          : carryForwardValue > 0
+                            ? { color: "#3B82F6" }
+                            : undefined;
+                      const balanceLabel = formatBalanceDisplayValue({
+                        due: dueValue,
+                        carryForward: carryForwardValue,
+                      });
 
-                return (
-                  <div
-                    className="transaction-row"
-                    key={
-                      row.transactionId ||
-                      row.customerId ||
-                      row.paymentDate ||
-                      row.amount
-                    }
-                  >
-                    <div className="transaction-history-date-cell">
-                      <span>
-                        {row.dateTime
-                          ? row.dateTime.toLocaleDateString("en-GB", {
-                              day: "2-digit",
-                              month: "short",
-                            })
-                          : "--"}
-                      </span>
-                      {row.dateTime ? (
-                        <small>
-                          {row.paymentTime ||
-                            row.dateTime.toLocaleTimeString([], {
-                              hour: "numeric",
-                              minute: "2-digit",
-                            })}
-                        </small>
-                      ) : null}
-                    </div>
+                      const isVoidedRow =
+                        isVoidActionRow(row) ||
+                        ["voided", "reversed"].includes(
+                          String(row.status || "")
+                            .trim()
+                            .toLowerCase(),
+                        );
+                      const voidReasonLabel = isVoidedRow
+                        ? String(
+                            row.reason ||
+                              row.remarks ||
+                              row.reversalReason ||
+                              row.voidReason ||
+                              row.reasonType ||
+                              "",
+                          ).trim()
+                        : "";
+                      const shouldShowReason = Boolean(
+                        voidReasonLabel &&
+                        voidReasonLabel.toLowerCase() !== "voided",
+                      );
+                      const isHighlightedVoidedOriginal = isVoidedOriginalTransaction(row);
+                      const paidValue = Number(row.amount || 0);
 
-                    <div>
-                      <strong>{row.customerName || "Name"}</strong>
-                    </div>
+                      const showPaidRow = paidValue > 0;
 
-                    <div>{monthLabel}</div>
+                      const showBalanceRow =
+                        dueValue !== 0 || carryForwardValue !== 0;
+                      return (
+                        <div
+                          className={`transaction-row${isHighlightedVoidedOriginal ? " transaction-row--voided-original" : ""}`}
+                          key={
+                            row.transactionId ||
+                            row.customerId ||
+                            row.paymentDate ||
+                            row.amount
+                          }
+                        >
+                          <div className="transaction-history-date-cell">
+                            <span>
+                              {row.dateTime
+                                ? row.dateTime.toLocaleDateString("en-GB", {
+                                    day: "2-digit",
+                                    month: "short",
+                                  })
+                                : "--"}
+                            </span>
+                            {row.dateTime ? (
+                              <small>
+                                {row.paymentTime ||
+                                  row.dateTime.toLocaleTimeString([], {
+                                    hour: "numeric",
+                                    minute: "2-digit",
+                                  })}
+                              </small>
+                            ) : null}
+                          </div>
 
-                    <div>{money(row.bill)}</div>
+                          <div className="transaction-history-customer-cell">
+                            <strong>{row.customerName || "Name"}</strong>
+                            {shouldShowReason ? (
+                              <div className="transaction-history-reason">
+                                <small>{voidReasonLabel}</small>
+                              </div>
+                            ) : null}
+                          </div>
 
-                    <div>{money(row.amount)}</div>
+                          <div className="transaction-history-bill-cell">
+                            {money(row.bill)}
+                          </div>
 
-                    <div style={balanceStyle}>{balanceLabel}</div>
+                          <div className="transaction-history-paid-cell">
+                            {money(row.amount)}
+                          </div>
 
-                    <div>
-                      <span className={getTransactionStatusBadgeClass(row)}>
-                        {row.status}
-                      </span>
-                    </div>
+                          <div
+                            className="transaction-history-balance-cell"
+                            style={balanceStyle}
+                          >
+                            {balanceLabel}
+                          </div>
+
+                          <div className="transaction-history-status-cell">
+                            <span
+                              className={getTransactionStatusBadgeClass(row, row)}
+                            >
+                              {getTransactionStatusDetails(row, row).label}
+                            </span>
+                          </div>
+
+                          <div className="transaction-mobile-amounts">
+                            {showPaidRow ? (
+                              <div className="transaction-mobile-amount-row">
+                                <span className="transaction-mobile-amount-label">
+                                  Paid
+                                </span>
+                                <span className="transaction-mobile-amount-value transaction-mobile-paid-value">
+                                  {money(row.amount)}
+                                </span>
+                              </div>
+                            ) : null}
+                            {showBalanceRow ? (
+                              <div className="transaction-mobile-amount-row">
+                                <span className="transaction-mobile-amount-label">
+                                  Balance
+                                </span>
+                                <span
+                                  className="transaction-mobile-amount-value transaction-mobile-balance-value"
+                                  style={balanceStyle}
+                                >
+                                  {balanceLabel}
+                                </span>
+                              </div>
+                            ) : null}
+                          </div>
+                        </div>
+                      );
+                    })}
                   </div>
-                );
-              })
+                </div>
+              ))
             ) : (
               <p className="empty">No transactions found.</p>
             )}
           </div>
-        </div>
-        <div className="transaction-mobile-list">
-          {pagePayments.map((row) => {
-            const dueValue = Number(row.due || 0);
-
-            const carryForwardValue = Number(
-              row.carryForward ??
-                Math.max(0, Number(row.amount || 0) - Number(row.bill || 0)),
-            );
-
-            const balance = formatBalanceDisplayValue({
-              due: dueValue,
-              carryForward: carryForwardValue,
-            });
-
-            return (
-              <div
-                key={
-                  row.transactionId || `${row.customerId}-${row.paymentDate}`
-                }
-                className="transaction-mobile-item"
-              >
-                <span className="tm-date">
-                  {row.dateTime
-                    ? row.dateTime.toLocaleDateString("en-GB", {
-                        day: "2-digit",
-                        month: "short",
-                      })
-                    : "--"}
-                </span>
-
-                <span className="tm-customer">{row.customerName || "--"}</span>
-
-                <span className="tm-month">
-                  {getMonthLabel({ month: row.month }).substring(0, 3)}
-                </span>
-
-                <span className="tm-paid">{money(row.amount || 0)}</span>
-
-                <span
-                  className={
-                    dueValue > 0 ? "tm-balance due" : "tm-balance carry"
-                  }
-                >
-                  {balance}
-                </span>
-              </div>
-            );
-          })}
         </div>
         {pageCount > 1 && (
           <div className="transaction-pagination">

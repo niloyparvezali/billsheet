@@ -293,7 +293,7 @@ export default function SettingsPanel({ user, onSave, onExportBackup }) {
     setSmsTemplate(nextValue);
     setSmsHasChanges(true);
     requestAnimationFrame(() => {
-      textarea.focus();
+      textarea.focus({ preventScroll: true });
       const caretPosition = start + token.length;
       textarea.setSelectionRange(caretPosition, caretPosition);
     });

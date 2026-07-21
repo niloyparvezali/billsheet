@@ -63,7 +63,11 @@ export const createTransactionStatus = ({ transactionType, status }) => {
   if (normalizedType === TRANSACTION_TYPES.CARRY_FORWARD_DUE || normalizedType === TRANSACTION_TYPES.CARRY_FORWARD_ADVANCE) return 'Applied';
   if (normalizedStatus === 'completed') return 'Completed';
   if (normalizedStatus === 'pending') return 'Pending';
-  return 'Completed';
+  if (normalizedStatus === 'paid') return 'Paid';
+  if (normalizedStatus === 'partial') return 'Partial';
+  if (normalizedStatus === 'advance') return 'Advance';
+  if (normalizedStatus === 'due') return 'Due';
+  return normalizedStatus ? String(status).trim() : 'Completed';
 };
 
 export const derivePaymentLedgerMetrics = ({
@@ -72,15 +76,17 @@ export const derivePaymentLedgerMetrics = ({
   previousPaid = 0,
   previousDue = 0,
   previousAdvance = 0,
+  additionalDue = 0,
 } = {}) => {
   const safeBill = Number(billAmount || 0);
   const safeAmount = Number(amount || 0);
   const safePreviousPaid = Number(previousPaid || 0);
   const safePreviousDue = Number(previousDue || 0);
   const safePreviousAdvance = Number(previousAdvance || 0);
+  const safeAdditionalDue = Number(additionalDue || 0);
 
   const currentPaid = safePreviousPaid + safeAmount;
-  const totalReceivable = safePreviousDue + safeBill;
+  const totalReceivable = safePreviousDue + safeBill + safeAdditionalDue;
   const currentDue = Math.max(0, totalReceivable - currentPaid);
   const currentAdvance = Math.max(0, currentPaid - totalReceivable);
 

@@ -1,7 +1,8 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 
-import { buildMonthlyCollectionSeries, buildMonthlyReportSummary, buildMonthlySheetLedgerRow, buildPaymentRemovalEvent, buildYearlyCustomerReportSummary, computePaymentSummary, createTransactionRowFromPayment, filterPaymentsByYear, formatAnnualReportBalanceValue, formatBalanceDisplayValue, getActivePayments, getEffectiveBillForPeriod, getMonthPaymentTransactions, getPaymentStatusLabel, getPaymentMonthYear, isUserActiveForPeriod } from '../src/utils/payments.js';
+import { buildMonthlyCollectionSeries, buildMonthlyReportSummary, buildMonthlySheetLedgerRow, buildPaymentRemovalEvent, buildVoidPaymentActionRecords, buildYearlyCustomerReportSummary, computePaymentSummary, createTransactionRowFromPayment, filterPaymentsByYear, formatAnnualReportBalanceValue, formatBalanceDisplayValue, getActivePayments, getDisplayBalanceValues, getDisplayPaymentStatus, getEffectiveBillForPeriod, getMonthPaymentTransactions, getPaymentStatusLabel, getPaymentMonthYear, isUserActiveForPeriod, voidPaymentRecord } from '../src/utils/payments.js';
+import { deriveMonthlySheetBillingState } from '../src/hooks/useMonthlySheet.js';
 import { buildTransactionRecord, buildReversalTransactionRecord, derivePaymentLedgerMetrics, resolveTransactionType, createTransactionStatus } from '../src/utils/transactions.js';
 
 test('filterPaymentsByYear keeps only transactions from the selected calendar year', () => {
@@ -57,6 +58,108 @@ test('computePaymentSummary keeps partial balances when payments are smaller tha
   assert.equal(summary.status, 'Partial');
 });
 
+test('computePaymentSummary includes additional due in the total payable while keeping monthly status tied to the current bill', () => {
+  const summary = computePaymentSummary({
+    bill: 1000,
+    payments: [{ amount: 400, status: 'active', extraDue: 200 }],
+  });
+
+  assert.equal(summary.totalPaid, 400);
+  assert.equal(summary.totalReceivable, 1200);
+  assert.equal(summary.outstandingBalance, 800);
+  assert.equal(summary.carryForward, 0);
+  assert.equal(summary.status, 'Partial');
+});
+
+test('computePaymentSummary keeps the monthly status paid when the current bill is covered even if extra due remains', () => {
+  const summary = computePaymentSummary({
+    bill: 500,
+    payments: [{ amount: 700, status: 'active', extraDue: 300 }],
+  });
+
+  assert.equal(summary.totalPaid, 700);
+  assert.equal(summary.totalReceivable, 800);
+  assert.equal(summary.outstandingBalance, 100);
+  assert.equal(summary.carryForward, 0);
+  assert.equal(summary.status, 'Paid');
+});
+
+test('billing engine passes all requested scenario rules', () => {
+  const currentDateBeforeEnd = new Date('2026-07-15');
+  const currentDateBeforeMonthClose = new Date('2026-07-31T23:59:59.999');
+  const currentDateAfterEnd = new Date('2026-08-01T00:00:00');
+  const currentMonth = 7;
+
+  const scenarios = [
+    {
+      label: 'Pending when unpaid current month bill',
+      input: { bill: 500, openingDue: 0, payments: [] },
+      expected: { status: 'Pending', currentBillPaid: 0, currentBillRemaining: 500, carryForward: 0 },
+    },
+    {
+      label: 'Partial when current month partially paid',
+      input: { bill: 500, openingDue: 0, payments: [{ amount: 200, status: 'active' }] },
+      expected: { status: 'Partial', currentBillPaid: 200, currentBillRemaining: 300, carryForward: 0 },
+    },
+    {
+      label: 'Paid when current bill exactly covered',
+      input: { bill: 500, openingDue: 0, payments: [{ amount: 500, status: 'active' }] },
+      expected: { status: 'Paid', currentBillPaid: 500, currentBillRemaining: 0, carryForward: 0 },
+    },
+    {
+      label: 'Advance when overpaid without previous due',
+      input: { bill: 500, openingDue: 0, payments: [{ amount: 700, status: 'active' }] },
+      expected: { status: 'Advance', currentBillPaid: 500, currentBillRemaining: 0, carryForward: 200 },
+    },
+    {
+      label: 'Paid when previous due remains after current bill paid',
+      input: { bill: 500, openingDue: 500, payments: [{ amount: 500, status: 'active' }] },
+      expected: { status: 'Paid', currentBillPaid: 500, currentBillRemaining: 0, previousDueRemaining: 500, carryForward: 0 },
+    },
+    {
+      label: 'Paid when previous due partially covered',
+      input: { bill: 500, openingDue: 500, payments: [{ amount: 800, status: 'active' }] },
+      expected: { status: 'Paid', currentBillPaid: 500, currentBillRemaining: 0, previousDueRemaining: 200, carryForward: 0 },
+    },
+    {
+      label: 'Advance when bill and due are fully covered with extra payment',
+      input: { bill: 500, openingDue: 200, payments: [{ amount: 1000, status: 'active' }] },
+      expected: { status: 'Advance', currentBillPaid: 500, currentBillRemaining: 0, previousDueRemaining: 0, carryForward: 300 },
+    },
+    {
+      label: 'Paid when carry forward covers the remainder of the bill',
+      input: { bill: 500, openingDue: 0, payments: [{ amount: 200, status: 'active' }], openingAdvance: 300 },
+      expected: { status: 'Paid', currentBillPaid: 500, currentBillRemaining: 0, carryForward: 0 },
+    },
+  ];
+
+  scenarios.forEach(({ label, input, expected }) => {
+    const summary = computePaymentSummary(input);
+    assert.equal(summary.status, expected.status, `${label} status`);
+    assert.equal(summary.currentBillPaid, expected.currentBillPaid, `${label} currentBillPaid`);
+    assert.equal(summary.currentBillRemaining, expected.currentBillRemaining, `${label} currentBillRemaining`);
+    assert.equal(summary.carryForward, expected.carryForward, `${label} carryForward`);
+    if (expected.previousDueRemaining != null) {
+      assert.equal(summary.previousDueRemaining, expected.previousDueRemaining, `${label} previousDueRemaining`);
+    }
+  });
+
+  const partialStatus = getDisplayPaymentStatus({ bill: 500, paid: 300, due: 0, advance: 0, month: currentMonth, currentMonth, currentDate: currentDateBeforeEnd });
+  assert.equal(partialStatus.label, 'Partial');
+
+  const dueAfterEnd = getDisplayPaymentStatus({ bill: 500, paid: 300, due: 200, advance: 0, month: currentMonth, currentMonth, currentDate: currentDateAfterEnd });
+  assert.equal(dueAfterEnd.label, 'Due');
+
+  const pendingBeforeEnd = getDisplayPaymentStatus({ bill: 500, paid: 0, due: 0, advance: 0, month: currentMonth, currentMonth, currentDate: currentDateBeforeEnd });
+  assert.equal(pendingBeforeEnd.label, 'Pending');
+
+  const pendingAtMonthClose = getDisplayPaymentStatus({ bill: 500, paid: 0, due: 0, advance: 0, month: currentMonth, currentMonth, currentDate: currentDateBeforeMonthClose });
+  assert.equal(pendingAtMonthClose.label, 'Pending');
+
+  const dueZeroAfterEnd = getDisplayPaymentStatus({ bill: 500, paid: 0, due: 500, advance: 0, month: currentMonth, currentMonth, currentDate: currentDateAfterEnd });
+  assert.equal(dueZeroAfterEnd.label, 'Due');
+});
+
 test('getMonthPaymentTransactions keeps every transaction for the same customer and month before recalculating totals', () => {
   const payments = [
     { userId: 'cust-1', month: 7, year: 2026, amount: 700, status: 'Completed' },
@@ -78,6 +181,158 @@ test('getMonthPaymentTransactions keeps every transaction for the same customer 
   assert.equal(summary.outstandingBalance, 0);
   assert.equal(summary.carryForward, 0);
   assert.equal(summary.status, 'Paid');
+});
+
+test('getDisplayPaymentStatus normalizes pending, partial, due, and advance states from the same rules', () => {
+  const pending = getDisplayPaymentStatus({ bill: 1000, paid: 0, month: 7, currentMonth: 7, currentDate: new Date('2026-07-15') });
+  const partial = getDisplayPaymentStatus({ bill: 1000, paid: 400, month: 7, currentMonth: 7, currentDate: new Date('2026-07-15') });
+  const due = getDisplayPaymentStatus({ bill: 1000, paid: 0, month: 6, currentMonth: 7, currentDate: new Date('2026-07-15') });
+  const advance = getDisplayPaymentStatus({ bill: 1000, paid: 1400, due: 0, month: 7, currentMonth: 7, currentDate: new Date('2026-07-15') });
+
+  assert.deepEqual(pending, { label: 'Pending', tone: 'pending', className: 'status-pending' });
+  assert.deepEqual(partial, { label: 'Partial', tone: 'partial', className: 'status-partial' });
+  assert.deepEqual(due, { label: 'Due', tone: 'due', className: 'status-due' });
+  assert.deepEqual(advance, { label: 'Advance', tone: 'advance', className: 'status-advance' });
+});
+
+test('getDisplayPaymentStatus preserves explicit partial status for historical transaction rows', () => {
+  const historical = getDisplayPaymentStatus({
+    status: 'Partial',
+    bill: 1000,
+    paid: 400,
+    month: 6,
+    currentMonth: 7,
+    currentDate: new Date('2026-07-31'),
+    preserveExplicitStatus: true,
+  });
+
+  assert.deepEqual(historical, { label: 'Partial', tone: 'partial', className: 'status-partial' });
+});
+
+test('getDisplayBalanceValues recomputes from the payment ledger when a full payment clears the bill', () => {
+  const balance = getDisplayBalanceValues({
+    due: 1000,
+    carryForward: 0,
+    currentDue: 1000,
+    currentAdvance: 0,
+    bill: 1000,
+    amount: 1000,
+    previousDue: 0,
+    previousAdvance: 0,
+    previousPaid: 0,
+    additionalDue: 0,
+  });
+
+  assert.deepEqual(balance, { due: 0, carryForward: 0 });
+});
+
+test('getDisplayPaymentStatus only shows pending for future months or current-month periods before month-end', () => {
+  const futureMonth = getDisplayPaymentStatus({ bill: 1000, paid: 0, month: 8, currentMonth: 7, currentDate: new Date('2026-07-15') });
+  const currentMonthBeforeEnd = getDisplayPaymentStatus({ bill: 1000, paid: 0, month: 7, currentMonth: 7, currentDate: new Date('2026-07-15') });
+  const currentMonthAfterEnd = getDisplayPaymentStatus({ bill: 1000, paid: 0, month: 7, currentMonth: 7, currentDate: new Date('2026-08-01T00:00:00') });
+  const previousMonth = getDisplayPaymentStatus({ bill: 1000, paid: 0, month: 6, currentMonth: 7, currentDate: new Date('2026-07-15') });
+
+  assert.deepEqual(futureMonth, { label: 'Pending', tone: 'pending', className: 'status-pending' });
+  assert.deepEqual(currentMonthBeforeEnd, { label: 'Pending', tone: 'pending', className: 'status-pending' });
+  assert.deepEqual(currentMonthAfterEnd, { label: 'Due', tone: 'due', className: 'status-due' });
+  assert.deepEqual(previousMonth, { label: 'Due', tone: 'due', className: 'status-due' });
+});
+
+test('computePaymentSummary keeps advance status off when an overpayment is only clearing a previous due balance', () => {
+  const summary = computePaymentSummary({
+    bill: 500,
+    payments: [{ amount: 1000, status: 'active' }],
+    openingDue: 500,
+  });
+
+  assert.equal(summary.status, 'Paid');
+  assert.equal(summary.currentAdvance, 0);
+  assert.equal(summary.currentDue, 0);
+});
+
+test('computePaymentSummary allocates overpayments after clearing prior due and the current bill', () => {
+  const summary = computePaymentSummary({
+    bill: 1000,
+    payments: [{ amount: 1700, status: 'active' }],
+    openingDue: 500,
+  });
+
+  assert.equal(summary.totalPaid, 1700);
+  assert.equal(summary.totalReceivable, 1500);
+  assert.equal(summary.currentDue, 0);
+  assert.equal(summary.currentAdvance, 200);
+  assert.equal(summary.status, 'Advance');
+});
+
+test('deriveMonthlySheetBillingState applies current bill before previous due and marks advance only when the surplus remains', () => {
+  const exampleOne = deriveMonthlySheetBillingState({
+    bill: 500,
+    openingDue: 500,
+    openingAdvance: 0,
+    currentPayments: [{ amount: 800, status: 'active' }],
+  });
+
+  assert.equal(exampleOne.status, 'Paid');
+  assert.equal(exampleOne.currentBillPaid, 500);
+  assert.equal(exampleOne.previousDueRemaining, 200);
+  assert.equal(exampleOne.carryForward, 0);
+
+  const exampleTwo = deriveMonthlySheetBillingState({
+    bill: 500,
+    openingDue: 200,
+    openingAdvance: 0,
+    currentPayments: [{ amount: 1000, status: 'active' }],
+  });
+
+  assert.equal(exampleTwo.status, 'Advance');
+  assert.equal(exampleTwo.currentBillPaid, 500);
+  assert.equal(exampleTwo.previousDueRemaining, 0);
+  assert.equal(exampleTwo.carryForward, 300);
+
+  const exampleThree = deriveMonthlySheetBillingState({
+    bill: 500,
+    openingDue: 0,
+    openingAdvance: 300,
+    currentPayments: [{ amount: 200, status: 'active' }],
+  });
+
+  assert.equal(exampleThree.status, 'Paid');
+  assert.equal(exampleThree.currentBillPaid, 500);
+  assert.equal(exampleThree.previousDueRemaining, 0);
+  assert.equal(exampleThree.carryForward, 0);
+});
+
+test('deriveMonthlySheetBillingState keeps the current month pending until the billing month has fully ended', () => {
+  const pendingState = deriveMonthlySheetBillingState({
+    bill: 1000,
+    openingDue: 0,
+    openingAdvance: 0,
+    currentPayments: [],
+    month: 7,
+    year: 2026,
+    currentDate: new Date('2026-07-31T23:59:59.999'),
+  });
+
+  const dueState = deriveMonthlySheetBillingState({
+    bill: 1000,
+    openingDue: 0,
+    openingAdvance: 0,
+    currentPayments: [],
+    month: 7,
+    year: 2026,
+    currentDate: new Date('2026-08-01T00:00:00'),
+  });
+
+  assert.equal(pendingState.status, 'Pending');
+  assert.equal(dueState.status, 'Due');
+});
+
+test('getDisplayPaymentStatus shows paid for the current month even when prior dues remain and due for past months with unpaid balances', () => {
+  const currentMonthPaid = getDisplayPaymentStatus({ bill: 500, paid: 500, due: 200, month: 7, currentMonth: 7, currentDate: new Date('2026-07-15') });
+  const previousMonthDue = getDisplayPaymentStatus({ bill: 500, paid: 300, due: 200, month: 6, currentMonth: 7, currentDate: new Date('2026-07-15') });
+
+  assert.deepEqual(currentMonthPaid, { label: 'Paid', tone: 'paid', className: 'status-paid' });
+  assert.deepEqual(previousMonthDue, { label: 'Due', tone: 'due', className: 'status-due' });
 });
 
 test('getActivePayments removes voided and reversed transactions from active totals', () => {
@@ -120,7 +375,21 @@ test('computePaymentSummary uses opening due and multiple payments to derive due
   assert.equal(summary.totalReceivable, 1300);
   assert.equal(summary.outstandingBalance, 100);
   assert.equal(summary.advance, 0);
-  assert.equal(summary.status, 'Partial');
+  assert.equal(summary.status, 'Paid');
+});
+
+test('computePaymentSummary marks paid when previous due plus current bill are exactly covered', () => {
+  const summary = computePaymentSummary({
+    bill: 1000,
+    openingDue: 1000,
+    payments: [{ amount: 2000, status: 'Completed' }],
+  });
+
+  assert.equal(summary.totalPaid, 2000);
+  assert.equal(summary.totalReceivable, 2000);
+  assert.equal(summary.currentDue, 0);
+  assert.equal(summary.currentAdvance, 0);
+  assert.equal(summary.status, 'Paid');
 });
 
 test('getPaymentMonthYear derives month and year from timestamp when month and year fields are missing', () => {
@@ -219,6 +488,24 @@ test('formatAnnualReportBalanceValue mirrors monthly sheet balance formatting fo
   assert.equal(formatAnnualReportBalanceValue({ due: 0, advance: 0 }), '৳0');
 });
 
+test('buildYearlyCustomerReportSummary uses the effective bill for each month when bill history changes mid-year', () => {
+  const summary = buildYearlyCustomerReportSummary({
+    user: {
+      id: 'cust-1',
+      name: 'Alice',
+      monthlyBill: 500,
+      billHistory: [{ effectiveMonth: 2, effectiveYear: 2026, monthlyBill: 700 }],
+      active: true,
+    },
+    payments: [],
+    year: 2026,
+  });
+
+  assert.equal(summary.months[0].bill, 500);
+  assert.equal(summary.months[1].bill, 700);
+  assert.equal(summary.months[2].bill, 700);
+});
+
 test('buildYearlyCustomerReportSummary builds yearly rows from the shared ledger helper', () => {
   const summary = buildYearlyCustomerReportSummary({
     user: { id: 'cust-1', name: 'Alice', monthlyBill: 1000, active: true },
@@ -273,7 +560,7 @@ test('buildYearlyCustomerReportSummary uses bill history for each historical mon
   });
 
   assert.equal(summary.months[0].bill, 1000);
-  assert.equal(summary.months[5].bill, 1000);
+  assert.equal(summary.months[5].bill, 1500);
   assert.equal(summary.months[5].month, 6);
   assert.equal(summary.months[6].bill, 1500);
   assert.equal(summary.months[11].bill, 1500);
@@ -387,6 +674,75 @@ test('buildPaymentRemovalEvent marks the original payment as deleted and preserv
   assert.equal(event.reversalRecord.status, 'Reversed');
 });
 
+test('voidPaymentRecord preserves a specific void reason and reason type on the target payment record', () => {
+  const payment = {
+    id: 'pay-2',
+    userId: 'cust-1',
+    customerId: 'cust-1',
+    customerName: 'Alice',
+    month: 8,
+    year: 2026,
+    amount: 500,
+    monthlyBill: 1000,
+    status: 'Completed',
+  };
+
+  const voided = voidPaymentRecord({
+    payment,
+    voidedBy: 'admin-1',
+    reason: 'Client overpaid and requested refund',
+    reasonType: 'Customer Refund',
+    voidDate: new Date('2026-08-10T12:00:00Z'),
+    voidTime: '12:00',
+  });
+
+  assert.equal(voided.status, 'Voided');
+  assert.equal(voided.isDeleted, true);
+  assert.equal(voided.voidedBy, 'admin-1');
+  assert.equal(voided.reasonType, 'Customer Refund');
+  assert.equal(voided.reason, 'Client overpaid and requested refund');
+});
+
+test('buildVoidPaymentActionRecords creates a separate reversal transaction while preserving the original payment audit trail', () => {
+  const payment = {
+    id: 'pay-2',
+    transactionId: 'txn-2',
+    userId: 'cust-1',
+    customerId: 'cust-1',
+    customerName: 'Alice',
+    userName: 'Alice',
+    userCategory: 'Regular',
+    month: 8,
+    year: 2026,
+    amount: 500,
+    monthlyBill: 1000,
+    status: 'Completed',
+    ownerId: 'owner-1',
+  };
+
+  const records = buildVoidPaymentActionRecords({
+    payment,
+    voidedBy: 'admin-1',
+    reason: 'Wrong Amount',
+    reasonType: 'Wrong Amount',
+    voidDate: new Date('2026-08-10T12:00:00Z'),
+    voidTime: '12:00',
+    ownerId: 'owner-1',
+    paymentDateText: '2026-08-10',
+    paymentTime: '12:00',
+  });
+
+  assert.equal(records.originalRecord.status, 'Voided');
+  assert.equal(records.originalRecord.isDeleted, true);
+  assert.equal(records.originalRecord.voidedBy, 'admin-1');
+  assert.equal(records.voidActionRecord.relatedPaymentId, 'pay-2');
+  assert.equal(records.voidActionRecord.relatedTransactionId, 'txn-2');
+  assert.equal(records.voidActionRecord.paymentType, 'Void Payment');
+  assert.equal(records.voidActionRecord.status, 'Voided');
+  assert.equal(records.voidActionRecord.amount, 0);
+  assert.equal(records.voidActionRecord.transactionType, 'payment_reversal');
+});
+
 test('createTransactionRowFromPayment flags voided payments as non-revenue contributors', () => {
   const row = createTransactionRowFromPayment({
     id: 'pay-2',
@@ -459,6 +815,20 @@ test('derivePaymentLedgerMetrics aggregates multiple payments in the same month'
   assert.equal(metrics.currentPaid, 700);
   assert.equal(metrics.currentDue, 300);
   assert.equal(metrics.currentAdvance, 0);
+});
+
+test('createTransactionRowFromPayment uses the ledger-backed advance value for display balance', () => {
+  const row = createTransactionRowFromPayment({
+    amount: 1700,
+    monthlyBill: 1000,
+    previousDue: 500,
+    currentDue: 0,
+    currentAdvance: 200,
+    status: 'Completed',
+  }, 0);
+
+  assert.equal(row.due, 0);
+  assert.equal(row.carryForward, 200);
 });
 
 test('buildReversalTransactionRecord preserves the original payment reference and audit reason', () => {

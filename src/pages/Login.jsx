@@ -117,7 +117,7 @@ export default function Login() {
   useEffect(() => {
     if (mode !== "login") return;
     setActiveInput("phone");
-    const frame = window.setTimeout(() => phoneInputRef.current?.focus(), 80);
+    const frame = window.setTimeout(() => phoneInputRef.current?.focus({ preventScroll: true }), 80);
     return () => window.clearTimeout(frame);
   }, [mode]);
 
@@ -294,14 +294,14 @@ export default function Login() {
           className={`passcode-display ${passcode.length ? "filled" : ""} ${activeInput === "passcode" ? "active" : ""} ${showPasscode ? "revealed" : ""}`}
           onClick={() => {
             setActiveInput("passcode");
-            passcodeInputRef.current?.focus();
+            passcodeInputRef.current?.focus({ preventScroll: true });
           }}
           onFocus={() => setActiveInput("passcode")}
           onKeyDown={(event) => {
             if (event.key === "Enter" || event.key === " ") {
               event.preventDefault();
               setActiveInput("passcode");
-              passcodeInputRef.current?.focus();
+              passcodeInputRef.current?.focus({ preventScroll: true });
             }
           }}
         >
@@ -363,7 +363,7 @@ export default function Login() {
             onChange={(event) =>
               setForm({ ...form, fullName: event.target.value })
             }
-            placeholder="John Doe"
+            placeholder="Name"
           />
         </div>
         {errors.fullName ? (
@@ -434,7 +434,7 @@ export default function Login() {
                 phone: phoneErrorMessage(digits),
               }));
             }}
-            placeholder="015 6006 0333"
+            placeholder="01X XXXX XXXX"
             aria-label="Phone number"
           />
         </div>
@@ -590,7 +590,7 @@ export default function Login() {
                     event.preventDefault();
                     updatePhone(event.clipboardData?.getData("text") || "");
                   }}
-                  placeholder="015 6006 0333"
+                  placeholder="01X XXXX XXXX"
                   aria-label="Registered phone number"
                 />
               </div>

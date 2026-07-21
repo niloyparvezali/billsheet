@@ -1,6 +1,6 @@
 import { useEffect } from "react";
 
-export default function Modal({ title, children, onClose }) {
+export default function Modal({ title, children, onClose, className }) {
   useEffect(() => {
     const handleKeyDown = (event) => {
       if (event.key === "Escape") {
@@ -13,7 +13,7 @@ export default function Modal({ title, children, onClose }) {
 
   return (
     <div className="modal-wrap" onMouseDown={onClose}>
-      <section className="modal" onMouseDown={(e) => e.stopPropagation()}>
+      <section className={`modal${className ? ` ${className}` : ""}`} onMouseDown={(e) => e.stopPropagation()}>
         <button className="modal-close" onClick={onClose}>
           ×
         </button>

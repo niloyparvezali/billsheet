@@ -28,10 +28,13 @@ export function getStatusColor(theme, status = "") {
       return theme.warning;
 
     case "pending":
-      return theme.danger;
+      return theme.warning;
 
     case "advance":
       return theme.info;
+
+    case "due":
+      return theme.danger;
 
     default:
       return theme.text;

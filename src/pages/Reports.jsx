@@ -18,7 +18,41 @@ import {
   formatAnnualReportBalanceValue,
   formatBalanceDisplayValue,
   getActivePayments,
+  getEffectiveBillForPeriod,
+  getPaymentMonthYear,
+  matchesPaymentToUser,
 } from "../utils/payments";
+import { isUserActiveForPeriod } from "../utils/membership";
+
+const resolveReportsBillingStatus = ({ entry }) => {
+  const monthNumber = Number(entry?.month || entry?.monthNumber || 0);
+  const bill = Number(entry?.bill ?? entry?.monthlyBill ?? 0);
+  const paid = Number(entry?.paid ?? 0);
+  const endingBalance = Number(entry?.endingBalance ?? entry?.balance ?? 0);
+  const isInactiveEntry =
+    entry?.status === "Not Joined" ||
+    entry?.status === "Inactive" ||
+    entry?.status === "N/A" ||
+    entry?.status === "na";
+
+  if (isInactiveEntry) {
+    return { label: "N/A", tone: "neutral", className: "status-neutral" };
+  }
+
+  if (!Number.isFinite(monthNumber) || monthNumber < 1 || monthNumber > 12) {
+    return { label: "Pending", tone: "pending", className: "status-pending" };
+  }
+
+  if (endingBalance < 0) {
+    return { label: "Due", tone: "due", className: "status-due" };
+  }
+
+  if (endingBalance === 0) {
+    return { label: "Paid", tone: "paid", className: "status-paid" };
+  }
+
+  return { label: "Advance", tone: "advance", className: "status-advance" };
+};
 
 export default function Reports() {
   const now = new Date();
@@ -128,20 +162,202 @@ export default function Reports() {
   }, [activePayments, selectedCustomer, year]);
 
   const previousDue = yearlySummary?.previousDue || 0;
+  const previousAdvance = yearlySummary?.previousAdvance || 0;
+  const openingBalance = yearlySummary?.openingBalance || 0;
   const paidThisYear = yearlySummary?.totalPaid || 0;
   const annualBill = yearlySummary?.annualBill || 0;
-  const outstandingBalance = yearlySummary?.totalDue || 0;
-  const creditCarryForward = yearlySummary?.totalAdvance || 0;
+  const outstandingBalance =
+    (yearlySummary?.remainingDue ?? yearlySummary?.totalDue) || 0;
+  const creditCarryForward =
+    (yearlySummary?.remainingAdvance ?? yearlySummary?.totalAdvance) || 0;
+  const closingBalance = yearlySummary?.closingBalance || 0;
   const balanceStatus =
     yearlySummary?.closingBalanceStatus || "Account Settled";
-  const monthlyHistory = yearlySummary?.months || [];
-  const yearOverview = useMemo(
-    () => ({
+  const monthlyHistory = useMemo(() => {
+    if (!selectedCustomer) return [];
+
+    const user = selectedCustomer?.user || selectedCustomer;
+    const safeYear = Number(year);
+    const currentDate = new Date();
+    const isCurrentYear = safeYear === currentDate.getFullYear();
+    const maxMonth = isCurrentYear ? currentDate.getMonth() + 1 : 12;
+    const startingBalance = Number(yearlySummary?.openingBalance || 0);
+    let runningBalance = startingBalance;
+
+    return Array.from({ length: 12 }, (_, index) => {
+      const month = index + 1;
+      const monthStart = new Date(safeYear, index, 1);
+      const monthEnd = new Date(safeYear, index + 1, 0, 23, 59, 59);
+      const monthName = monthStart.toLocaleString("en-us", { month: "long" });
+
+      if (isCurrentYear && month > maxMonth) {
+        return {
+          month,
+          monthName,
+          bill: null,
+          paid: null,
+          due: null,
+          advance: null,
+          balance: null,
+          status: null,
+          previousBalance: runningBalance,
+          endingBalance: runningBalance,
+          isPlaceholder: true,
+        };
+      }
+
+      const isActiveForMonth = isUserActiveForPeriod(user, { month, year: safeYear });
+      if (!isActiveForMonth) {
+        return {
+          month,
+          monthName,
+          bill: null,
+          paid: null,
+          due: null,
+          advance: null,
+          balance: null,
+          status: "N/A",
+          previousBalance: runningBalance,
+          endingBalance: runningBalance,
+          isPlaceholder: false,
+          isInactive: true,
+        };
+      }
+
+      const monthPayments = (activePayments || []).filter((payment) => {
+        const { month: paymentMonth, year: paymentYear } = getPaymentMonthYear(payment);
+        return (
+          matchesPaymentToUser(payment, user) &&
+          Number(paymentMonth) === month &&
+          Number(paymentYear) === safeYear
+        );
+      });
+      const paid = monthPayments.reduce((sum, payment) => sum + Number(payment.amount || 0), 0);
+      const bill = getEffectiveBillForPeriod(user, { month, year: safeYear });
+      const previousBalance = runningBalance;
+      const endingBalance = previousBalance + paid - bill;
+      const computedStatus = resolveReportsBillingStatus({
+        entry: {
+          month,
+          bill,
+          paid,
+          endingBalance,
+          status: "Active",
+        },
+      });
+
+      runningBalance = endingBalance;
+
+      return {
+        month,
+        monthName,
+        bill: Number(bill || 0),
+        paid: Number(paid || 0),
+        due: endingBalance < 0 ? Math.abs(endingBalance) : 0,
+        advance: endingBalance > 0 ? endingBalance : 0,
+        balance: endingBalance,
+        status: computedStatus.label,
+        previousBalance,
+        endingBalance,
+        raw: {
+          startingBalance: previousBalance,
+          endingBalance,
+          monthEnded: currentDate.getTime() >= monthEnd.getTime(),
+          isCurrentMonth:
+            safeYear === currentDate.getFullYear() &&
+            month === currentDate.getMonth() + 1,
+        },
+      };
+    });
+  }, [activePayments, selectedCustomer, year, yearlySummary?.openingBalance]);
+  const yearOverview = useMemo(() => {
+    const selectedYear = Number(year);
+    const today = new Date();
+    const yearStart = new Date(selectedYear, 0, 1);
+    const yearEnd = new Date(selectedYear, 11, 31, 23, 59, 59);
+    const rangeEnd =
+      selectedYear === today.getFullYear()
+        ? new Date(
+            today.getFullYear(),
+            today.getMonth(),
+            today.getDate(),
+            23,
+            59,
+            59,
+          )
+        : yearEnd;
+
+    const getPaymentDateValue = (payment) => {
+      if (!payment) return null;
+      const candidates = [
+        payment?.paymentDate,
+        payment?.createdAt,
+        payment?.timestamp,
+      ];
+      for (const candidate of candidates) {
+        if (!candidate) continue;
+        if (typeof candidate?.toDate === "function") {
+          const dateValue = candidate.toDate();
+          if (dateValue instanceof Date && !Number.isNaN(dateValue.getTime())) {
+            return dateValue;
+          }
+        }
+        if (candidate instanceof Date && !Number.isNaN(candidate.getTime())) {
+          return candidate;
+        }
+        if (typeof candidate === "string") {
+          const parsedDate = new Date(candidate);
+          if (!Number.isNaN(parsedDate.getTime())) return parsedDate;
+        }
+      }
+      return null;
+    };
+
+    const collectionToDate = (activePayments || []).reduce((sum, payment) => {
+      const { year: paymentYear } = getPaymentMonthYear(payment);
+      if (Number(paymentYear) !== selectedYear) return sum;
+      const paymentDate = getPaymentDateValue(payment);
+      if (!paymentDate) return sum;
+      if (paymentDate < yearStart || paymentDate > rangeEnd) return sum;
+      return sum + Number(payment.amount || 0);
+    }, 0);
+
+    const annualBillForAllUsers = (users || []).reduce((sum, user) => {
+      let monthTotal = 0;
+      for (let month = 1; month <= 12; month += 1) {
+        if (!isUserActiveForPeriod(user, { month, year: selectedYear })) continue;
+        const bill = getEffectiveBillForPeriod(user, { month, year: selectedYear });
+        monthTotal += Number(bill || 0);
+      }
+      return sum + monthTotal;
+    }, 0);
+
+    const remainingMonthsStart =
+      selectedYear === today.getFullYear() ? today.getMonth() + 1 : 1;
+    const remainingToCollect = (users || []).reduce((sum, user) => {
+      let monthTotal = 0;
+      for (let month = remainingMonthsStart; month <= 12; month += 1) {
+        if (!isUserActiveForPeriod(user, { month, year: selectedYear })) continue;
+        const bill = getEffectiveBillForPeriod(user, { month, year: selectedYear });
+        monthTotal += Number(bill || 0);
+      }
+      return sum + monthTotal;
+    }, 0);
+
+    if (!selectedCustomer) {
+      return {
+        collection: collectionToDate,
+        outstanding: Math.max(0, remainingToCollect - collectionToDate),
+        annualBill: annualBillForAllUsers,
+      };
+    }
+
+    return {
       collection: yearlySummary?.totalPaid || 0,
       outstanding: yearlySummary?.totalDue || 0,
-    }),
-    [yearlySummary],
-  );
+      annualBill: yearlySummary?.annualBill || 0,
+    };
+  }, [activePayments, selectedCustomer, yearlySummary, users, year]);
 
   const summaryCards = useMemo(
     () => [
@@ -153,20 +369,20 @@ export default function Reports() {
       },
       {
         label: `Annual Bill ${year}`,
-        value: money(annualBill),
+        value: money(selectedCustomer ? annualBill : yearOverview.annualBill || 0),
         icon: <FiCreditCard />,
         accent: "ocean",
       },
       {
         label: `Paid ${year}`,
-        value: money(paidThisYear),
+        value: money(selectedCustomer ? paidThisYear : yearOverview.collection || 0),
         icon: <FiDollarSign />,
         accent: "green",
       },
       {
         label: "Outstanding Balance",
         value: formatBalanceDisplayValue({
-          due: outstandingBalance,
+          due: selectedCustomer ? outstandingBalance : yearOverview.outstanding || 0,
           carryForward: 0,
         }),
         icon: <FiAlertCircle />,
@@ -188,7 +404,9 @@ export default function Reports() {
       outstandingBalance,
       paidThisYear,
       previousDue,
+      selectedCustomer,
       year,
+      yearOverview,
     ],
   );
 
@@ -199,8 +417,9 @@ export default function Reports() {
       customer: selectedCustomer,
       year,
       summary: {
-        openingBalance: yearlySummary?.openingBalance || 0,
+        openingBalance,
         previousDue,
+        previousAdvance,
         annualBill,
         totalPaid: paidThisYear,
         paidThisYear,
@@ -209,7 +428,9 @@ export default function Reports() {
         totalAdvance: creditCarryForward,
         creditCarryForward,
         carryForward: creditCarryForward,
-        closingBalance: yearlySummary?.closingBalance || 0,
+        remainingDue: outstandingBalance,
+        remainingAdvance: creditCarryForward,
+        closingBalance,
         balanceStatus,
       },
       history: monthlyHistory,
@@ -229,25 +450,27 @@ export default function Reports() {
         </div>
       </section>
 
-      <section className="reports-overview-grid">
-        <div className="reports-overview-card">
-          <div className="reports-overview-icon">
+      <section className="reports-summary-grid reports-summary-grid--overview">
+        <div className="reports-summary-card reports-summary-card--green">
+          <div className="reports-summary-icon">
             <FiDollarSign />
           </div>
-          <div className="reports-overview-number">
-            {money(yearOverview.collection)}
+          <div className="reports-summary-copy">
+            <div className="reports-summary-number">{money(yearOverview.collection)}</div>
+            <div className="reports-summary-label">
+              {selectedCustomer ? `Collected in ${year}` : `Total collection ${year}`}
+            </div>
           </div>
-          <div className="reports-overview-label">Collected in {year}</div>
         </div>
-        <div className="reports-overview-card reports-overview-card--warning">
-          <div className="reports-overview-icon">
+        <div className="reports-summary-card reports-summary-card--amber">
+          <div className="reports-summary-icon">
             <FiAlertCircle />
           </div>
-          <div className="reports-overview-number">
-            {money(yearOverview.outstanding)}
-          </div>
-          <div className="reports-overview-label">
-            Remaining unpaid in {year}
+          <div className="reports-summary-copy">
+            <div className="reports-summary-number">{money(yearOverview.outstanding)}</div>
+            <div className="reports-summary-label">
+              {selectedCustomer ? `Remaining unpaid in ${year}` : `Will collect till Dec ${year}`}
+            </div>
           </div>
         </div>
       </section>
@@ -403,8 +626,10 @@ export default function Reports() {
                 className={`reports-summary-card reports-summary-card--${card.accent}`}
               >
                 <div className="reports-summary-icon">{card.icon}</div>
-                <div className="reports-summary-number">{card.value}</div>
-                <div className="reports-summary-label">{card.label}</div>
+                <div className="reports-summary-copy">
+                  <div className="reports-summary-number">{card.value}</div>
+                  <div className="reports-summary-label">{card.label}</div>
+                </div>
               </div>
             ))}
           </section>
@@ -415,91 +640,146 @@ export default function Reports() {
                 <div className="reports-history-kicker">Monthly activity</div>
                 <h3>Payment History</h3>
               </div>
-              <div className="reports-history-chip">All 12 months</div>
+              <div className="reports-history-chip">12 months</div>
             </div>
-            <div className="reports-history-table">
-              <div className="reports-history-row reports-history-row--head">
-                <div>Month</div>
-                <div>Monthly Bill</div>
-                <div>Paid</div>
-                <div>Balance</div>
-                <div>Payment Date</div>
-                <div>Status</div>
-              </div>
-              {monthlyHistory.map((entry) => {
-                const dueValue = Number(entry.due ?? entry.remainingDue ?? 0);
-                const carryForwardValue = Number(entry.advance ?? entry.carryForward ?? 0);
-                const balanceStyle =
-                  dueValue > 0
-                    ? { color: "#fda4af" }
-                    : carryForwardValue > 0
-                      ? { color: "#4ade80" }
-                      : undefined;
-                const balanceLabel = formatAnnualReportBalanceValue({
-                  due: dueValue,
-                  advance: carryForwardValue,
-                });
+            <div className="reports-history-table-wrap">
+              <table className="reports-history-table">
+                <thead>
+                  <tr className="reports-history-row reports-history-row--head">
+                    <th scope="col">Month</th>
+                    <th scope="col">Bill</th>
+                    <th scope="col">Paid</th>
+                    <th scope="col">Balance</th>
+                    <th scope="col">Status</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {monthlyHistory.map((entry) => {
+                    const billValue = Number(entry.bill ?? entry.monthlyBill ?? 0);
+                    const paidValue = Number(entry.paid ?? 0);
+                    const balanceValue = Number(entry.balance ?? entry.endingBalance ?? 0);
+                    const isInactiveEntry =
+                      entry.status === "Not Joined" ||
+                      entry.status === "Inactive" ||
+                      entry.status === "N/A";
+                    const isPlaceholderRow = entry.isPlaceholder || entry.balance == null;
+                    const balanceLabel = isInactiveEntry || isPlaceholderRow
+                      ? "—"
+                      : formatBalanceDisplayValue({
+                          due: balanceValue < 0 ? Math.abs(balanceValue) : 0,
+                          carryForward: balanceValue > 0 ? balanceValue : 0,
+                        });
+                    const computedStatus = isPlaceholderRow
+                      ? { label: "—", tone: "neutral", className: "status-neutral" }
+                      : resolveReportsBillingStatus({
+                          entry: {
+                            ...entry,
+                            bill: billValue,
+                            paid: paidValue,
+                            endingBalance: balanceValue,
+                            status: entry.status,
+                          },
+                          year,
+                          currentDate: new Date(),
+                        });
+                    const computedStatusTone =
+                      computedStatus.tone === "paid"
+                        ? "paid"
+                        : computedStatus.tone === "advance"
+                          ? "positive"
+                          : computedStatus.tone === "partial"
+                            ? "pending"
+                            : computedStatus.tone === "due"
+                              ? "negative"
+                              : computedStatus.tone === "pending"
+                                ? "pending"
+                                : "neutral";
+                    const statusChipClass = `reports-history-status ${computedStatus.label === "N/A" ? "reports-history-status--neutral" : `reports-history-status--${computedStatus.tone}`}`;
 
-                return (
-                  <div className="reports-history-row" key={entry.month}>
-                    <div>{entry.monthName}</div>
-                    <div>
-                      {entry.status === "Not Joined" ||
-                      entry.status === "Inactive" ||
-                      entry.status === "N/A"
-                        ? "—"
-                        : money(entry.monthlyBill)}
-                    </div>
-                    <div>
-                      {entry.status === "Not Joined" ||
-                      entry.status === "Inactive" ||
-                      entry.status === "N/A"
-                        ? "—"
-                        : money(entry.paid)}
-                    </div>
-                    <div style={balanceStyle}>
-                      {entry.status === "Not Joined" ||
-                      entry.status === "Inactive" ||
-                      entry.status === "N/A"
-                        ? "—"
-                        : balanceLabel}
-                    </div>
-                    <div>
-                      {entry.paymentDate ? formatDate(entry.paymentDate) : "—"}
-                    </div>
-                    <div>
-                      <span
-                        className={`reports-history-status ${entry.status.toLowerCase()}`}
-                      >
-                        {entry.status}
-                      </span>
-                    </div>
-                  </div>
-                );
-              })}
+                    return (
+                      <tr className="reports-history-row" key={entry.month}>
+                        <td>
+                          <span className="reports-history-month-cell">
+                            <span
+                              className={`reports-history-status-dot reports-history-status-dot--${computedStatusTone}`}
+                              aria-hidden="true"
+                            />
+                            <span>{entry.monthName}</span>
+                          </span>
+                        </td>
+                        <td>
+                          {isPlaceholderRow || isInactiveEntry ? "—" : money(billValue)}
+                        </td>
+                        <td>
+                          {isPlaceholderRow || isInactiveEntry ? "—" : money(paidValue)}
+                        </td>
+                        <td style={balanceValue < 0 ? { color: "#EF4444" } : balanceValue > 0 ? { color: "#3B82F6" } : undefined}>
+                          {balanceLabel}
+                        </td>
+                        <td>
+                          {isPlaceholderRow || isInactiveEntry ? (
+                            <span className="reports-history-status reports-history-status--neutral">—</span>
+                          ) : (
+                            <span className={statusChipClass}>{computedStatus.label}</span>
+                          )}
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
             </div>
           </section>
 
           <section className="reports-footer-summary">
             <div>
-              <div className="reports-footer-label">Previous Due</div>
+              <div className="reports-footer-label">Opening Balance</div>
+              <div className="reports-footer-value">
+                {formatBalanceDisplayValue({
+                  due: previousDue,
+                  carryForward: previousAdvance,
+                })}
+              </div>
+            </div>
+            <div>
+              <div className="reports-footer-label">Previous Year Due</div>
               <div className="reports-footer-value">{money(previousDue)}</div>
+            </div>
+            <div>
+              <div className="reports-footer-label">Previous Year Advance</div>
+              <div className="reports-footer-value">{money(previousAdvance)}</div>
             </div>
             <div>
               <div className="reports-footer-label">Annual Bill</div>
               <div className="reports-footer-value">{money(annualBill)}</div>
             </div>
             <div>
-              <div className="reports-footer-label">Outstanding Balance</div>
+              <div className="reports-footer-label">Paid This Year</div>
+              <div className="reports-footer-value">{money(paidThisYear)}</div>
+            </div>
+            <div>
+              <div className="reports-footer-label">Remaining Due</div>
               <div className="reports-footer-value reports-footer-value--warning">
+                {money(outstandingBalance)}
+              </div>
+            </div>
+            <div>
+              <div className="reports-footer-label">Remaining Advance</div>
+              <div className="reports-footer-value reports-footer-value--credit">
+                {money(creditCarryForward)}
+              </div>
+            </div>
+            <div>
+              <div className="reports-footer-label">Closing Balance</div>
+              <div className="reports-footer-value">
                 {formatBalanceDisplayValue({
                   due: outstandingBalance,
-                  carryForward: 0,
+                  carryForward: creditCarryForward,
                 })}
               </div>
             </div>
             <div>
-              <div className="reports-footer-label">Credit Carry Forward</div>
+              <div className="reports-footer-label">Carry Forward</div>
               <div className="reports-footer-value reports-footer-value--credit">
                 {formatBalanceDisplayValue({
                   due: 0,

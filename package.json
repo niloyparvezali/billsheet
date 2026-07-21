@@ -9,7 +9,6 @@
     "preview": "vite preview"
   },
   "dependencies": {
-    "@fontsource/noto-sans-bengali": "^5.3.0",
     "dayjs": "latest",
     "firebase": "latest",
     "framer-motion": "latest",
@@ -20,7 +19,6 @@
     "react-dom": "latest",
     "react-hot-toast": "latest",
     "react-icons": "latest",
-    "react-qr-code": "^2.2.0",
     "react-router-dom": "latest",
     "recharts": "latest",
     "xlsx": "latest"

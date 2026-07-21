@@ -6,7 +6,7 @@ import {
   pdfBalance,
 } from "./pdfHelpers";
 import { money, formatDate, formatTime } from "../date";
-import { formatBalanceDisplayValue } from "../payments";
+import { getDisplayBalanceValues, getDisplayPaymentStatus } from "../payments";
 
 export function exportMonthlySheetPdf({
   rows,
@@ -53,22 +53,46 @@ export function exportMonthlySheetPdf({
 
     head: [["SL", "Customer", "Bill", "Paid", "Due", "Status", "Payment Date"]],
 
-    body: rows.map((row, index) => [
-      index + 1,
-      row.user.name,
-      pdfMoney(row.user.monthlyBill),
-      pdfMoney(row.currentPaid || 0),
-      pdfBalance({
+    body: rows.map((row, index) => {
+      const displayBalance = getDisplayBalanceValues({
         due: row.due,
         carryForward: row.carryForward,
-      }),
-      row.status,
+        currentDue: row.currentDue,
+        currentAdvance: row.currentAdvance,
+        bill: Number(row.user?.monthlyBill || 0),
+        amount: Number(row.currentPaid || 0),
+        previousDue: Number(row.openingDue || row.previousDue || 0),
+        previousAdvance: Number(row.openingAdvance || row.previousAdvance || 0),
+        previousPaid: Number(row.previousPaid || 0),
+        additionalDue: Number(row.additionalDue || 0),
+      });
+
+      return [
+        index + 1,
+        row.user.name,
+        pdfMoney(row.user.monthlyBill),
+        pdfMoney(row.currentPaid || 0),
+        pdfBalance({
+          due: displayBalance.due,
+          carryForward: displayBalance.carryForward,
+        }),
+      getDisplayPaymentStatus({
+        status: row.status,
+        bill: Number(row.user?.monthlyBill || 0),
+        paid: Number(row.currentPaid || 0),
+        due: Number(displayBalance.due || 0),
+        advance: Number(displayBalance.carryForward || 0),
+        month: Number(row.month || 0),
+        currentMonth: new Date().getMonth() + 1,
+        currentDate: new Date(),
+      }).label,
       row.payment?.paymentDate
         ? `${formatDate(row.payment.paymentDate)} ${formatTime(
             row.payment.paymentDate,
           )}`
         : "-",
-    ]),
+    ];
+    }),
 
     didParseCell(data) {
       if (data.section !== "body") return;

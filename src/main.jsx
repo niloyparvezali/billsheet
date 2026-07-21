@@ -6,8 +6,11 @@ import { Toaster } from "react-hot-toast";
 import { AuthProvider } from "./context/AuthContext";
 import ErrorBoundary from "./components/ErrorBoundary";
 import App from "./App";
-import "./styles/index.css";
+import { initializeTheme } from "./utils/theme";
 import "./styles/theme.css";
+import "./styles/index.css";
+
+initializeTheme();
 
 createRoot(document.getElementById("root")).render(
   <React.StrictMode>

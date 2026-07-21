@@ -192,20 +192,28 @@
 
 @media (max-width: 600px) {
   .dashboard-page .stats {
-    grid-template-columns: 1fr 1fr;
-    gap: 10px;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 8px;
   }
-  .dashboard-page .stat {
-    min-height: 100px;
-    padding: 14px;
+  .dashboard-page .stats .stat:nth-child(1),
+  .dashboard-page .stats .stat:nth-child(2),
+  .dashboard-page .stats .stat:nth-child(3) {
+    min-height: 90px;
+    padding: 12px;
+    gap: 8px;
+  }
+  .dashboard-page .stats .stat:nth-child(4) {
+    grid-column: 1 / -1;
+    min-height: 92px;
+    padding: 14px 16px;
   }
   .dashboard-page .stat h2 {
-    font-size: 19px;
+    font-size: 18px;
     line-height: 1.15;
   }
   .dashboard-page .stat p {
-    font-size: 12px;
-    margin-bottom: 6px;
+    font-size: 11px;
+    margin-bottom: 4px;
   }
   .dashboard-page .chart {
     height: 260px;
@@ -215,15 +223,15 @@
 
 @media (max-width: 480px) {
   .dashboard-page .stats {
-    grid-template-columns: 1fr;
-    gap: 10px;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 8px;
   }
   .dashboard-page .dashboard-summary {
     grid-template-columns: 1fr;
   }
   .dashboard-page .stat {
-    min-height: 96px;
-    padding: 14px;
+    min-height: 86px;
+    padding: 10px;
   }
   .dashboard-page .page-title h2 {
     font-size: 20px;

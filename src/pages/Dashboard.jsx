@@ -99,9 +99,14 @@ export default function Dashboard() {
       };
     }
 
-    return monthsWithCollection.reduce((highest, item) =>
-      item.collection > highest.collection ? item : highest,
+    const highest = monthsWithCollection.reduce((currentHighest, item) =>
+      item.collection > currentHighest.collection ? item : currentHighest,
     );
+
+    return {
+      ...highest,
+      month: monthNames[Number(highest.month) - 1] ?? highest.month,
+    };
   }, [chart]);
 
   const lowestMonth = useMemo(() => {
@@ -117,9 +122,14 @@ export default function Dashboard() {
     }
 
     // Find the smallest value greater than 0
-    return monthsWithCollection.reduce((lowest, item) =>
-      item.collection < lowest.collection ? item : lowest,
+    const lowest = monthsWithCollection.reduce((currentLowest, item) =>
+      item.collection < currentLowest.collection ? item : currentLowest,
     );
+
+    return {
+      ...lowest,
+      month: monthNames[Number(lowest.month) - 1] ?? lowest.month,
+    };
   }, [chart]);
 
   const totalPaidThisMonth = useMemo(

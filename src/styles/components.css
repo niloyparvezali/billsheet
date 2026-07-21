@@ -215,6 +215,16 @@ tbody tr:hover {
   background: rgba(99, 102, 241, 0.05);
 }
 
+.transaction-row--voided-original {
+  background: linear-gradient(90deg, rgba(253, 224, 71, 0.28), rgba(253, 224, 71, 0.1));
+  border-left: 4px solid #dc2626;
+  opacity: 0.92;
+}
+
+.transaction-row--voided-original:hover {
+  background: linear-gradient(90deg, rgba(253, 224, 71, 0.34), rgba(253, 224, 71, 0.14));
+}
+
 /* ===========================================
    Search System
 =========================================== */
@@ -416,34 +426,34 @@ tbody tr:hover {
 .status.completed,
 .status.complete,
 .status.paid {
-  color: var(--success);
-  background: var(--success-bg);
+  color: var(--status-paid-text);
+  background: var(--status-paid-bg);
 }
 .status.active {
-  color: var(--success);
-  background: var(--success-bg);
+  color: var(--status-paid-text);
+  background: var(--status-paid-bg);
 }
 .status.inactive {
-  color: var(--danger);
-  background: var(--danger-bg);
+  color: var(--status-due-text);
+  background: var(--status-due-bg);
 }
 .status.pending {
-  color: var(--danger);
-  background: var(--danger-bg);
+  color: var(--status-pending-text);
+  background: var(--status-pending-bg);
 }
 .status.advance {
-  color: var(--info);
-  background: var(--info-bg);
+  color: var(--status-advance-text);
+  background: var(--status-advance-bg);
 }
 .status.partial {
-  color: var(--warning);
-  background: var(--warning-bg);
+  color: var(--status-partial-text);
+  background: var(--status-partial-bg);
 }
 .status.due,
 .status.voided,
 .status.reversed {
-  color: var(--danger);
-  background: var(--danger-bg);
+  color: var(--status-due-text);
+  background: var(--status-due-bg);
 }
 .tag {
   font-size: 12px;
