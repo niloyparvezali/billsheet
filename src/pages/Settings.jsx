@@ -1,4 +1,4 @@
-﻿import { toast } from "react-hot-toast";
+import { toast } from "react-hot-toast";
 import { useAuth } from "../context/AuthContext";
 import SettingsPanel from "../components/settings/SettingsPanel";
 import { exportBackup } from "../utils/backup/exportBackup";

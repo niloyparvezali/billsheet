@@ -14,6 +14,7 @@ import {
 } from "react-icons/fi";
 import StatusBadge from "./StatusBadge";
 import { getDisplayPackages } from "../utils/users";
+import { useLanguage } from "../context/LanguageContext";
 
 const MobileUserRow = memo(function MobileUserRow({
   user,
@@ -66,7 +67,6 @@ export default function UsersTable({
   onAddPayment,
   onViewHistory,
   onViewAnnualReport,
-  money,
   formatDate,
   currentPage,
   setCurrentPage,
@@ -78,6 +78,7 @@ export default function UsersTable({
   const [selectedUserId, setSelectedUserId] = useState(null);
   const [mobileView, setMobileView] = useState("list");
   const [savedScrollTop, setSavedScrollTop] = useState(0);
+  const { t, formatMoney, formatNumber } = useLanguage();
 
   const getUserStatusValue = (user) =>
     user?.status || (user?.active === false ? "Inactive" : "Active");
@@ -91,7 +92,7 @@ export default function UsersTable({
         </span>
       ))
     ) : (
-      <span className="user-category">Uncategorized</span>
+      <span className="user-category">{t("uncategorized", "Uncategorized")}</span>
     );
   };
 
@@ -127,33 +128,33 @@ export default function UsersTable({
     if (!selectedUser) return [];
     const monthlyBill = Number(selectedUser.monthlyBill || 0);
     const packages = getDisplayPackages(selectedUser);
-    const categoryValue = packages[0] || selectedUser.category || "Uncategorized";
+    const categoryValue = packages[0] || selectedUser.category || t("uncategorized", "Uncategorized");
     const phoneValue = selectedUser.phone || "No phone on file";
     const createdValue = formatDate(selectedUser.createdAt || selectedUser.joinDate);
 
     return [
       {
-        label: "Monthly Bill",
-        value: money(monthlyBill),
+        label: t("monthly_bill"),
+        value: formatMoney(monthlyBill),
         icon: <FiDollarSign />,
       },
       {
-        label: "Phone Number",
+        label: t("phone"),
         value: phoneValue,
         icon: <FiPhone />,
       },
       {
-        label: "Category",
+        label: t("category"),
         value: categoryValue,
         icon: <FiTag />,
       },
       {
-        label: "Created Date",
+        label: t("created"),
         value: createdValue,
         icon: <FiCalendar />,
       },
     ];
-  }, [formatDate, money, selectedUser]);
+  }, [formatDate, formatMoney, selectedUser, t]);
 
   return (
     <div className="table-wrap">
@@ -161,39 +162,39 @@ export default function UsersTable({
         <thead>
           <tr>
             <th style={{ width: "70px" }}>SL</th>
-            <th>Name</th>
-            <th style={{ width: "230px" }}>Package / Category</th>
-            <th style={{ width: "170px" }}>Amount</th>
-            <th style={{ width: "140px" }}>Status</th>
-            <th style={{ width: "190px" }}>Phone</th>
-            <th style={{ width: "170px" }}>Created</th>
-            <th className="actions-header">Action</th>
+            <th>{t("name")}</th>
+            <th style={{ width: "230px" }}>{t("package_category", "Package / Category")}</th>
+            <th style={{ width: "170px" }}>{t("amount")}</th>
+            <th style={{ width: "140px" }}>{t("status")}</th>
+            <th style={{ width: "190px" }}>{t("phone")}</th>
+            <th style={{ width: "170px" }}>{t("created", "Created")}</th>
+            <th className="actions-header">{t("actions")}</th>
           </tr>
         </thead>
         <tbody>
           {list.map((user, i) => (
             <tr key={user.id}>
-              <td data-label="SL">{i + 1}</td>
-              <td data-label="Name">
+              <td data-label="SL">{formatNumber(i + 1)}</td>
+              <td data-label={t("name")}>
                 <strong className="user-name">{user.name}</strong>
               </td>
-              <td data-label="Package / Category">
+              <td data-label={t("package_category", "Package / Category")}>
                 <div className="user-package-list">{renderPackageChips(user)}</div>
               </td>
-              <td data-label="Amount">{money(user.monthlyBill)}</td>
-              <td data-label="Status">
+              <td data-label={t("amount")}>{formatMoney(user.monthlyBill)}</td>
+              <td data-label={t("status")}>
                 <StatusBadge
                   status={getUserStatusValue(user)}
                   className="user-inline-badge"
                 />
               </td>
-              <td data-label="Phone">{user.phone || "—"}</td>
-              <td data-label="Created">{formatDate(user.createdAt)}</td>
-              <td className="actions actions-cell" data-label="Action">
-                <button onClick={() => setForm(user)}>
+              <td data-label={t("phone")}>{user.phone || "—"}</td>
+              <td data-label={t("created", "Created")}>{formatDate(user.createdAt)}</td>
+              <td className="actions actions-cell" data-label={t("actions")}>
+                <button onClick={() => setForm(user)} title={t("edit_user")}>
                   <FiEdit2 />
                 </button>
-                <button className="danger" onClick={() => setDeleteUser(user)}>
+                <button className="danger" onClick={() => setDeleteUser(user)} title={t("delete_user")}>
                   <FiTrash2 />
                 </button>
               </td>
@@ -210,7 +211,7 @@ export default function UsersTable({
               className="users-mobile-back-btn"
               onClick={closeUserDetails}
             >
-              <FiArrowLeft /> Back
+              <FiArrowLeft /> {t("back", "Back")}
             </button>
 
             <div className="users-mobile-profile-card">
@@ -233,7 +234,7 @@ export default function UsersTable({
                     <FiPhone /> {selectedUser.phone || "No phone on file"}
                   </span>
                   <span>
-                    <FiTag /> {getDisplayPackages(selectedUser)[0] || selectedUser.category || "Uncategorized"}
+                    <FiTag /> {getDisplayPackages(selectedUser)[0] || selectedUser.category || t("uncategorized", "Uncategorized")}
                   </span>
                 </div>
               </div>
@@ -259,14 +260,14 @@ export default function UsersTable({
                 className="users-mobile-action users-mobile-action--primary"
                 onClick={() => setForm(selectedUser)}
               >
-                <FiEdit2 /> Edit User
+                <FiEdit2 /> {t("edit_user")}
               </button>
               <button
                 type="button"
                 className="users-mobile-action users-mobile-action--ghost"
                 onClick={() => onAddPayment?.(selectedUser)}
               >
-                <FiCreditCard /> Add Payment
+                <FiCreditCard /> {t("add_payment")}
               </button>
             </div>
             <div className="users-mobile-action-row users-mobile-action-row--secondary">
@@ -275,14 +276,14 @@ export default function UsersTable({
                 className="users-mobile-action users-mobile-action--ghost"
                 onClick={() => onViewHistory?.(selectedUser)}
               >
-                <FiCalendar /> Payment History
+                <FiCalendar /> {t("payment_history", "Payment History")}
               </button>
               <button
                 type="button"
                 className="users-mobile-action users-mobile-action--ghost"
                 onClick={() => onViewAnnualReport?.(selectedUser)}
               >
-                <FiDollarSign /> Annual Report
+                <FiDollarSign /> {t("annual_report", "Annual Report")}
               </button>
             </div>
             <div className="users-mobile-action-row">
@@ -291,7 +292,7 @@ export default function UsersTable({
                 className="users-mobile-action users-mobile-action--danger"
                 onClick={() => setDeleteUser(selectedUser)}
               >
-                <FiTrash2 /> Delete User
+                <FiTrash2 /> {t("delete_user")}
               </button>
             </div>
           </div>
@@ -311,11 +312,11 @@ export default function UsersTable({
 
             <div className="table-footer">
               <div className="table-footer-info">
-                Showing {startIndex + 1}–{endIndex} of {totalUsers} users
+                Showing {formatNumber(startIndex + 1)}–{formatNumber(endIndex)} of {formatNumber(totalUsers)} users
               </div>
 
               <div className="table-footer-page">
-                Page {currentPage} of {totalPages}
+                Page {formatNumber(currentPage)} of {formatNumber(totalPages)}
               </div>
 
               <div className="table-footer-nav">
@@ -337,7 +338,8 @@ export default function UsersTable({
           </>
         )}
       </div>
-      {!list.length && <p className="empty">No users match your search.</p>}
+      {!list.length && <p className="empty">{t("no_users_found", "No users match your search.")}</p>}
     </div>
   );
 }
+

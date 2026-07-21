@@ -4,6 +4,44 @@
  */
 
 export const PDF_THEMES = {
+  sunrise: {
+    name: "Sunrise",
+
+    primary: [37, 99, 235],
+    secondary: [14, 165, 233],
+    accent: [59, 130, 246],
+
+    success: [22, 163, 74],
+    warning: [217, 119, 6],
+    danger: [220, 38, 38],
+    info: [14, 165, 233],
+
+    text: [15, 23, 42],
+    light: [248, 250, 252],
+    border: [226, 232, 240],
+    white: [255, 255, 255],
+    footer: [100, 116, 139],
+  },
+
+  midnight: {
+    name: "Midnight",
+
+    primary: [17, 24, 39],
+    secondary: [31, 41, 55],
+    accent: [59, 130, 246],
+
+    success: [34, 197, 94],
+    warning: [245, 158, 11],
+    danger: [239, 68, 68],
+    info: [6, 182, 212],
+
+    text: [40, 40, 40],
+    light: [247, 249, 251],
+    border: [220, 226, 232],
+    white: [255, 255, 255],
+    footer: [120, 120, 120],
+  },
+
   forest: {
     name: "Forest",
 

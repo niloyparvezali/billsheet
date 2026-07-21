@@ -663,7 +663,8 @@
 
 .reports-history-table-wrap {
   width: 100%;
-  overflow-x: hidden;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
   border-radius: 16px;
   border: 1px solid rgba(255, 255, 255, 0.06);
   background: rgba(255, 255, 255, 0.02);
@@ -1060,10 +1061,6 @@
   .reports-history-row td {
     padding: 10px 12px;
     font-size: 13px;
-  }
-  .reports-history-row th:nth-child(5),
-  .reports-history-row td:nth-child(5) {
-    display: none;
   }
   .reports-summary-grid {
     grid-template-columns: 1fr;

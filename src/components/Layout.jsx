@@ -12,19 +12,22 @@ import {
   FiX,
 } from "react-icons/fi";
 import { useAuth } from "../context/AuthContext";
+import { useLanguage } from "../context/LanguageContext";
 
-const links = [
-  ["/", "Dashboard", FiHome],
-  ["/users", "Users", FiUsers],
-  ["/monthly-sheet", "Monthly Sheet", FiFileText],
-  ["/reports", "Reports", FiBarChart2],
-  ["/history", "Transaction History", FiClock],
-  ["/settings", "Settings", FiSettings],
-];
 export default function Layout() {
   const { user, logout } = useAuth();
+  const { t } = useLanguage();
   const [open, setOpen] = useState(false);
   const location = useLocation();
+
+  const links = [
+    ["/", t("dashboard"), FiHome],
+    ["/users", t("users"), FiUsers],
+    ["/monthly-sheet", t("monthly_sheet"), FiFileText],
+    ["/reports", t("reports"), FiBarChart2],
+    ["/history", t("transaction_history"), FiClock],
+    ["/settings", t("settings"), FiSettings],
+  ];
 
   useEffect(() => {
     setOpen(false);
@@ -68,27 +71,29 @@ export default function Layout() {
             )}
             <div className="admin-meta">
               <strong>{user?.displayName || user?.email || "User"}</strong>
-              <small>{user?.companyName || user?.email || "No company yet"}</small>
+              <small>{user?.companyName || user?.email || "BillSheet"}</small>
             </div>
           </div>
           <button onClick={logout}>
-            <FiLogOut /> Log out
+            <FiLogOut /> {t("logout")}
           </button>
         </div>
       </aside>
       {open && <div className="backdrop" onClick={() => setOpen(false)} />}
       <main>
         <header>
-          <button
-            className="mobile-only icon"
-            aria-label="Open menu"
-            onClick={() => setOpen(true)}
-          >
-            <FiMenu />
-          </button>
-          <div>
-            <h1>Billing Management</h1>
-            <p>Stay on top of every monthly collection.</p>
+          <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
+            <button
+              className="mobile-only icon"
+              aria-label="Open menu"
+              onClick={() => setOpen(true)}
+            >
+              <FiMenu />
+            </button>
+            <div>
+              <h1>{t("app_title")}</h1>
+              <p>{t("stay_on_top", "Stay on top of every monthly collection.")}</p>
+            </div>
           </div>
         </header>
         <Outlet />
@@ -96,3 +101,4 @@ export default function Layout() {
     </div>
   );
 }
+

@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { doc, setDoc } from "firebase/firestore";
 import { db } from "../firebase/config";
 import { readThemeColors } from "../utils/theme";
+import { useLanguage } from "../context/LanguageContext";
 
 import {
   ResponsiveContainer,
@@ -14,6 +15,7 @@ import {
   Cell,
   LabelList,
 } from "recharts";
+
 export default function MonthlyCollectionChart({
   currentChart,
   chartPage,
@@ -24,8 +26,8 @@ export default function MonthlyCollectionChart({
   totalCollection,
   averageCollection,
   year,
-  money,
 }) {
+  const { t, formatMoney, toBengaliNumerals, language } = useLanguage();
   const [themeColors, setThemeColors] = useState(readThemeColors);
 
   useEffect(() => {
@@ -48,12 +50,14 @@ export default function MonthlyCollectionChart({
     [themeColors],
   );
 
+  const displayYear = language === "bn" ? toBengaliNumerals(year) : year;
+
   return (
     <section className="panel monthly-panel">
       <div className="panel-header">
         <div>
-          <h3>📊 Monthly Collection</h3>
-          <p>{year} Collection Overview</p>
+          <h3>📊 {t("monthly_collection", "Monthly Collection")}</h3>
+          <p>{displayYear} {t("collection_overview", "Collection Overview")}</p>
         </div>
 
         <div className="chart-nav">
@@ -71,7 +75,7 @@ export default function MonthlyCollectionChart({
               }
             }}
           >
-            Jan – Jun
+            {language === "bn" ? "জানু – জুন" : "Jan – Jun"}
           </button>
 
           <button
@@ -88,7 +92,7 @@ export default function MonthlyCollectionChart({
               }
             }}
           >
-            Jul – Dec
+            {language === "bn" ? "জুলাই – ডিসে" : "Jul – Dec"}
           </button>
         </div>
       </div>
@@ -128,11 +132,11 @@ export default function MonthlyCollectionChart({
               tick={{ fontSize: 11, fill: chartStyle.axis }}
               axisLine={false}
               tickLine={false}
-              tickFormatter={(v) => `৳${v}`}
+              tickFormatter={(v) => formatMoney(v)}
             />
 
             <Tooltip
-              formatter={(v) => money(v)}
+              formatter={(v) => formatMoney(v)}
               contentStyle={{
                 background: chartStyle.tooltipBg,
                 border: `1px solid ${chartStyle.grid}`,
@@ -146,7 +150,7 @@ export default function MonthlyCollectionChart({
               <LabelList
                 dataKey="collection"
                 position="top"
-                formatter={(v) => (v ? money(v) : "")}
+                formatter={(v) => (v ? formatMoney(v) : "")}
                 fill={chartStyle.label}
                 style={{ fontSize: 11, fontWeight: 600 }}
               />
@@ -168,3 +172,4 @@ export default function MonthlyCollectionChart({
     </section>
   );
 }
+

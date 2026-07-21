@@ -1,4 +1,5 @@
 import { exportMonthlySheetPdf } from "../utils/pdf";
+import { getStoredTheme } from "../utils/theme";
 import PaymentModal from "../components/PaymentModal";
 import useMonthlySheet from "../hooks/useMonthlySheet";
 import { useEffect, useMemo, useRef, useState } from "react";
@@ -33,6 +34,7 @@ import { db } from "../firebase/config";
 import useOwnedCollection from "../hooks/useOwnedCollection";
 import ConfirmModal from "../components/ConfirmModal";
 import { useAuth } from "../context/AuthContext";
+import { useLanguage } from "../context/LanguageContext";
 import { monthNames, money, formatDate, formatTime } from "../utils/date";
 import { Send } from "lucide-react";
 import {
@@ -55,6 +57,7 @@ const createSms = (template, { name, bill, dueDate }) =>
 export default function MonthlySheet() {
   const location = useLocation();
   const { user: signedInUser } = useAuth();
+  const { t, formatMoney, formatNumber, translateMonth, translateStatus, toBengaliNumerals, language } = useLanguage();
   const today = new Date();
   const [month, setMonth] = useState(today.getMonth() + 1);
   const [year, setYear] = useState(today.getFullYear());
@@ -175,43 +178,43 @@ export default function MonthlySheet() {
   const summaryCards = useMemo(
     () => [
       {
-        label: "Total Users",
-        value: rows.length,
+        label: t("total_users"),
+        value: formatNumber(rows.length),
         accent: "forest",
         icon: <FiUsers />,
       },
       {
-        label: "Paid Users",
-        value: paid.length,
+        label: t("paid_customers", "Paid Users"),
+        value: formatNumber(paid.length),
         accent: "green",
         icon: <FiCheckCircle />,
       },
       {
-        label: "Pending Users",
-        value: rows.length - paid.length,
+        label: t("pending_customers", "Pending Users"),
+        value: formatNumber(rows.length - paid.length),
         accent: "amber",
         icon: <FiClock />,
       },
       {
-        label: "Total Bill",
-        value: money(totalBill),
+        label: t("total_bill", "Total Bill"),
+        value: formatMoney(totalBill),
         accent: "ocean",
         icon: <FiCreditCard />,
       },
       {
-        label: "Total Collection",
-        value: money(total),
+        label: t("total_collected"),
+        value: formatMoney(total),
         accent: "blue",
         icon: <FiDollarSign />,
       },
       {
-        label: "Total Due",
-        value: formatBalanceDisplayValue({ due: totalDue, carryForward: 0 }),
+        label: t("total_due"),
+        value: formatMoney(totalDue),
         accent: "red",
         icon: <FiAlertCircle />,
       },
     ],
-    [paid.length, rows.length, total, totalBill, totalDue],
+    [paid.length, rows.length, total, totalBill, totalDue, t, formatNumber, formatMoney],
   );
   const mobileSummaryCards = summaryCards.slice(0, 3);
   const mobileFinancialCards = summaryCards.slice(3);
@@ -456,8 +459,7 @@ export default function MonthlySheet() {
       // We'll replace this with the company name from Settings later
       companyName: "Bill Sheet",
 
-      // We'll replace this with the current selected theme later
-      theme: "forest",
+      theme: getStoredTheme(),
     });
   };
 
@@ -467,8 +469,8 @@ export default function MonthlySheet() {
         <>
           <section className="monthly-sheet-hero">
             <div className="monthly-sheet-header-copy">
-              <h2>Monthly Sheet</h2>
-              <p>View and manage monthly collections.</p>
+              <h2>{t("monthly_sheet")}</h2>
+              <p>{t("monthly_sheet_subtitle", "View and manage monthly collections.")}</p>
             </div>
           </section>
 
@@ -480,7 +482,7 @@ export default function MonthlySheet() {
             >
               {monthNames.map((name, i) => (
                 <option key={name} value={i + 1}>
-                  {name}
+                  {translateMonth(name)}
                 </option>
               ))}
             </select>
@@ -499,7 +501,7 @@ export default function MonthlySheet() {
               onClick={handleExportPDF}
             >
               <FiDownload />
-              Export
+              {t("export_pdf")}
             </button>
           </div>
 
@@ -546,7 +548,7 @@ export default function MonthlySheet() {
               <FiSearch />
               <input
                 ref={searchRef}
-                placeholder="Search customer by name or phone"
+                placeholder={t("search_customer_placeholder", "Search customer by name or phone")}
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
               />
@@ -562,8 +564,8 @@ export default function MonthlySheet() {
               <>
                 <div className="monthly-table-topbar" aria-label="Collection overview">
                   <div className="monthly-table-topbar-copy">
-                    <div className="monthly-table-kicker">Collection List of</div>
-                    <h3>{monthNames[month - 1]} {year}</h3>
+                    <div className="monthly-table-kicker">{t("collection_list_of", "Collection List of")}</div>
+                    <h3>{translateMonth(monthNames[month - 1])} {language === "bn" ? toBengaliNumerals(year) : year}</h3>
                   </div>
                 </div>
                 <table className="monthly-table">
@@ -576,11 +578,11 @@ export default function MonthlySheet() {
                           setNameOrder(nameOrder === "asc" ? "desc" : "asc")
                         }
                       >
-                        Customer {nameOrder === "asc" ? "▲" : "▼"}
+                        {t("name")} {nameOrder === "asc" ? "▲" : "▼"}
                       </th>
-                      <th>Bill</th>
-                      <th>Pay</th>
-                      <th>Balance</th>
+                      <th>{t("monthly_bill")}</th>
+                      <th>{t("paid", "Pay")}</th>
+                      <th>{t("due")}</th>
                       <th
                         className="sortable-th"
                         onClick={() =>
@@ -589,10 +591,10 @@ export default function MonthlySheet() {
                           )
                         }
                       >
-                        Status {statusOrder === "pending" ? "▲" : "▼"}
+                        {t("status")} {statusOrder === "pending" ? "▲" : "▼"}
                       </th>
-                      <th>Payment Date</th>
-                      <th>Actions</th>
+                      <th>{t("date")}</th>
+                      <th>{t("actions")}</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -977,26 +979,25 @@ export default function MonthlySheet() {
                 <span>
                   <FiUsers />
                 </span>
-                <h3>Start with your first customer</h3>
+                <h3>{t("start_with_first_customer", "Start with your first customer")}</h3>
                 <p>
-                  Add customers from the Users page, then come back to record their
-                  payments for {monthNames[month - 1]} {year}.
+                  {t("add_customers_hint", "Add customers from the Users page, then come back to record their payments for")} {translateMonth(monthNames[month - 1])} {language === "bn" ? toBengaliNumerals(year) : year}.
                 </p>
                 <Link className="btn btn-primary" to="/users">
-                  Go to Users
+                  {t("users")}
                 </Link>
               </div>
             )}
             {rows.length > 0 && !filteredRows.length && (
-              <p className="empty">No customers match your search.</p>
+              <p className="empty">{t("no_customers_found", "No customers match your search.")}</p>
             )}
             {rows.length > 0 && filteredRows.length > 0 && pageCount > 1 && (
               <div className="table-footer monthly-sheet-footer">
                 <div className="table-footer-info monthly-sheet-footer-info">
-                  Showing {showingFrom}–{showingTo} of {filteredRows.length} records
+                  Showing {formatNumber(showingFrom)}–{formatNumber(showingTo)} of {formatNumber(filteredRows.length)} records
                 </div>
                 <div className="table-footer-page monthly-sheet-footer-page">
-                  Page {currentPageIndex} of {pageCount}
+                  Page {formatNumber(currentPageIndex)} of {formatNumber(pageCount)}
                 </div>
                 <div className="table-footer-nav monthly-sheet-footer-nav">
                   <button

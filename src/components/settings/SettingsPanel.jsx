@@ -13,24 +13,30 @@ import {
   Download,
   Eye,
   EyeOff,
+  Globe,
   Lock,
+  Moon,
   Palette,
   Save,
   ShieldCheck,
   Sparkles,
+  Sun,
   UserRound,
   Upload,
   Waves,
 } from "lucide-react";
 import { useAuth } from "../../context/AuthContext";
+import { useLanguage } from "../../context/LanguageContext";
 import { db } from "../../firebase/config";
 import { applyTheme, getStoredTheme, normalizeTheme } from "../../utils/theme";
 import SettingsSectionCard from "./SettingsSectionCard";
 import SettingsTile from "./SettingsTile";
 
 const themeOptions = [
-  { id: "forest", label: "🟢 Forest", icon: Waves },
-  { id: "ocean", label: "🔵 Ocean", icon: Sparkles },
+  { id: "sunrise", label: "☀️ Sunrise", icon: Sun },
+  { id: "midnight", label: "🌙 Midnight", icon: Moon },
+  { id: "forest", label: "🌲 Forest", icon: Waves },
+  { id: "ocean", label: "🌊 Ocean", icon: Sparkles },
 ];
 
 const defaultSmsTemplate = `Hello {{customerName}},
@@ -73,6 +79,7 @@ const sampleSmsValues = {
 
 export default function SettingsPanel({ user, onSave, onExportBackup }) {
   const { changePasscode } = useAuth();
+  const { t, language, changeLanguage } = useLanguage();
   const [activeView, setActiveView] = useState("overview");
   const [theme, setTheme] = useState(() => getStoredTheme());
   const [hasChanges, setHasChanges] = useState(false);
@@ -183,6 +190,24 @@ export default function SettingsPanel({ user, onSave, onExportBackup }) {
   };
 
   const getThemePreview = (themeId) => {
+    if (themeId === "sunrise") {
+      return {
+        shell:
+          "linear-gradient(135deg, #FAF7F2 0%, #E8E2D8 58%, #2563EB 100%)",
+        accent: "#2563EB",
+        secondary: "#0EA5E9",
+        glow: "rgba(37, 99, 235, 0.28)",
+      };
+    }
+    if (themeId === "midnight") {
+      return {
+        shell:
+          "linear-gradient(135deg, #0B0F19 0%, #111827 58%, #3B82F6 100%)",
+        accent: "#3B82F6",
+        secondary: "#06B6D4",
+        glow: "rgba(59, 130, 246, 0.28)",
+      };
+    }
     if (themeId === "ocean") {
       return {
         shell:
@@ -362,49 +387,92 @@ export default function SettingsPanel({ user, onSave, onExportBackup }) {
   const renderOverview = () => (
     <div className="settings-overview-grid">
       <SettingsTile
+        icon={Globe}
+        title={t("language")}
+        description={language === "en" ? "English 🇺🇸" : "বাংলা 🇧🇩"}
+        onClick={() => setActiveView("language")}
+      />
+      <SettingsTile
         icon={UserRound}
-        title="Profile"
+        title={t("profile")}
         description="Manage your account"
         onClick={() => setActiveView("profile")}
       />
       <SettingsTile
         icon={Palette}
-        title="Appearance"
+        title={t("appearance")}
         description="Adjust visual theme"
         onClick={() => setActiveView("appearance")}
       />
       <SettingsTile
         icon={Lock}
-        title="Security"
+        title={t("security")}
         description="Passcode and device access"
         onClick={() => setActiveView("security")}
       />
       <SettingsTile
         icon={Sparkles}
-        title="SMS Templates"
+        title={t("sms_template")}
         description="Reusable message template"
         onClick={() => setActiveView("sms")}
       />
       <SettingsTile
         icon={CloudUpload}
-        title="Backup & Restore"
+        title={t("backup_restore")}
         description="Export and restore"
         onClick={() => setActiveView("backup")}
       />
       <SettingsTile
         icon={ShieldCheck}
-        title="Role Management"
-        description="Coming Soon"
+        title={t("role_management")}
+        description={t("coming_soon")}
         disabled
         onClick={() => setActiveView("roles")}
       />
       <SettingsTile
         icon={AlertTriangle}
-        title="Danger Zone"
+        title={t("danger_zone")}
         description="Sensitive actions"
         onClick={() => setActiveView("danger")}
       />
     </div>
+  );
+
+  const renderLanguage = () => (
+    <SettingsSectionCard
+      title={t("language")}
+      description={t("select_language")}
+    >
+      <div style={{ display: "flex", gap: "16px", flexWrap: "wrap", marginTop: "12px", marginBottom: "12px" }}>
+        <button
+          type="button"
+          className={`settings-inline-btn ${language === "en" ? "primary" : ""}`}
+          onClick={() => {
+            void changeLanguage("en");
+            toast.success("Language set to English");
+          }}
+          style={{ padding: "14px 28px", fontSize: "15px", fontWeight: 600, display: "flex", alignItems: "center", gap: "10px", borderRadius: "10px" }}
+        >
+          <span style={{ fontSize: "18px" }}>🇺🇸</span>
+          <span>English</span>
+          {language === "en" && <span style={{ marginLeft: "auto", fontWeight: 700 }}>✓</span>}
+        </button>
+
+        <button
+          type="button"
+          className={`settings-inline-btn ${language === "bn" ? "primary" : ""}`}
+          onClick={() => {
+            void changeLanguage("bn");
+            toast.success("ভাষা বাংলা নির্বাচন করা হয়েছে");
+          }}
+          style={{ padding: "14px 28px", fontSize: "15px", fontWeight: 600, display: "flex", alignItems: "center", gap: "10px", borderRadius: "10px" }}
+        >
+          <span style={{ fontSize: "18px" }}>🇧🇩</span>
+          <span>বাংলা</span>
+          {language === "bn" && <span style={{ marginLeft: "auto", fontWeight: 700 }}>✓</span>}
+        </button>
+      </div>
+    </SettingsSectionCard>
   );
 
   const renderProfile = () => (
@@ -905,6 +973,7 @@ export default function SettingsPanel({ user, onSave, onExportBackup }) {
           >
             <ChevronLeft size={16} /> Back
           </button>
+          {activeView === "language" ? renderLanguage() : null}
           {activeView === "profile" ? renderProfile() : null}
           {activeView === "appearance" ? renderAppearance() : null}
           {activeView === "security" ? renderSecurity() : null}

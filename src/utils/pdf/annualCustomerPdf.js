@@ -63,10 +63,10 @@ export function exportAnnualCustomerPdf({
       [
         "Closing Balance",
         pdfBalance({
-          due: Number(summary.closingBalance || 0) > 0 ? Number(summary.closingBalance || 0) : 0,
+          due: Number(summary.closingBalance || 0) < 0 ? Math.abs(Number(summary.closingBalance || 0)) : 0,
           carryForward:
-            Number(summary.closingBalance || 0) < 0
-              ? Math.abs(Number(summary.closingBalance || 0))
+            Number(summary.closingBalance || 0) > 0
+              ? Number(summary.closingBalance || 0)
               : 0,
         }),
       ],
@@ -89,24 +89,36 @@ export function exportAnnualCustomerPdf({
   drawTable({
     startY: currentY,
 
-    head: [["Month", "Bill", "Paid", "Balance", "Status"]],
+    head: [["Month", "Bill", "Prev Bal", "Total Req", "Paid", "Ending Bal", "Status"]],
 
     body: history.map((entry) => {
-      const balanceValue = Number(entry.balance ?? entry.endingBalance ?? 0);
+      const balanceValue = Number(entry.endingBalance ?? entry.balance ?? 0);
       const isInactiveEntry =
         entry?.status === "Not Joined" ||
         entry?.status === "Inactive" ||
         entry?.status === "N/A" ||
-        entry?.status === "na";
+        entry?.status === "na" ||
+        entry?.isInactive;
 
       return [
         entry.monthName || "-",
 
-        isInactiveEntry || entry.bill == null ? "-" : pdfMoney(entry.monthlyBill ?? entry.bill ?? 0),
+        isInactiveEntry || entry.bill == null ? "-" : pdfMoney(entry.bill ?? 0),
+
+        isInactiveEntry || entry.previousBalance == null
+          ? "-"
+          : pdfBalance({
+              due: entry.previousBalance < 0 ? Math.abs(entry.previousBalance) : 0,
+              carryForward: entry.previousBalance > 0 ? entry.previousBalance : 0,
+            }),
+
+        isInactiveEntry || entry.totalRequired == null
+          ? "-"
+          : pdfMoney(entry.totalRequired ?? 0),
 
         isInactiveEntry || entry.paid == null ? "-" : pdfMoney(entry.paid ?? 0),
 
-        isInactiveEntry || entry.balance == null
+        isInactiveEntry || entry.endingBalance == null
           ? "-"
           : pdfBalance({
               due: balanceValue < 0 ? Math.abs(balanceValue) : 0,

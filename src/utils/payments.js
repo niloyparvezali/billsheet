@@ -321,90 +321,70 @@ const getMonthEndBoundary = (month, year) => {
 const resolveBillingStatus = ({
   bill = 0,
   paid = 0,
-  currentBillPaid = 0,
-  currentBillRemaining = 0,
-  previousDueRemaining = 0,
-  carryForwardNext = 0,
+  previousDue = 0,
+  previousAdvance = 0,
+  endingBalance = null,
+  currentBillPaid = null,
+  currentBillRemaining = null,
+  previousDueRemaining = null,
+  carryForwardNext = null,
   month = null,
   year = null,
   currentDate = null,
 } = {}) => {
   const safeBill = Number(bill || 0);
   const safePaid = Number(paid || 0);
-  const safeCurrentBillPaid = Number(currentBillPaid || 0);
-  const safeCurrentBillRemaining = Number(currentBillRemaining || 0);
-  const safePreviousDueRemaining = Number(previousDueRemaining || 0);
-  const safeCarryForwardNext = Number(carryForwardNext || 0);
+  const safePrevDue = previousDueRemaining !== null ? Number(previousDueRemaining || 0) : Number(previousDue || 0);
+  const safePrevAdvance = carryForwardNext !== null && carryForwardNext > 0 ? Number(carryForwardNext || 0) : Number(previousAdvance || 0);
+
+  const totalRequired = Math.max(0, safeBill + safePrevDue - safePrevAdvance);
+  const calcEndingBalance = endingBalance !== null ? Number(endingBalance || 0) : (safePrevAdvance - safePrevDue + safePaid - safeBill);
+
   const normalizedCurrentDate = getSafeDate(currentDate);
   const hasPeriodContext = Number.isFinite(Number(month)) && Number.isFinite(Number(year)) && Number(month) >= 1 && Number(month) <= 12;
 
-  if (!hasPeriodContext) {
-    if (safeBill > 0) {
-      if (safeCurrentBillPaid === 0) {
-        return safeCurrentBillRemaining + safePreviousDueRemaining > 0 ? "Pending" : "Paid";
-      }
-      if (safeCurrentBillPaid < safeBill) {
-        return "Partial";
-      }
-      if (safePreviousDueRemaining === 0 && safeCarryForwardNext > 0) {
-        return "Advance";
-      }
-      return "Paid";
-    }
+  const now = normalizedCurrentDate;
+  const safeMonth = Number(month);
+  const safeYear = Number(year);
 
-    if (safePreviousDueRemaining > 0 || safeCurrentBillRemaining > 0) {
-      return "Due";
-    }
-    if (safeCarryForwardNext > 0) {
-      return "Advance";
-    }
-    if (safePaid > 0 || safeCurrentBillPaid > 0) {
-      return "Paid";
-    }
+  const currentYear = now.getFullYear();
+  const currentMonth = now.getMonth() + 1;
+
+  const isCurrentYear = hasPeriodContext && safeYear === currentYear;
+  const isCurrentMonth = isCurrentYear && safeMonth === currentMonth;
+  const isPastMonth = hasPeriodContext && (safeYear < currentYear || (isCurrentYear && safeMonth < currentMonth));
+
+  const monthEndBoundary = hasPeriodContext ? new Date(safeYear, safeMonth, 0, 23, 59, 59, 999) : null;
+  const isMonthEnded = isPastMonth || (isCurrentMonth && now.getTime() > monthEndBoundary?.getTime());
+
+  // Priority order: Pending -> Partial -> Due -> Advance -> Paid
+
+  // 1. Pending: Current/future month AND paid === 0 AND month has NOT ended
+  if (!isMonthEnded && safePaid === 0) {
     return "Pending";
   }
 
-  const targetPeriodKey = getPeriodKey(month, year);
-  const currentPeriodKey = getPeriodKey(normalizedCurrentDate.getMonth() + 1, normalizedCurrentDate.getFullYear());
-  const monthEndBoundary = getMonthEndBoundary(month, year);
-  const isFuturePeriod = targetPeriodKey > currentPeriodKey;
-  const isPeriodClosed = targetPeriodKey < currentPeriodKey || Boolean(monthEndBoundary && normalizedCurrentDate.getTime() > monthEndBoundary.getTime());
-
-  if (safeBill > 0) {
-    if (safeCurrentBillPaid === 0) {
-      if (isFuturePeriod || !isPeriodClosed) {
-        return "Pending";
-      }
-      return "Due";
-    }
-
-    if (safeCurrentBillPaid < safeBill) {
-      if (isFuturePeriod || !isPeriodClosed) {
-        return "Partial";
-      }
-      return "Due";
-    }
-
-    if (safePreviousDueRemaining === 0 && safeCarryForwardNext > 0) {
-      return "Advance";
-    }
-
-    return "Paid";
+  // 2. Partial: Customer paid some amount (paid > 0) AND paid < totalRequired AND month has NOT ended
+  if (!isMonthEnded && safePaid > 0 && safePaid < totalRequired) {
+    return "Partial";
   }
 
-  if (safePreviousDueRemaining > 0 || safeCurrentBillRemaining > 0) {
-    return isFuturePeriod || !isPeriodClosed ? "Pending" : "Due";
+  // 3. Due: Month ended AND ending balance is negative (remaining balance > 0)
+  if (isMonthEnded && calcEndingBalance < 0) {
+    return "Due";
   }
 
-  if (safeCarryForwardNext > 0) {
+  // 4. Advance: Paid > Current Month Bill AND Previous Due == 0
+  if (safePaid > safeBill && safePrevDue === 0) {
     return "Advance";
   }
 
-  if (safePaid > 0 || safeCurrentBillPaid > 0) {
+  // 5. Paid: If Paid Amount equals or exceeds required amount / cleared
+  if (calcEndingBalance >= 0 || safePaid >= totalRequired) {
     return "Paid";
   }
 
-  return "Pending";
+  return isMonthEnded ? "Due" : "Pending";
 };
 
 export const formatAnnualReportBalanceValue = ({ due = 0, advance = 0, carryForward = 0 } = {}) => {
@@ -944,60 +924,7 @@ export const buildYearlyCustomerReportSummary = ({ user, payments = [], year }) 
   const activePayments = getActivePayments(payments || []);
   const joinDate = parseDateValue(user?.joinDate || user?.joinedAt || user?.memberSince || user?.createdAt || null);
   const leaveDate = parseDateValue(user?.inactiveDate || user?.leaveDate || user?.archivedAt || user?.deactivatedAt || user?.inactiveAt || null);
-  const months = Array.from({ length: 12 }, (_, index) => {
-    const month = index + 1;
-    const monthStart = new Date(safeYear, index, 1);
-    const monthEnd = new Date(safeYear, index + 1, 0, 23, 59, 59);
-    const isActiveForMonth = isUserActiveForPeriod(user, { month, year: safeYear });
-    const beforeJoin = Boolean(joinDate && joinDate > monthEnd);
-    const afterLeave = Boolean(leaveDate && leaveDate < monthStart);
-    const isInactiveMonth = !isActiveForMonth || beforeJoin || afterLeave;
-    const monthPayments = (activePayments || []).filter((payment) => {
-      const { month: paymentMonth, year: paymentYear } = getPaymentMonthYear(payment);
-      return matchesPaymentToUser(payment, user) && Number(paymentMonth) === Number(month) && Number(paymentYear) === safeYear;
-    });
-    const history = (activePayments || []).filter((payment) => {
-      const { month: paymentMonth, year: paymentYear } = getPaymentMonthYear(payment);
-      const currentPeriod = getPeriodKey(month, safeYear);
-      const paymentPeriod = getPeriodKey(paymentMonth, paymentYear);
-      return matchesPaymentToUser(payment, user) && paymentPeriod < currentPeriod;
-    });
-    if (isInactiveMonth) {
-      return {
-        month,
-        monthName: new Date(safeYear, index, 1).toLocaleString("en-us", { month: "long" }),
-        bill: null,
-        paid: null,
-        due: null,
-        advance: null,
-        status: beforeJoin ? "N/A" : "Inactive",
-        paymentDate: null,
-      };
-    }
-    const row = buildMonthlySheetLedgerRow({
-      user,
-      payments: monthPayments,
-      history,
-      month,
-      year: safeYear,
-      isActiveForPeriod: isUserActiveForPeriod,
-    });
-    const reportingBill = getEffectiveBillForPeriod(user, {
-      month,
-      year: safeYear,
-    });
-    return {
-      month,
-      monthName: new Date(safeYear, index, 1).toLocaleString("en-us", { month: "long" }),
-      bill: Number(reportingBill || 0),
-      paid: Number(row.currentPaid || 0),
-      due: Number(row.currentDue || 0),
-      advance: Number(row.currentAdvance || 0),
-      status: row.status,
-      paymentDate: row.payment?.paymentDate || row.payment?.createdAt || null,
-      raw: row,
-    };
-  });
+
   const openingRow = buildMonthlySheetLedgerRow({
     user,
     payments: [],
@@ -1009,35 +936,170 @@ export const buildYearlyCustomerReportSummary = ({ user, payments = [], year }) 
     year: safeYear,
     isActiveForPeriod: isUserActiveForPeriod,
   });
-  const openingBalance = Number(openingRow.openingDue || 0) - Number(openingRow.openingAdvance || 0);
+
+  const openingDue = Number(openingRow.openingDue || 0);
+  const openingAdvance = Number(openingRow.openingAdvance || 0);
+  const openingBalance = openingAdvance - openingDue;
+
+  let runningBalance = openingBalance;
+
+  const months = Array.from({ length: 12 }, (_, index) => {
+    const month = index + 1;
+    const monthStart = new Date(safeYear, index, 1);
+    const monthEnd = new Date(safeYear, index + 1, 0, 23, 59, 59);
+    const isActiveForMonth = isUserActiveForPeriod(user, { month, year: safeYear });
+    const beforeJoin = Boolean(joinDate && joinDate > monthEnd);
+    const afterLeave = Boolean(leaveDate && leaveDate < monthStart);
+    const isInactiveMonth = !isActiveForMonth || beforeJoin || afterLeave;
+
+    const monthPayments = (activePayments || []).filter((payment) => {
+      const { month: paymentMonth, year: paymentYear } = getPaymentMonthYear(payment);
+      return matchesPaymentToUser(payment, user) && Number(paymentMonth) === Number(month) && Number(paymentYear) === safeYear;
+    });
+
+    const allMonthTransactions = (payments || []).filter((payment) => {
+      const { month: paymentMonth, year: paymentYear } = getPaymentMonthYear(payment);
+      return matchesPaymentToUser(payment, user) && Number(paymentMonth) === Number(month) && Number(paymentYear) === safeYear;
+    }).sort((a, b) => {
+      const getTimeVal = (p) => {
+        const val = p?.paymentDate || p?.createdAt || p?.timestamp;
+        if (val?.seconds) return val.seconds * 1000;
+        if (typeof val?.toDate === "function") return val.toDate().getTime();
+        return new Date(val || 0).getTime();
+      };
+      return getTimeVal(a) - getTimeVal(b);
+    });
+
+    if (isInactiveMonth) {
+      return {
+        month,
+        monthName: new Date(safeYear, index, 1).toLocaleString("en-us", { month: "long" }),
+        bill: null,
+        paid: null,
+        due: null,
+        advance: null,
+        previousBalance: runningBalance,
+        previousDue: runningBalance < 0 ? Math.abs(runningBalance) : 0,
+        previousAdvance: runningBalance > 0 ? runningBalance : 0,
+        totalRequired: 0,
+        endingBalance: runningBalance,
+        endingDue: runningBalance < 0 ? Math.abs(runningBalance) : 0,
+        endingAdvance: runningBalance > 0 ? runningBalance : 0,
+        balance: runningBalance,
+        status: beforeJoin ? "N/A" : "Inactive",
+        paymentCount: 0,
+        paymentDates: [],
+        payments: [],
+        transactions: allMonthTransactions,
+        isInactive: true,
+      };
+    }
+
+    const bill = getEffectiveBillForPeriod(user, { month, year: safeYear });
+    const paid = monthPayments.reduce((sum, p) => sum + Number(p.amount || 0), 0);
+    const previousBalance = runningBalance;
+    const previousDue = previousBalance < 0 ? Math.abs(previousBalance) : 0;
+    const previousAdvance = previousBalance > 0 ? previousBalance : 0;
+    const totalRequired = Math.max(0, bill + previousDue - previousAdvance);
+
+    const endingBalance = previousBalance + paid - bill;
+    const endingDue = endingBalance < 0 ? Math.abs(endingBalance) : 0;
+    const endingAdvance = endingBalance > 0 ? endingBalance : 0;
+
+    const status = resolveBillingStatus({
+      bill,
+      paid,
+      previousDue,
+      previousAdvance,
+      endingBalance,
+      month,
+      year: safeYear,
+      currentDate: new Date(),
+    });
+
+    runningBalance = endingBalance;
+
+    const paymentDates = monthPayments
+      .map((p) => p.paymentDate || p.createdAt)
+      .filter(Boolean);
+
+    return {
+      month,
+      monthName: new Date(safeYear, index, 1).toLocaleString("en-us", { month: "long" }),
+      bill: Number(bill || 0),
+      paid: Number(paid || 0),
+      due: endingDue,
+      advance: endingAdvance,
+      previousBalance,
+      previousDue,
+      previousAdvance,
+      totalRequired,
+      endingBalance,
+      endingDue,
+      endingAdvance,
+      balance: endingBalance,
+      status,
+      paymentCount: monthPayments.length,
+      paymentDates,
+      payments: monthPayments,
+      transactions: allMonthTransactions,
+      isInactive: false,
+    };
+  });
+
   const annualBill = months.reduce((sum, entry) => sum + (entry.bill ? Number(entry.bill || 0) : 0), 0);
   const totalPaid = months.reduce((sum, entry) => sum + (entry.paid != null ? Number(entry.paid || 0) : 0), 0);
-  const totalReceivable = Number(openingRow.openingDue || 0) + annualBill;
-  const totalDue = Math.max(0, totalReceivable - totalPaid);
-  const totalAdvance = Math.max(0, totalPaid - totalReceivable);
-  const carryForward = totalAdvance;
-  const closingBalance = totalDue > 0 ? totalDue : totalAdvance > 0 ? -totalAdvance : 0;
-  const closingBalanceStatus = totalDue > 0 ? "Outstanding Balance" : totalAdvance > 0 ? "Credit Carry Forward" : "Account Settled";
+
+  const allActiveYearPayments = activePayments.filter((payment) => {
+    const { year: paymentYear } = getPaymentMonthYear(payment);
+    return matchesPaymentToUser(payment, user) && Number(paymentYear) === safeYear;
+  }).sort((a, b) => {
+    const getTimeVal = (p) => {
+      const val = p?.paymentDate || p?.createdAt || p?.timestamp;
+      if (val?.seconds) return val.seconds * 1000;
+      if (typeof val?.toDate === "function") return val.toDate().getTime();
+      return new Date(val || 0).getTime();
+    };
+    return getTimeVal(a) - getTimeVal(b);
+  });
+
+  const paymentCount = allActiveYearPayments.length;
+  const firstPaymentDate = allActiveYearPayments[0]?.paymentDate || allActiveYearPayments[0]?.createdAt || null;
+  const lastPaymentDate = allActiveYearPayments[allActiveYearPayments.length - 1]?.paymentDate || allActiveYearPayments[allActiveYearPayments.length - 1]?.createdAt || null;
+
+  const currentLiveBalance = runningBalance;
+  const remainingDue = currentLiveBalance < 0 ? Math.abs(currentLiveBalance) : 0;
+  const creditCarryForward = currentLiveBalance > 0 ? currentLiveBalance : 0;
+
+  const closingBalanceStatus = remainingDue > 0 ? "Outstanding Balance" : creditCarryForward > 0 ? "Credit Carry Forward" : "Account Settled";
+
   return {
+    user,
+    year: safeYear,
     months,
-    openingBalance,
-    openingDue: Number(openingRow.openingDue || 0),
-    openingAdvance: Number(openingRow.openingAdvance || 0),
+    openingBalance: Math.abs(openingBalance),
+    openingDue,
+    openingAdvance,
+    previousDue: openingDue,
+    previousAdvance: openingAdvance,
     annualBill,
     totalPaid,
-    totalDue,
-    totalAdvance,
-    carryForward,
-    closingBalance,
+    totalDue: remainingDue,
+    totalAdvance: creditCarryForward,
+    carryForward: creditCarryForward,
+    remainingDue,
+    remainingAdvance: creditCarryForward,
+    closingBalance: currentLiveBalance,
     closingBalanceStatus,
-    previousDue: Number(openingRow.openingDue || 0),
-    previousAdvance: Number(openingRow.openingAdvance || 0),
-    remainingDue: totalDue,
-    remainingAdvance: totalAdvance,
+    currentLiveBalance,
+    currentLiveStatus: closingBalanceStatus,
     paidThisYear: totalPaid,
-    outstandingBalance: totalDue,
-    creditCarryForward: totalAdvance,
+    outstandingBalance: remainingDue,
+    creditCarryForward,
     balanceStatus: closingBalanceStatus,
+    paymentCount,
+    firstPaymentDate,
+    lastPaymentDate,
   };
 };
 

@@ -6,6 +6,7 @@
 @import "./reports.css";
 @import "./settings.css";
 @import "./theme.css";
+@import "./responsive.css";
 :root {
   /* Theme variables are defined centrally in theme.css. */
   --radius-xs: 6px;

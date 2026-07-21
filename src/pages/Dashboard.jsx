@@ -4,6 +4,7 @@ import DashboardSummary from "../components/DashboardSummary";
 import { doc, getDoc, setDoc } from "firebase/firestore";
 import { db } from "../firebase/config";
 import { useAuth } from "../context/AuthContext";
+import { useLanguage } from "../context/LanguageContext";
 import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import dayjs from "dayjs";
@@ -27,13 +28,14 @@ import {
 } from "recharts";
 import useOwnedCollection from "../hooks/useOwnedCollection";
 import StatCard from "../components/StatCard";
-import { money, monthNames, formatDate } from "../utils/date";
+import { monthNames } from "../utils/date";
 import { buildDashboardLedgerSummary, getActivePayments } from "../utils/payments";
 
 export default function Dashboard() {
   const { data: users = [] } = useOwnedCollection("users");
   const { data: payments = [] } = useOwnedCollection("payments");
   const { user } = useAuth();
+  const { t, formatMoney, translateMonth, toBengaliNumerals, language } = useLanguage();
   const now = new Date();
   const month = now.getMonth() + 1;
   const year = now.getFullYear();
@@ -152,40 +154,43 @@ export default function Dashboard() {
     return <div className="page">Loading...</div>;
   }
 
+  const displayMonth = translateMonth(monthNames[month - 1]);
+  const displayYear = language === "bn" ? toBengaliNumerals(year) : year;
+
   return (
     <div className="page dashboard-page">
       <div className="page-title">
         <div>
-          <h2>Overview</h2>
+          <h2>{t("dashboard")}</h2>
           <p>
-            {monthNames[month - 1]} {year}
+            {displayMonth} {displayYear}
           </p>
         </div>
-        <Link to="/monthly-sheet" className="sheet-circle">
+        <Link to="/monthly-sheet" className="sheet-circle" title={t("monthly_sheet")}>
           <FiCalendar size={18} />
         </Link>
       </div>
       <div className="stats">
         <StatCard
-          label="Total Users"
+          label={t("total_users")}
           value={summary.totalUsers}
           icon={<FiUsers />}
         />
         <StatCard
-          label="Active Users"
+          label={t("active_users")}
           value={activeUsers.length}
           tone="green"
           icon={<FiUserCheck />}
         />
         <StatCard
-          label="Inactive Users"
+          label={t("inactive_users", "Inactive Users")}
           value={inactiveUsers}
           tone="orange"
           icon={<FiLayers />}
         />
         <StatCard
-          label="Month Collection"
-          value={money(totalPaidThisMonth)}
+          label={t("total_collected")}
+          value={formatMoney(totalPaidThisMonth)}
           tone="purple"
           icon={<FiDollarSign />}
         />
@@ -201,7 +206,6 @@ export default function Dashboard() {
           totalCollection={totalCollection}
           averageCollection={averageCollection}
           year={year}
-          money={money}
         />
 
         <DashboardSummary
@@ -209,11 +213,10 @@ export default function Dashboard() {
           averageCollection={averageCollection}
           highestMonth={highestMonth}
           lowestMonth={lowestMonth}
-          money={money}
         />
       </div>
 
-      <RecentPayments recentPayments={recentPayments} money={money} />
+      <RecentPayments recentPayments={recentPayments} />
     </div>
   );
 }

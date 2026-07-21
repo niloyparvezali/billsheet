@@ -1,25 +1,31 @@
 import Modal from "./Modal";
+import { useLanguage } from "../context/LanguageContext";
 
 export default function ConfirmModal({
-  title = "Confirm action",
+  title,
   message,
-  confirmText = "Confirm",
-  cancelText = "Cancel",
+  confirmText,
+  cancelText,
   onConfirm,
   onCancel,
   children,
   modalClassName,
 }) {
+  const { t } = useLanguage();
+  const displayTitle = title || t("confirm", "Confirm action");
+  const displayConfirm = confirmText || t("confirm", "Confirm");
+  const displayCancel = cancelText || t("cancel", "Cancel");
+
   return (
-    <Modal title={title} onClose={onCancel} className={modalClassName}>
+    <Modal title={displayTitle} onClose={onCancel} className={modalClassName}>
       <p>{message}</p>
       {children}
       <div className="modal-actions">
         <button type="button" className="btn btn-secondary" onClick={onCancel}>
-          {cancelText}
+          {displayCancel}
         </button>
         <button type="button" className="btn btn-primary" onClick={onConfirm}>
-          {confirmText}
+          {displayConfirm}
         </button>
       </div>
     </Modal>

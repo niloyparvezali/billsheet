@@ -12,11 +12,13 @@ import ConfirmModal from "./ConfirmModal";
 
 import { db } from "../firebase/config";
 import useOwnedCollection from "../hooks/useOwnedCollection";
+import { useLanguage } from "../context/LanguageContext";
 import { money } from "../utils/date";
 import { buildBillingLedger, computePaymentSummary, formatBalanceDisplayValue, getMonthPaymentTransactions } from "../utils/payments";
 import { buildTransactionRecord, TRANSACTION_TYPES } from "../utils/transactions.js";
 
 export default function PaymentModal({ data, month, year, ownerId, close }) {
+  const { t, formatMoney } = useLanguage();
   const [amount, setAmount] = useState("");
   const [extraDue, setExtraDue] = useState("");
   const [saving, setSaving] = useState(false);
@@ -180,15 +182,15 @@ export default function PaymentModal({ data, month, year, ownerId, close }) {
   };
 
   return (
-    <Modal title={`Payment · ${data.user.name}`} onClose={close}>
+    <Modal title={`${t("payment", "Payment")} · ${data.user.name}`} onClose={close}>
       <form className="form" onSubmit={attemptSave}>
         <p className="payment-note">
-          Bill Amount: <b>{money(bill)}</b> · Already Paid: <b>{money(alreadyPaid)}</b>
+          {t("monthly_bill")}: <b>{formatMoney(bill)}</b> · {t("paid")}: <b>{formatMoney(alreadyPaid)}</b>
           <br />
-          Outstanding Balance: <b style={{ color: "#EF4444" }}>{formatBalanceDisplayValue({ due: outstandingBalance, carryForward: 0 })}</b> · Carry Forward: <b style={{ color: "#3B82F6" }}>{formatBalanceDisplayValue({ due: 0, carryForward })}</b>
+          {t("due")}: <b style={{ color: "#EF4444" }}>{formatBalanceDisplayValue({ due: outstandingBalance, carryForward: 0 })}</b> · {t("advance")}: <b style={{ color: "#3B82F6" }}>{formatBalanceDisplayValue({ due: 0, carryForward })}</b>
         </p>
         <label>
-          Payment Amount
+          {t("payment_amount", "Payment Amount")}
           <input
             type="number"
             min="0"
@@ -199,7 +201,7 @@ export default function PaymentModal({ data, month, year, ownerId, close }) {
           />
         </label>
         <label>
-          Additional Due (optional)
+          {t("additional_due", "Additional Due (optional)")}
           <input
             type="number"
             min="0"
@@ -209,15 +211,15 @@ export default function PaymentModal({ data, month, year, ownerId, close }) {
           />
         </label>
         <button className="btn btn-primary" disabled={saving}>
-          {saving ? "Saving..." : "Save Payment"}
+          {saving ? t("saving", "Saving...") : t("save_payment", "Save Payment")}
         </button>
       </form>
       {showSaveConfirm && (
         <ConfirmModal
-          title="Save payment"
-          message={`Save payment for ${data.user.name}?`}
-          confirmText="Save"
-          cancelText="Cancel"
+          title={t("save_payment", "Save payment")}
+          message={`${t("save_payment", "Save payment")} for ${data.user.name}?`}
+          confirmText={t("save", "Save")}
+          cancelText={t("cancel", "Cancel")}
           onConfirm={async () => {
             setShowSaveConfirm(false);
             await savePayment();

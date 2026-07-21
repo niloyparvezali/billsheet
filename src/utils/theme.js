@@ -8,9 +8,35 @@ const getSystemThemePreference = () => {
 };
 
 export const themePresets = Object.freeze({
+  sunrise: {
+    id: "sunrise",
+    label: "☀️ Sunrise",
+    previewShell: "linear-gradient(135deg, #FAF7F2 0%, #E8E2D8 58%, #2563EB 100%)",
+    accent: "#2563EB",
+    chartActive: "#2563EB",
+    chartDefault: "#3B82F6",
+    chartGrid: "rgba(28, 25, 23, 0.08)",
+    chartAxis: "rgba(28, 25, 23, 0.64)",
+    chartLabel: "#1C1917",
+    chartTooltipBg: "rgba(28, 25, 23, 0.95)",
+    chartTooltipText: "#FAF7F2",
+  },
+  midnight: {
+    id: "midnight",
+    label: "🌙 Midnight",
+    previewShell: "linear-gradient(135deg, #0B0F19 0%, #111827 58%, #3B82F6 100%)",
+    accent: "#3B82F6",
+    chartActive: "#3B82F6",
+    chartDefault: "#60A5FA",
+    chartGrid: "rgba(243, 244, 246, 0.14)",
+    chartAxis: "rgba(243, 244, 246, 0.75)",
+    chartLabel: "#F9FAFB",
+    chartTooltipBg: "rgba(11, 15, 25, 0.95)",
+    chartTooltipText: "#F9FAFB",
+  },
   forest: {
     id: "forest",
-    label: "🟢 Forest",
+    label: "🌲 Forest",
     previewShell: "linear-gradient(135deg, rgba(11, 34, 31, 0.96) 0%, rgba(15, 118, 110, 0.84) 58%, rgba(244, 197, 66, 0.76) 100%)",
     accent: "#f4c542",
     chartActive: "#48d8c5",
@@ -23,7 +49,7 @@ export const themePresets = Object.freeze({
   },
   ocean: {
     id: "ocean",
-    label: "🔵 Ocean",
+    label: "🌊 Ocean",
     previewShell: "linear-gradient(135deg, rgba(5, 19, 34, 0.96) 0%, rgba(14, 116, 144, 0.9) 58%, rgba(6, 182, 212, 0.76) 100%)",
     accent: "#22d3ee",
     chartActive: "#3ec6ff",
@@ -34,39 +60,14 @@ export const themePresets = Object.freeze({
     chartTooltipBg: "rgba(5, 20, 34, 0.95)",
     chartTooltipText: "#f4f7ff",
   },
-  light: {
-    id: "light",
-    label: "☀️ Light",
-    previewShell: "linear-gradient(135deg, rgba(252, 250, 244, 0.98) 0%, rgba(236, 243, 240, 0.96) 62%, rgba(241, 197, 77, 0.75) 100%)",
-    accent: "#f4c542",
-    chartActive: "#48d8c5",
-    chartDefault: "#4ecdc4",
-    chartGrid: "rgba(15, 23, 42, 0.1)",
-    chartAxis: "rgba(15, 23, 42, 0.66)",
-    chartLabel: "#111827",
-    chartTooltipBg: "rgba(15, 23, 42, 0.95)",
-    chartTooltipText: "#f9fafb",
-  },
-  dark: {
-    id: "dark",
-    label: "🌙 Dark",
-    previewShell: "linear-gradient(135deg, rgba(5, 19, 34, 0.96) 0%, rgba(14, 116, 144, 0.9) 58%, rgba(6, 182, 212, 0.76) 100%)",
-    accent: "#22d3ee",
-    chartActive: "#3ec6ff",
-    chartDefault: "#41b9e7",
-    chartGrid: "rgba(125, 211, 252, 0.22)",
-    chartAxis: "rgba(220, 241, 255, 0.82)",
-    chartLabel: "#eef9ff",
-    chartTooltipBg: "rgba(4, 19, 35, 0.96)",
-    chartTooltipText: "#eef9ff",
-  },
 });
 
 export const normalizeTheme = (value) => {
   const normalized = String(value || "").trim().toLowerCase();
+  if (normalized === "sunrise" || normalized === "light") return "sunrise";
+  if (normalized === "midnight" || normalized === "dark") return "midnight";
   if (normalized === "ocean" || normalized === "cyan") return "ocean";
-  if (normalized === "light") return "light";
-  if (normalized === "dark") return "dark";
+  if (normalized === "forest") return "forest";
   return "forest";
 };
 

@@ -1,5 +1,7 @@
 import { useState } from "react";
 import { normalizePackages } from "../utils/users";
+import { useLanguage } from "../context/LanguageContext";
+
 export default function UserForm({
   form,
   setForm,
@@ -8,6 +10,7 @@ export default function UserForm({
   onCategory,
   onSubmit,
 }) {
+  const { t } = useLanguage();
   const set = (key, value) => setForm({ ...form, [key]: value });
   const selectedPackages = normalizePackages(
     form?.packages ?? form?.category ?? [],
@@ -46,7 +49,7 @@ export default function UserForm({
   return (
     <form onSubmit={onSubmit} className="form">
       <label>
-        Name
+        {t("name")}
         <input
           required
           value={form.name || ""}
@@ -61,7 +64,7 @@ export default function UserForm({
           }
         }}
       >
-        Package / Category
+        {t("package_category", "Package / Category")}
         <div
           className="row row--stacked"
           onClick={(event) => {
@@ -92,7 +95,7 @@ export default function UserForm({
               className="btn btn-secondary"
               onClick={handleNewCategoryClick}
             >
-              + New
+              + {t("new", "New")}
             </button>
           </div>
         </div>
@@ -104,19 +107,19 @@ export default function UserForm({
         )}
       </label>
       <label>
-        Monthly Bill
+        {t("monthly_bill")}
         <input
           type="number"
           required
           min="0"
           step="any"
-          placeholder="Amount"
+          placeholder={t("amount")}
           value={form.monthlyBill ?? ""}
           onChange={(e) => set("monthlyBill", e.target.value)}
         />
       </label>
       <label>
-        Join date
+        {t("join_date", "Join date")}
         <input
           type="date"
           value={form.joinDate || ""}
@@ -124,18 +127,18 @@ export default function UserForm({
         />
       </label>
       <label>
-        Status
+        {t("status")}
         <select
           value={form.status || "Active"}
           onChange={(e) => set("status", e.target.value)}
           className={`user-status-select ${String(form.status || "Active").toLowerCase()}`}
         >
-          <option value="Active">Active</option>
-          <option value="Inactive">Inactive</option>
+          <option value="Active">{t("active")}</option>
+          <option value="Inactive">{t("inactive")}</option>
         </select>
       </label>
       <label>
-        Phone number
+        {t("phone")}
         <input
           type="tel"
           inputMode="tel"
@@ -145,13 +148,14 @@ export default function UserForm({
         />
       </label>
       <label>
-        Description
+        {t("address")}
         <textarea
           value={form.address || ""}
           onChange={(e) => set("address", e.target.value)}
         />
       </label>
-      <button className="btn btn-primary">Save user</button>
+      <button className="btn btn-primary">{t("save_user", "Save user")}</button>
     </form>
   );
 }
+

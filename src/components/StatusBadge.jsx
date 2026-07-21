@@ -1,4 +1,5 @@
 import { getDisplayPaymentStatus } from "../utils/payments";
+import { useLanguage } from "../context/LanguageContext";
 
 export default function StatusBadge({
   status,
@@ -13,6 +14,7 @@ export default function StatusBadge({
   currentDate = new Date(),
   isInactiveEntry = false,
 }) {
+  const { translateStatus } = useLanguage();
   const resolved = getDisplayPaymentStatus({
     status,
     bill,
@@ -24,7 +26,9 @@ export default function StatusBadge({
     currentDate,
     isInactiveEntry,
   });
-  const shortLabel = compact ? resolved.label : resolved.label;
 
-  return <span className={`status ${resolved.className} ${className}`.trim()}>{shortLabel}</span>;
+  const displayLabel = translateStatus(resolved.label);
+
+  return <span className={`status ${resolved.className} ${className}`.trim()}>{displayLabel}</span>;
 }
+

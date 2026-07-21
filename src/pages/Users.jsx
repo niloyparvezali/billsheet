@@ -16,6 +16,7 @@ import {
 import toast from "react-hot-toast";
 import { db } from "../firebase/config";
 import { useAuth } from "../context/AuthContext";
+import { useLanguage } from "../context/LanguageContext";
 import useOwnedCollection from "../hooks/useOwnedCollection";
 import Modal from "../components/Modal";
 import ConfirmModal from "../components/ConfirmModal";
@@ -46,6 +47,7 @@ export default function Users() {
   const searchRef = useRef(null);
   const navigate = useNavigate();
   const { user: signedInUser } = useAuth();
+  const { t, formatNumber } = useLanguage();
   const { data: allUsers = [] } = useOwnedCollection("users");
   const users = useMemo(() => (allUsers || []).filter(Boolean), [allUsers]);
   const { data: savedCategories, error: categoryError } =
@@ -271,8 +273,8 @@ export default function Users() {
       <section className="panel users-panel">
         <div className="users-page-header">
           <div className="users-page-heading">
-            <h1>Users</h1>
-            <p>Manage customers and account information.</p>
+            <h1>{t("users")}</h1>
+            <p>{t("manage_users_subtitle", "Manage customers and account information.")}</p>
           </div>
         </div>
         <div className="users-toolbar">
@@ -281,22 +283,22 @@ export default function Users() {
               <FiSearch />
               <input
                 ref={searchRef}
-                placeholder="Search users by name, category or phone..."
+                placeholder={t("search_users_placeholder", "Search users by name, category or phone...")}
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
               />
             </label>
             <div className="users-meta">
               <FiUsers />
-              <span> Total Users:</span>
-              <strong>{String(list.length).padStart(2, "0")}</strong>
+              <span> {t("total_users")}:</span>
+              <strong>{formatNumber(list.length)}</strong>
             </div>
           </div>
           <button
             className="btn btn-primary users-add-btn"
             onClick={() => setForm(blank)}
           >
-            <FiPlus /> Add user
+            <FiPlus /> {t("add_user")}
           </button>
         </div>
         <UsersTable
@@ -318,7 +320,7 @@ export default function Users() {
       </section>
       {form && (
         <Modal
-          title={form.id ? "Edit user" : "Add user"}
+          title={form.id ? t("edit_user") : t("add_user")}
           onClose={() => setForm(null)}
         >
           <UserForm
@@ -359,20 +361,20 @@ export default function Users() {
       )}
       {deleteUser && (
         <ConfirmModal
-          title="Delete user"
-          message={`Delete ${deleteUser.name}? Their past payment records will be kept.`}
-          confirmText="Delete"
-          cancelText="Cancel"
+          title={t("delete_user", "Delete user")}
+          message={`${t("delete_confirm", "Delete")} ${deleteUser.name}? ${t("payment_records_kept", "Their past payment records will be kept.")}`}
+          confirmText={t("delete", "Delete")}
+          cancelText={t("cancel", "Cancel")}
           onConfirm={() => remove(deleteUser.id)}
           onCancel={() => setDeleteUser(null)}
         />
       )}
       {categoryToRemove && (
         <ConfirmModal
-          title="Delete category"
-          message="Are you sure you want to delete this category?"
-          confirmText="Delete"
-          cancelText="Cancel"
+          title={t("delete_category", "Delete category")}
+          message={t("delete_category_confirm", "Are you sure you want to delete this category?")}
+          confirmText={t("delete", "Delete")}
+          cancelText={t("cancel", "Cancel")}
           onConfirm={() => removeCategory(categoryToRemove)}
           onCancel={() => setCategoryToRemove(null)}
         />

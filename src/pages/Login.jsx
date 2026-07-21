@@ -14,6 +14,7 @@ import {
 } from "react-icons/fi";
 import toast from "react-hot-toast";
 import { useAuth } from "../context/AuthContext";
+import { useLanguage } from "../context/LanguageContext";
 
 const phoneErrorMessage = (value) => {
   const raw = String(value ?? "").trim();
@@ -83,6 +84,7 @@ const handlePasscodeKeyDown = (event) => {
 };
 
 export default function Login() {
+  const { t } = useLanguage();
   const {
     user,
     configured,
@@ -251,7 +253,7 @@ export default function Login() {
   const renderLoginFields = () => (
     <>
       <label className="auth-field">
-        <span>Phone number</span>
+        <span>{t("phone_number", "Phone number")}</span>
         <div
           className={`auth-input auth-input-phone ${errors.phone ? "error" : ""} ${activeInput === "phone" ? "active" : ""}`}
         >
@@ -286,7 +288,7 @@ export default function Login() {
       </label>
 
       <div className="auth-field">
-        <span>Passcode</span>
+        <span>{t("passcode", "Passcode")}</span>
         <div
           ref={passcodeDisplayRef}
           role="button"
@@ -354,7 +356,7 @@ export default function Login() {
   const renderRegisterFields = () => (
     <>
       <label className="auth-field">
-        <span>Full name</span>
+        <span>{t("full_name", "Full name")}</span>
         <div className={`auth-input ${errors.fullName ? "error" : ""}`}>
           <FiUser />
           <input
@@ -363,7 +365,7 @@ export default function Login() {
             onChange={(event) =>
               setForm({ ...form, fullName: event.target.value })
             }
-            placeholder="Name"
+            placeholder={t("full_name", "Full name")}
           />
         </div>
         {errors.fullName ? (
@@ -371,7 +373,7 @@ export default function Login() {
         ) : null}
       </label>
       <label className="auth-field">
-        <span>Company name</span>
+        <span>{t("company_name", "Company name")}</span>
         <div className={`auth-input ${errors.companyName ? "error" : ""}`}>
           <FiBriefcase />
           <input
@@ -380,7 +382,7 @@ export default function Login() {
             onChange={(event) =>
               setForm({ ...form, companyName: event.target.value })
             }
-            placeholder="ABC Internet Service"
+            placeholder={t("company_name", "Company name")}
           />
         </div>
         {errors.companyName ? (
@@ -388,7 +390,7 @@ export default function Login() {
         ) : null}
       </label>
       <label className="auth-field">
-        <span>Email</span>
+        <span>{t("email", "Email")}</span>
         <div className={`auth-input ${errors.email ? "error" : ""}`}>
           <FiMail />
           <input
@@ -406,7 +408,7 @@ export default function Login() {
         ) : null}
       </label>
       <label className="auth-field">
-        <span>Phone number</span>
+        <span>{t("phone_number", "Phone number")}</span>
         <div className={`auth-input auth-input-phone ${errors.phone ? "error" : ""}`}>
           <FiPhone />
           <input
@@ -443,7 +445,7 @@ export default function Login() {
         ) : null}
       </label>
       <label className="auth-field">
-        <span>Passcode</span>
+        <span>{t("passcode", "Passcode")}</span>
         <div className={`auth-input ${errors.passcode ? "error" : ""}`}>
           <FiLock />
           <input
@@ -466,7 +468,7 @@ export default function Login() {
         ) : null}
       </label>
       <label className="auth-field">
-        <span>Confirm passcode</span>
+        <span>{t("confirm_passcode", "Confirm passcode")}</span>
         <div className={`auth-input ${errors.confirmPasscode ? "error" : ""}`}>
           <FiLock />
           <input
@@ -492,7 +494,7 @@ export default function Login() {
         ) : null}
       </label>
       <label className="auth-field">
-        <span>Date of birth</span>
+        <span>{t("date_of_birth", "Date of birth")}</span>
         <div className={`auth-input ${errors.dob ? "error" : ""}`}>
           <FiCalendar />
           <input
@@ -521,23 +523,23 @@ export default function Login() {
             <span className="logo-line"></span>
           </div>
 
-          <p className="auth-brand-subtitle">Secure workspace</p>
+          <p className="auth-brand-subtitle">{t("login_subtitle", "Secure workspace")}</p>
         </div>
         <div className="auth-intro">
           <h2>
             {mode === "register"
-              ? "Create your account"
+              ? t("register")
               : mode === "forgot"
-                ? "Recover access"
-                : "Welcome back"}
+                ? t("forgot_passcode", "Recover access")
+                : t("welcome_back", "Welcome back")}
           </h2>
 
           <p>
             {mode === "register"
-              ? "Open a secure workspace for your billing team and start managing customers, bills, and reports."
+              ? t("register_description", "Open a secure workspace for your billing team and start managing customers, bills, and reports.")
               : mode === "forgot"
-                ? "Enter your registered phone number to recover your passcode and get back into your workspace."
-                : "Manage customers, Monthly bills, and reports securely."}
+                ? t("forgot_description", "Enter your registered phone number to recover your passcode and get back into your workspace.")
+                : t("login_description", "Manage customers, Monthly bills, and reports securely.")}
           </p>
         </div>
         {!configured && (
@@ -554,7 +556,7 @@ export default function Login() {
               type="submit"
               disabled={busy}
             >
-              {busy ? "Please wait..." : "Sign in"}
+              {busy ? t("loading", "Please wait...") : t("sign_in", "Sign in")}
             </button>
             {errors.login ? (
               <small className="auth-error">{errors.login}</small>
@@ -568,13 +570,13 @@ export default function Login() {
               type="submit"
               disabled={busy}
             >
-              {busy ? "Please wait..." : "Create account"}
+              {busy ? t("loading", "Please wait...") : t("create_account", "Create account")}
             </button>
           </form>
         ) : (
           <form onSubmit={submitForgot} className="auth-form">
             <label className="auth-field">
-              <span>Registered phone number</span>
+              <span>{t("phone_number", "Registered phone number")}</span>
               <div className={`auth-input auth-input-phone ${errors.phone ? "error" : ""}`}>
                 <FiPhone />
                 <input
@@ -603,7 +605,7 @@ export default function Login() {
               type="submit"
               disabled={busy}
             >
-              {busy ? "Please wait..." : "Send Reset Link"}
+              {busy ? t("loading", "Please wait...") : t("send_reset_link", "Send Reset Link")}
             </button>
           </form>
         )}
@@ -615,7 +617,7 @@ export default function Login() {
               onClick={() => setMode("register")}
             >
               <FiUserPlus className="auth-pill-icon" />
-              <span>Create account</span>
+              <span>{t("create_account", "Create account")}</span>
             </button>
           ) : mode === "register" ? (
             <button
@@ -624,7 +626,7 @@ export default function Login() {
               onClick={() => setMode("login")}
             >
               <FiArrowLeft className="auth-pill-icon" />
-              <span>Back to sign in</span>
+              <span>{t("back_to_sign_in", "Back to sign in")}</span>
             </button>
           ) : null}
 
@@ -634,7 +636,7 @@ export default function Login() {
               className="auth-pill auth-forgot"
               onClick={() => setMode("forgot")}
             >
-              <span>Forgot passcode</span>
+              <span>{t("forgot_passcode", "Forgot passcode")}</span>
             </button>
           ) : mode === "forgot" ? (
             <button
@@ -642,7 +644,7 @@ export default function Login() {
               className="auth-pill auth-forgot"
               onClick={() => setMode("login")}
             >
-              <span>Back to sign in</span>
+              <span>{t("back_to_sign_in", "Back to sign in")}</span>
             </button>
           ) : null}
         </div>

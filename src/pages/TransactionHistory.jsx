@@ -2,8 +2,10 @@ import { FiCalendar, FiFileText, FiSearch } from "react-icons/fi";
 
 import { useEffect, useMemo, useState } from "react";
 import useOwnedCollection from "../hooks/useOwnedCollection";
+import { useLanguage } from "../context/LanguageContext";
 import { money, monthNames } from "../utils/date";
 import { exportTransactionPdf } from "../utils/pdf";
+import { getStoredTheme } from "../utils/theme";
 import {
   buildMonthlySheetLedgerRow,
   createTransactionRowFromPayment,
@@ -228,6 +230,7 @@ const getTransactionStatusBadgeClass = (row, payment = null) =>
   getTransactionStatusDetails(row, payment).className;
 
 export default function TransactionHistory() {
+  const { t, formatMoney, formatNumber, translateMonth, translateStatus, toBengaliNumerals, language } = useLanguage();
   const currentYear = new Date().getFullYear();
   const currentMonth = `${currentYear}-${String(new Date().getMonth() + 1).padStart(2, "0")}`;
   const [selectedMonth, setSelectedMonth] = useState(currentMonth);
@@ -527,7 +530,7 @@ export default function TransactionHistory() {
     exportTransactionPdf({
       rows: exportRows,
       companyName: "Bill Sheet",
-      theme: "forest",
+      theme: getStoredTheme(),
       year: selectedMonthValue?.year || currentYear,
     });
 
@@ -535,9 +538,9 @@ export default function TransactionHistory() {
     <div className="page transaction-history-page">
       <div className="page-title transaction-header">
         <div>
-          <h2>📒 Transaction History</h2>
+          <h2>📒 {t("transaction_history")}</h2>
 
-          <p>Browse transactions by month, date range, or customer name.</p>
+          <p>{t("transaction_history_subtitle", "Browse transactions by month, date range, or customer name.")}</p>
         </div>
         <div className="transaction-actions">
           <div className="year-selector-shell">
@@ -557,7 +560,7 @@ export default function TransactionHistory() {
             disabled={!filteredPayments.length}
           >
             <FiFileText />
-            <span>Export PDF</span>
+            <span>{t("export_pdf")}</span>
           </button>
         </div>
       </div>
@@ -575,7 +578,7 @@ export default function TransactionHistory() {
                   setToDate("");
                 }}
               >
-                📅 Date
+                📅 {t("date")}
               </button>
 
               <button
@@ -587,7 +590,7 @@ export default function TransactionHistory() {
                   setToDate("");
                 }}
               >
-                👤 Name
+                👤 {t("name")}
               </button>
             </div>
 
@@ -599,7 +602,7 @@ export default function TransactionHistory() {
 
                     <input
                       type="text"
-                      placeholder="Search name..."
+                      placeholder={t("search_customer_placeholder", "Search customer by name or phone")}
                       value={search}
                       onChange={(e) => setSearch(e.target.value)}
                     />
@@ -631,12 +634,12 @@ export default function TransactionHistory() {
         </div>
         <div className="transaction-table">
           <div className="transaction-head">
-            <div>Date</div>
-            <div>Name</div>
-            <div>Bill</div>
-            <div>Paid</div>
-            <div>Balance</div>
-            <div>Status</div>
+            <div>{t("date")}</div>
+            <div>{t("name")}</div>
+            <div>{t("monthly_bill")}</div>
+            <div>{t("paid")}</div>
+            <div>{t("due")}</div>
+            <div>{t("status")}</div>
           </div>
 
           <div className="transaction-body">
@@ -740,11 +743,11 @@ export default function TransactionHistory() {
                           </div>
 
                           <div className="transaction-history-bill-cell">
-                            {money(row.bill)}
+                            {formatMoney(row.bill)}
                           </div>
 
                           <div className="transaction-history-paid-cell">
-                            {money(row.amount)}
+                            {formatMoney(row.amount)}
                           </div>
 
                           <div
@@ -758,7 +761,7 @@ export default function TransactionHistory() {
                             <span
                               className={getTransactionStatusBadgeClass(row, row)}
                             >
-                              {getTransactionStatusDetails(row, row).label}
+                              {translateStatus(getTransactionStatusDetails(row, row).label)}
                             </span>
                           </div>
 
@@ -766,17 +769,17 @@ export default function TransactionHistory() {
                             {showPaidRow ? (
                               <div className="transaction-mobile-amount-row">
                                 <span className="transaction-mobile-amount-label">
-                                  Paid
+                                  {t("paid")}
                                 </span>
                                 <span className="transaction-mobile-amount-value transaction-mobile-paid-value">
-                                  {money(row.amount)}
+                                  {formatMoney(row.amount)}
                                 </span>
                               </div>
                             ) : null}
                             {showBalanceRow ? (
                               <div className="transaction-mobile-amount-row">
                                 <span className="transaction-mobile-amount-label">
-                                  Balance
+                                  {t("due")}
                                 </span>
                                 <span
                                   className="transaction-mobile-amount-value transaction-mobile-balance-value"
@@ -794,19 +797,19 @@ export default function TransactionHistory() {
                 </div>
               ))
             ) : (
-              <p className="empty">No transactions found.</p>
+              <p className="empty">{t("no_transactions_found", "No transactions found.")}</p>
             )}
           </div>
         </div>
         {pageCount > 1 && (
           <div className="transaction-pagination">
             <div className="pagination-info">
-              Showing {showingFrom}–{showingTo} of {transactionRows.length}{" "}
+              Showing {formatNumber(showingFrom)}–{formatNumber(showingTo)} of {formatNumber(transactionRows.length)}{" "}
               transactions
             </div>
 
             <div className="pagination-page">
-              Page {currentPageIndex} of {pageCount}
+              Page {formatNumber(currentPageIndex)} of {formatNumber(pageCount)}
             </div>
 
             <div className="pagination-buttons">

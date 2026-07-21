@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import React, { useMemo, useState } from "react";
 import {
   FiAlertCircle,
   FiArrowRight,
@@ -11,7 +11,9 @@ import {
   FiUser,
 } from "react-icons/fi";
 import useOwnedCollection from "../hooks/useOwnedCollection";
+import { useLanguage } from "../context/LanguageContext";
 import { exportAnnualCustomerPdf } from "../utils/pdf";
+import { getStoredTheme } from "../utils/theme";
 import { formatDate, money } from "../utils/date";
 import {
   buildYearlyCustomerReportSummary,
@@ -55,6 +57,7 @@ const resolveReportsBillingStatus = ({ entry }) => {
 };
 
 export default function Reports() {
+  const { t, formatMoney, formatNumber, translateMonth, translateStatus, toBengaliNumerals, language } = useLanguage();
   const now = new Date();
   const [year, setYear] = useState(now.getFullYear());
   const [yearInput, setYearInput] = useState(String(now.getFullYear()));
@@ -156,10 +159,10 @@ export default function Reports() {
     if (!selectedCustomer) return null;
     return buildYearlyCustomerReportSummary({
       user: selectedCustomer?.user || selectedCustomer,
-      payments: activePayments,
+      payments: payments, // pass all payments so live report can show both active and voided transactions
       year,
     });
-  }, [activePayments, selectedCustomer, year]);
+  }, [payments, selectedCustomer, year]);
 
   const previousDue = yearlySummary?.previousDue || 0;
   const previousAdvance = yearlySummary?.previousAdvance || 0;
@@ -174,102 +177,9 @@ export default function Reports() {
   const balanceStatus =
     yearlySummary?.closingBalanceStatus || "Account Settled";
   const monthlyHistory = useMemo(() => {
-    if (!selectedCustomer) return [];
-
-    const user = selectedCustomer?.user || selectedCustomer;
-    const safeYear = Number(year);
-    const currentDate = new Date();
-    const isCurrentYear = safeYear === currentDate.getFullYear();
-    const maxMonth = isCurrentYear ? currentDate.getMonth() + 1 : 12;
-    const startingBalance = Number(yearlySummary?.openingBalance || 0);
-    let runningBalance = startingBalance;
-
-    return Array.from({ length: 12 }, (_, index) => {
-      const month = index + 1;
-      const monthStart = new Date(safeYear, index, 1);
-      const monthEnd = new Date(safeYear, index + 1, 0, 23, 59, 59);
-      const monthName = monthStart.toLocaleString("en-us", { month: "long" });
-
-      if (isCurrentYear && month > maxMonth) {
-        return {
-          month,
-          monthName,
-          bill: null,
-          paid: null,
-          due: null,
-          advance: null,
-          balance: null,
-          status: null,
-          previousBalance: runningBalance,
-          endingBalance: runningBalance,
-          isPlaceholder: true,
-        };
-      }
-
-      const isActiveForMonth = isUserActiveForPeriod(user, { month, year: safeYear });
-      if (!isActiveForMonth) {
-        return {
-          month,
-          monthName,
-          bill: null,
-          paid: null,
-          due: null,
-          advance: null,
-          balance: null,
-          status: "N/A",
-          previousBalance: runningBalance,
-          endingBalance: runningBalance,
-          isPlaceholder: false,
-          isInactive: true,
-        };
-      }
-
-      const monthPayments = (activePayments || []).filter((payment) => {
-        const { month: paymentMonth, year: paymentYear } = getPaymentMonthYear(payment);
-        return (
-          matchesPaymentToUser(payment, user) &&
-          Number(paymentMonth) === month &&
-          Number(paymentYear) === safeYear
-        );
-      });
-      const paid = monthPayments.reduce((sum, payment) => sum + Number(payment.amount || 0), 0);
-      const bill = getEffectiveBillForPeriod(user, { month, year: safeYear });
-      const previousBalance = runningBalance;
-      const endingBalance = previousBalance + paid - bill;
-      const computedStatus = resolveReportsBillingStatus({
-        entry: {
-          month,
-          bill,
-          paid,
-          endingBalance,
-          status: "Active",
-        },
-      });
-
-      runningBalance = endingBalance;
-
-      return {
-        month,
-        monthName,
-        bill: Number(bill || 0),
-        paid: Number(paid || 0),
-        due: endingBalance < 0 ? Math.abs(endingBalance) : 0,
-        advance: endingBalance > 0 ? endingBalance : 0,
-        balance: endingBalance,
-        status: computedStatus.label,
-        previousBalance,
-        endingBalance,
-        raw: {
-          startingBalance: previousBalance,
-          endingBalance,
-          monthEnded: currentDate.getTime() >= monthEnd.getTime(),
-          isCurrentMonth:
-            safeYear === currentDate.getFullYear() &&
-            month === currentDate.getMonth() + 1,
-        },
-      };
-    });
-  }, [activePayments, selectedCustomer, year, yearlySummary?.openingBalance]);
+    if (!selectedCustomer || !yearlySummary) return [];
+    return yearlySummary.months || [];
+  }, [selectedCustomer, yearlySummary]);
   const yearOverview = useMemo(() => {
     const selectedYear = Number(year);
     const today = new Date();
@@ -359,41 +269,38 @@ export default function Reports() {
     };
   }, [activePayments, selectedCustomer, yearlySummary, users, year]);
 
+  const displayYear = language === "bn" ? toBengaliNumerals(year) : year;
+  const displayPrevYear = language === "bn" ? toBengaliNumerals(year - 1) : year - 1;
+
   const summaryCards = useMemo(
     () => [
       {
-        label: `From ${year - 1}`,
-        value: formatBalanceDisplayValue({ due: previousDue, carryForward: 0 }),
+        label: `${t("from", "From")} ${displayPrevYear}`,
+        value: formatMoney(previousDue),
         icon: <FiAlertCircle />,
         accent: "forest",
       },
       {
-        label: `Annual Bill ${year}`,
-        value: money(selectedCustomer ? annualBill : yearOverview.annualBill || 0),
+        label: `${t("annual_bill", "Annual Bill")} ${displayYear}`,
+        value: formatMoney(selectedCustomer ? annualBill : yearOverview.annualBill || 0),
         icon: <FiCreditCard />,
         accent: "ocean",
       },
       {
-        label: `Paid ${year}`,
-        value: money(selectedCustomer ? paidThisYear : yearOverview.collection || 0),
+        label: `${t("paid", "Paid")} ${displayYear}`,
+        value: formatMoney(selectedCustomer ? paidThisYear : yearOverview.collection || 0),
         icon: <FiDollarSign />,
         accent: "green",
       },
       {
-        label: "Outstanding Balance",
-        value: formatBalanceDisplayValue({
-          due: selectedCustomer ? outstandingBalance : yearOverview.outstanding || 0,
-          carryForward: 0,
-        }),
+        label: t("due"),
+        value: formatMoney(selectedCustomer ? outstandingBalance : yearOverview.outstanding || 0),
         icon: <FiAlertCircle />,
         accent: "amber",
       },
       {
-        label: "Credit Carry Forward",
-        value: formatBalanceDisplayValue({
-          due: 0,
-          carryForward: creditCarryForward,
-        }),
+        label: t("advance"),
+        value: formatMoney(creditCarryForward),
         icon: <FiArrowRight />,
         accent: "blue",
       },
@@ -401,11 +308,14 @@ export default function Reports() {
     [
       annualBill,
       creditCarryForward,
+      displayPrevYear,
+      displayYear,
+      formatMoney,
       outstandingBalance,
       paidThisYear,
       previousDue,
       selectedCustomer,
-      year,
+      t,
       yearOverview,
     ],
   );
@@ -415,6 +325,7 @@ export default function Reports() {
     exportAnnualCustomerPdf({
       businessName: "BillSheet",
       customer: selectedCustomer,
+      theme: getStoredTheme(),
       year,
       summary: {
         openingBalance,
@@ -441,11 +352,10 @@ export default function Reports() {
     <div className="page reports-page">
       <section className="reports-hero">
         <div>
-          <div className="reports-eyebrow">Annual Statement</div>
-          <h2>Annual Customer Report</h2>
+          <div className="reports-eyebrow">{t("annual_report")}</div>
+          <h2>{t("annual_report")}</h2>
           <p>
-            View yearly payment summaries, outstanding balances and
-            carry-forward history.
+            {t("annual_report_subtitle", "View yearly payment summaries, outstanding balances and carry-forward history.")}
           </p>
         </div>
       </section>
@@ -456,9 +366,9 @@ export default function Reports() {
             <FiDollarSign />
           </div>
           <div className="reports-summary-copy">
-            <div className="reports-summary-number">{money(yearOverview.collection)}</div>
+            <div className="reports-summary-number">{formatMoney(yearOverview.collection)}</div>
             <div className="reports-summary-label">
-              {selectedCustomer ? `Collected in ${year}` : `Total collection ${year}`}
+              {selectedCustomer ? `${t("collected_in", "Collected in")} ${displayYear}` : `${t("total_collected")} ${displayYear}`}
             </div>
           </div>
         </div>
@@ -467,9 +377,9 @@ export default function Reports() {
             <FiAlertCircle />
           </div>
           <div className="reports-summary-copy">
-            <div className="reports-summary-number">{money(yearOverview.outstanding)}</div>
+            <div className="reports-summary-number">{formatMoney(yearOverview.outstanding)}</div>
             <div className="reports-summary-label">
-              {selectedCustomer ? `Remaining unpaid in ${year}` : `Will collect till Dec ${year}`}
+              {selectedCustomer ? `${t("remaining_unpaid_in", "Remaining unpaid in")} ${displayYear}` : `${t("total_due")} ${displayYear}`}
             </div>
           </div>
         </div>
@@ -482,12 +392,12 @@ export default function Reports() {
             <input
               value={customerSearch}
               onChange={(event) => setCustomerSearch(event.target.value)}
-              placeholder="Search customer..."
+              placeholder={t("search_customer_placeholder", "Search customer by name or phone")}
             />
           </label>
 
           <label className="reports-year-field">
-            <span>Year</span>
+            <span>{t("year", "Year")}</span>
             <input
               className="reports-year-input"
               type="text"
@@ -505,7 +415,7 @@ export default function Reports() {
             type="button"
             onClick={exportReport}
           >
-            <FiDownload /> Export PDF
+            <FiDownload /> {t("export_pdf")}
           </button>
         </div>
 
@@ -637,93 +547,159 @@ export default function Reports() {
           <section className="reports-history-card">
             <div className="reports-history-head">
               <div>
-                <div className="reports-history-kicker">Monthly activity</div>
-                <h3>Payment History</h3>
+                <div className="reports-history-kicker">{t("monthly_sheet")}</div>
+                <h3>{t("payment_history", "Payment History")}</h3>
               </div>
-              <div className="reports-history-chip">12 months</div>
+              <div className="reports-history-chip">12 {t("months", "months")}</div>
             </div>
             <div className="reports-history-table-wrap">
               <table className="reports-history-table">
                 <thead>
                   <tr className="reports-history-row reports-history-row--head">
-                    <th scope="col">Month</th>
-                    <th scope="col">Bill</th>
-                    <th scope="col">Paid</th>
-                    <th scope="col">Balance</th>
-                    <th scope="col">Status</th>
+                    <th scope="col">{t("month", "Month")}</th>
+                    <th scope="col">{t("monthly_bill")}</th>
+                    <th scope="col">{t("previous_due", "Prev Carried Bal")}</th>
+                    <th scope="col">{t("total_required", "Total Required")}</th>
+                    <th scope="col">{t("paid")}</th>
+                    <th scope="col">{t("ending_bal", "Ending Bal")}</th>
+                    <th scope="col">{t("status")}</th>
                   </tr>
                 </thead>
                 <tbody>
                   {monthlyHistory.map((entry) => {
                     const billValue = Number(entry.bill ?? entry.monthlyBill ?? 0);
                     const paidValue = Number(entry.paid ?? 0);
-                    const balanceValue = Number(entry.balance ?? entry.endingBalance ?? 0);
+                    const endingBalanceValue = Number(entry.endingBalance ?? entry.balance ?? 0);
+                    const prevBalanceValue = Number(entry.previousBalance ?? 0);
+                    const totalRequiredValue = Number(entry.totalRequired ?? 0);
                     const isInactiveEntry =
                       entry.status === "Not Joined" ||
                       entry.status === "Inactive" ||
-                      entry.status === "N/A";
-                    const isPlaceholderRow = entry.isPlaceholder || entry.balance == null;
-                    const balanceLabel = isInactiveEntry || isPlaceholderRow
+                      entry.status === "N/A" ||
+                      entry.isInactive;
+                    const isPlaceholderRow = entry.isPlaceholder || (entry.bill == null && entry.endingBalance == null);
+
+                    const prevBalanceLabel = isInactiveEntry || isPlaceholderRow
                       ? "—"
                       : formatBalanceDisplayValue({
-                          due: balanceValue < 0 ? Math.abs(balanceValue) : 0,
-                          carryForward: balanceValue > 0 ? balanceValue : 0,
+                          due: prevBalanceValue < 0 ? Math.abs(prevBalanceValue) : 0,
+                          carryForward: prevBalanceValue > 0 ? prevBalanceValue : 0,
                         });
-                    const computedStatus = isPlaceholderRow
-                      ? { label: "—", tone: "neutral", className: "status-neutral" }
-                      : resolveReportsBillingStatus({
-                          entry: {
-                            ...entry,
-                            bill: billValue,
-                            paid: paidValue,
-                            endingBalance: balanceValue,
-                            status: entry.status,
-                          },
-                          year,
-                          currentDate: new Date(),
+
+                    const endingBalanceLabel = isInactiveEntry || isPlaceholderRow
+                      ? "—"
+                      : formatBalanceDisplayValue({
+                          due: endingBalanceValue < 0 ? Math.abs(endingBalanceValue) : 0,
+                          carryForward: endingBalanceValue > 0 ? endingBalanceValue : 0,
                         });
-                    const computedStatusTone =
-                      computedStatus.tone === "paid"
-                        ? "paid"
-                        : computedStatus.tone === "advance"
-                          ? "positive"
-                          : computedStatus.tone === "partial"
-                            ? "pending"
-                            : computedStatus.tone === "due"
-                              ? "negative"
-                              : computedStatus.tone === "pending"
-                                ? "pending"
-                                : "neutral";
-                    const statusChipClass = `reports-history-status ${computedStatus.label === "N/A" ? "reports-history-status--neutral" : `reports-history-status--${computedStatus.tone}`}`;
+
+                    const statusClass = (entry.status || "pending").toLowerCase();
+                    const txList = entry.transactions || [];
 
                     return (
-                      <tr className="reports-history-row" key={entry.month}>
-                        <td>
-                          <span className="reports-history-month-cell">
-                            <span
-                              className={`reports-history-status-dot reports-history-status-dot--${computedStatusTone}`}
-                              aria-hidden="true"
-                            />
-                            <span>{entry.monthName}</span>
-                          </span>
-                        </td>
-                        <td>
-                          {isPlaceholderRow || isInactiveEntry ? "—" : money(billValue)}
-                        </td>
-                        <td>
-                          {isPlaceholderRow || isInactiveEntry ? "—" : money(paidValue)}
-                        </td>
-                        <td style={balanceValue < 0 ? { color: "#EF4444" } : balanceValue > 0 ? { color: "#3B82F6" } : undefined}>
-                          {balanceLabel}
-                        </td>
-                        <td>
-                          {isPlaceholderRow || isInactiveEntry ? (
-                            <span className="reports-history-status reports-history-status--neutral">—</span>
-                          ) : (
-                            <span className={statusChipClass}>{computedStatus.label}</span>
-                          )}
-                        </td>
-                      </tr>
+                      <React.Fragment key={entry.month}>
+                        <tr className="reports-history-row">
+                          <td>
+                            <span className="reports-history-month-cell">
+                              <span
+                                className={`reports-history-status-dot reports-history-status-dot--${
+                                  statusClass === "paid"
+                                    ? "paid"
+                                    : statusClass === "advance"
+                                    ? "positive"
+                                    : statusClass === "due"
+                                    ? "negative"
+                                    : statusClass === "partial" || statusClass === "pending"
+                                    ? "pending"
+                                    : "neutral"
+                                }`}
+                                aria-hidden="true"
+                              />
+                              <strong>{translateMonth(entry.monthName)}</strong>
+                            </span>
+                          </td>
+                          <td>{isPlaceholderRow || isInactiveEntry ? "—" : formatMoney(billValue)}</td>
+                          <td style={prevBalanceValue < 0 ? { color: "#EF4444" } : prevBalanceValue > 0 ? { color: "#3B82F6" } : undefined}>
+                            {prevBalanceLabel}
+                          </td>
+                          <td>{isPlaceholderRow || isInactiveEntry ? "—" : formatMoney(totalRequiredValue)}</td>
+                          <td style={{ fontWeight: 600, color: paidValue > 0 ? "#10B981" : undefined }}>
+                            {isPlaceholderRow || isInactiveEntry ? "—" : formatMoney(paidValue)}
+                          </td>
+                          <td style={endingBalanceValue < 0 ? { color: "#EF4444" } : endingBalanceValue > 0 ? { color: "#3B82F6" } : { color: "#059669", fontWeight: 600 }}>
+                            {endingBalanceLabel}
+                          </td>
+                          <td>
+                            {isPlaceholderRow || isInactiveEntry ? (
+                              <span className="reports-history-status reports-history-status--neutral">—</span>
+                            ) : (
+                              <span className={`status ${statusClass}`}>{translateStatus(entry.status)}</span>
+                            )}
+                          </td>
+                        </tr>
+
+                        {txList.length > 0 && (
+                          <tr className="reports-tx-subrow">
+                            <td colSpan="7" style={{ padding: "8px 16px 16px 36px", background: "rgba(0, 0, 0, 0.015)" }}>
+                              <div style={{ fontSize: "12px", fontWeight: 700, color: "var(--text-secondary)", marginBottom: "6px", textTransform: "uppercase", letterSpacing: "0.05em" }}>
+                                {t("payment_history", "Payment History")} ({formatNumber(txList.length)})
+                              </div>
+                              <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
+                                {txList.map((tx, idx) => {
+                                  const isVoided = tx.isDeleted || tx.status === "Voided" || tx.status === "Reversed" || Boolean(tx.voidedBy);
+                                  return (
+                                    <div
+                                      key={tx.id || idx}
+                                      style={{
+                                        display: "flex",
+                                        alignItems: "center",
+                                        justifyContent: "space-between",
+                                        padding: "8px 12px",
+                                        borderRadius: "6px",
+                                        fontSize: "13px",
+                                        background: isVoided ? "#FEF3C7" : "#FFFFFF",
+                                        borderLeft: isVoided ? "4px solid #EF4444" : "1px solid var(--border)",
+                                        borderTop: "1px solid var(--border)",
+                                        borderRight: "1px solid var(--border)",
+                                        borderBottom: "1px solid var(--border)",
+                                      }}
+                                    >
+                                      <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+                                        <span style={{ fontWeight: 600, color: "var(--text-primary)" }}>
+                                          {formatDate(tx.paymentDate || tx.createdAt || tx.timestamp)}
+                                        </span>
+                                        <span className="tag" style={{ fontSize: "11px", padding: "2px 8px" }}>
+                                          {tx.paymentMethod || tx.method || "Cash"}
+                                        </span>
+                                        {tx.notes && (
+                                          <span style={{ color: "var(--text-secondary)", fontStyle: "italic", fontSize: "12px" }}>
+                                            "{tx.notes}"
+                                          </span>
+                                        )}
+                                      </div>
+
+                                      <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
+                                        <span style={{ fontWeight: 700, textDecoration: isVoided ? "line-through" : "none", color: isVoided ? "#9CA3AF" : "#10B981" }}>
+                                          {formatMoney(tx.amount)}
+                                        </span>
+                                        {isVoided ? (
+                                          <span className="status voided" style={{ fontSize: "11px", padding: "2px 8px", background: "#FEE2E2", color: "#991B1B" }}>
+                                            {t("voided", "Voided")} {tx.reason || tx.reversalReason ? `(${tx.reason || tx.reversalReason})` : ""}
+                                          </span>
+                                        ) : (
+                                          <span className="status paid" style={{ fontSize: "11px", padding: "2px 8px" }}>
+                                            {translateStatus(tx.status || "Paid")}
+                                          </span>
+                                        )}
+                                      </div>
+                                    </div>
+                                  );
+                                })}
+                              </div>
+                            </td>
+                          </tr>
+                        )}
+                      </React.Fragment>
                     );
                   })}
                 </tbody>
@@ -733,7 +709,7 @@ export default function Reports() {
 
           <section className="reports-footer-summary">
             <div>
-              <div className="reports-footer-label">Opening Balance</div>
+              <div className="reports-footer-label">{t("opening_balance", "Opening Balance")}</div>
               <div className="reports-footer-value">
                 {formatBalanceDisplayValue({
                   due: previousDue,
@@ -742,35 +718,35 @@ export default function Reports() {
               </div>
             </div>
             <div>
-              <div className="reports-footer-label">Previous Year Due</div>
-              <div className="reports-footer-value">{money(previousDue)}</div>
+              <div className="reports-footer-label">{t("previous_due", "Previous Year Due")}</div>
+              <div className="reports-footer-value">{formatMoney(previousDue)}</div>
             </div>
             <div>
-              <div className="reports-footer-label">Previous Year Advance</div>
-              <div className="reports-footer-value">{money(previousAdvance)}</div>
+              <div className="reports-footer-label">{t("previous_advance", "Previous Year Advance")}</div>
+              <div className="reports-footer-value">{formatMoney(previousAdvance)}</div>
             </div>
             <div>
-              <div className="reports-footer-label">Annual Bill</div>
-              <div className="reports-footer-value">{money(annualBill)}</div>
+              <div className="reports-footer-label">{t("annual_bill", "Annual Bill")}</div>
+              <div className="reports-footer-value">{formatMoney(annualBill)}</div>
             </div>
             <div>
-              <div className="reports-footer-label">Paid This Year</div>
-              <div className="reports-footer-value">{money(paidThisYear)}</div>
+              <div className="reports-footer-label">{t("paid_this_year", "Paid This Year")}</div>
+              <div className="reports-footer-value">{formatMoney(paidThisYear)}</div>
             </div>
             <div>
-              <div className="reports-footer-label">Remaining Due</div>
+              <div className="reports-footer-label">{t("due", "Remaining Due")}</div>
               <div className="reports-footer-value reports-footer-value--warning">
-                {money(outstandingBalance)}
+                {formatMoney(outstandingBalance)}
               </div>
             </div>
             <div>
-              <div className="reports-footer-label">Remaining Advance</div>
+              <div className="reports-footer-label">{t("advance", "Remaining Advance")}</div>
               <div className="reports-footer-value reports-footer-value--credit">
-                {money(creditCarryForward)}
+                {formatMoney(creditCarryForward)}
               </div>
             </div>
             <div>
-              <div className="reports-footer-label">Closing Balance</div>
+              <div className="reports-footer-label">{t("closing_balance", "Closing Balance")}</div>
               <div className="reports-footer-value">
                 {formatBalanceDisplayValue({
                   due: outstandingBalance,
@@ -779,7 +755,7 @@ export default function Reports() {
               </div>
             </div>
             <div>
-              <div className="reports-footer-label">Carry Forward</div>
+              <div className="reports-footer-label">{t("advance", "Carry Forward")}</div>
               <div className="reports-footer-value reports-footer-value--credit">
                 {formatBalanceDisplayValue({
                   due: 0,
@@ -787,7 +763,7 @@ export default function Reports() {
                 })}
               </div>
             </div>
-            <p>Status: {balanceStatus}</p>
+            <p>{t("status")}: {translateStatus(balanceStatus)}</p>
           </section>
         </>
       ) : (
@@ -795,8 +771,8 @@ export default function Reports() {
           <div className="reports-empty-icon">
             <FiSearch />
           </div>
-          <h3>No customer selected</h3>
-          <p>Select a customer to view the annual statement.</p>
+          <h3>{t("no_customer_selected", "No customer selected")}</h3>
+          <p>{t("select_customer_hint", "Select a customer to view the annual statement.")}</p>
         </section>
       )}
     </div>

@@ -7,6 +7,8 @@ import { FiTrash2 } from "react-icons/fi";
 import Modal from "./Modal";
 import { db } from "../firebase/config";
 import { getDisplayPackages } from "../utils/users";
+import { useLanguage } from "../context/LanguageContext";
+
 export default function CategoryModal({
   ownerId,
   categories,
@@ -16,6 +18,7 @@ export default function CategoryModal({
   onRemoved,
   requestRemoveCategory,
 }) {
+  const { t } = useLanguage();
   const [name, setName] = useState("");
   const save = async (event) => {
     event.preventDefault();
@@ -44,10 +47,10 @@ export default function CategoryModal({
     }
   };
   return (
-    <Modal title="Manage categories" onClose={close}>
+    <Modal title={t("category", "Manage categories")} onClose={close}>
       <form className="form" onSubmit={save}>
         <label>
-          New category name
+          {t("category", "New category name")}
           <input
             autoFocus
             required
@@ -55,7 +58,7 @@ export default function CategoryModal({
             onChange={(e) => setName(e.target.value)}
           />
         </label>
-        <button className="btn btn-primary">Save category</button>
+        <button className="btn btn-primary">{t("save", "Save category")}</button>
       </form>
       {categories.length > 0 && (
         <div className="category-list">
@@ -76,7 +79,7 @@ export default function CategoryModal({
                     className="danger"
                     type="button"
                     title={
-                      inUse ? "This category is in use" : "Remove category"
+                      inUse ? t("category_in_use", "This category is in use") : t("delete", "Remove category")
                     }
                     disabled={inUse}
                     onClick={(event) => {
