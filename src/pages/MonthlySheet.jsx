@@ -40,10 +40,7 @@ import { Send } from "lucide-react";
 import {
   buildVoidPaymentActionRecords,
   formatBalanceDisplayValue,
-  getDisplayBalanceValues,
-  getDisplayPaymentStatus,
   getPaymentMonthYear,
-  voidPaymentRecord,
 } from "../utils/payments";
 
 const defaultSmsTemplate =
@@ -54,10 +51,26 @@ const createSms = (template, { name, bill, dueDate }) =>
     .replaceAll("{bill}", money(bill))
     .replaceAll("{duedate}", dueDate);
 
+const getMonthlySheetStatusMeta = (status, translateStatus) => {
+  const normalizedStatus = String(status || "Pending").trim() || "Pending";
+  return {
+    label: translateStatus(normalizedStatus),
+    className: `status-${normalizedStatus.toLowerCase()}`,
+  };
+};
+
 export default function MonthlySheet() {
   const location = useLocation();
   const { user: signedInUser } = useAuth();
-  const { t, formatMoney, formatNumber, translateMonth, translateStatus, toBengaliNumerals, language } = useLanguage();
+  const {
+    t,
+    formatMoney,
+    formatNumber,
+    translateMonth,
+    translateStatus,
+    toBengaliNumerals,
+    language,
+  } = useLanguage();
   const today = new Date();
   const [month, setMonth] = useState(today.getMonth() + 1);
   const [year, setYear] = useState(today.getFullYear());
@@ -145,7 +158,8 @@ export default function MonthlySheet() {
   const [voidError, setVoidError] = useState("");
   const [selectedCustomerId, setSelectedCustomerId] = useState(null);
   const [mobileView, setMobileView] = useState("list");
-  const routedCustomerId = location?.state?.selectedCustomerId || location?.state?.customerId || null;
+  const routedCustomerId =
+    location?.state?.selectedCustomerId || location?.state?.customerId || null;
   const [savedScrollTop, setSavedScrollTop] = useState(0);
   const [isMobile, setIsMobile] = useState(false);
 
@@ -161,19 +175,6 @@ export default function MonthlySheet() {
     () => rows.reduce((sum, row) => sum + Number(row.currentAdvance || 0), 0),
     [rows],
   );
-
-  const getMonthlySheetStatusMeta = (status, bill, paidValue, dueValue, carryForwardValue) =>
-    getDisplayPaymentStatus({
-      status,
-      bill,
-      paid: paidValue,
-      due: dueValue,
-      advance: carryForwardValue,
-      month,
-      currentMonth: month,
-      currentDate: new Date(),
-      preserveExplicitStatus: true,
-    });
 
   const summaryCards = useMemo(
     () => [
@@ -214,14 +215,25 @@ export default function MonthlySheet() {
         icon: <FiAlertCircle />,
       },
     ],
-    [paid.length, rows.length, total, totalBill, totalDue, t, formatNumber, formatMoney],
+    [
+      paid.length,
+      rows.length,
+      total,
+      totalBill,
+      totalDue,
+      t,
+      formatNumber,
+      formatMoney,
+    ],
   );
   const mobileSummaryCards = summaryCards.slice(0, 3);
   const mobileFinancialCards = summaryCards.slice(3);
 
   useEffect(() => {
     if (!selectedCustomerId) return;
-    const stillVisible = filteredRows.some(({ user }) => user.id === selectedCustomerId);
+    const stillVisible = filteredRows.some(
+      ({ user }) => user.id === selectedCustomerId,
+    );
     if (!stillVisible) {
       setSelectedCustomerId(null);
       setMobileView("list");
@@ -229,12 +241,19 @@ export default function MonthlySheet() {
   }, [filteredRows, selectedCustomerId]);
 
   const selectedCustomer = useMemo(
-    () => filteredRows.find(({ user }) => user.id === selectedCustomerId) || null,
+    () =>
+      filteredRows.find(({ user }) => user.id === selectedCustomerId) || null,
     [filteredRows, selectedCustomerId],
+  );
+  const selectedCustomerStatusMeta = useMemo(
+    () => getMonthlySheetStatusMeta(selectedCustomer?.status, translateStatus),
+    [selectedCustomer, translateStatus],
   );
   useEffect(() => {
     if (!routedCustomerId) return;
-    const targetUser = filteredRows.find(({ user }) => user.id === routedCustomerId);
+    const targetUser = filteredRows.find(
+      ({ user }) => user.id === routedCustomerId,
+    );
     if (targetUser) {
       setSelectedCustomerId(routedCustomerId);
       setMobileView("detail");
@@ -264,59 +283,58 @@ export default function MonthlySheet() {
 
   const detailProfileCards = useMemo(() => {
     if (!selectedCustomer) return [];
-    const currentPaidValue = Number(
-      selectedCustomer.currentPaid || selectedCustomer.payment?.amount || 0,
-    );
+    const currentPaidValue = Number(selectedCustomer.currentPaid || 0);
     const openingDueValue = Number(selectedCustomer.openingDue || 0);
-    const carryForwardValue = Number(selectedCustomer.carryForward || 0);
-    const currentDueValue = Number(selectedCustomer.due || 0);
-    const displayBalance = getDisplayBalanceValues({
-      due: currentDueValue,
-      carryForward: carryForwardValue,
-      currentDue: currentDueValue,
-      currentAdvance: carryForwardValue,
-      bill: Number(selectedCustomer.user.monthlyBill || 0),
-      amount: currentPaidValue,
-      previousDue: Number(selectedCustomer.openingDue || 0),
-      previousAdvance: Number(selectedCustomer.openingAdvance || 0),
-    });
+    const openingAdvanceValue = Number(selectedCustomer.openingAdvance || 0);
+    const runningBalanceValue = Number(selectedCustomer.runningBalance || 0);
+    const currentDueValue = Number(
+      selectedCustomer.currentDue || selectedCustomer.due || 0,
+    );
+    const carryForwardValue = Number(
+      selectedCustomer.currentAdvance || selectedCustomer.carryForward || 0,
+    );
 
     return [
       {
         label: "Monthly Bill",
-        value: money(selectedCustomer.user.monthlyBill),
+        value: money(
+          selectedCustomer.currentMonthBill ||
+            selectedCustomer.user.monthlyBill,
+        ),
         icon: <FiDollarSign />,
       },
       {
-        label: "Paid This Month",
+        label: "Current Paid",
         value: money(currentPaidValue),
         icon: <FiCreditCard />,
       },
       {
-        label: "Current Balance",
-        value: formatBalanceDisplayValue({
-          due: displayBalance.due,
-          carryForward: displayBalance.carryForward,
-        }),
+        label: "Previous Due",
+        value: money(openingDueValue),
         icon: <FiAlertCircle />,
       },
       {
-        label: "Additional Due",
-        value: money(openingDueValue),
+        label: "Previous Advance",
+        value: money(openingAdvanceValue),
         icon: <FiTrendingUp />,
+      },
+      {
+        label: "Running Balance",
+        value: formatBalanceDisplayValue({
+          due: runningBalanceValue < 0 ? Math.abs(runningBalanceValue) : 0,
+          carryForward: runningBalanceValue > 0 ? runningBalanceValue : 0,
+        }),
+        icon: <FiTrendingUp />,
+      },
+      {
+        label: "Current Due",
+        value: money(currentDueValue),
+        icon: <FiAlertCircle />,
       },
       {
         label: "Carry Forward",
         value: money(carryForwardValue),
         icon: <FiDollarSign />,
-      },
-      {
-        label: "Outstanding Balance",
-        value: formatBalanceDisplayValue({
-          due: displayBalance.due,
-          carryForward: displayBalance.carryForward,
-        }),
-        icon: <FiAlertCircle />,
       },
       {
         label: "Payment Date",
@@ -326,7 +344,7 @@ export default function MonthlySheet() {
         icon: <FiCalendar />,
       },
     ];
-  }, [formatBalanceDisplayValue, money, selectedCustomer]);
+  }, [money, selectedCustomer]);
 
   const closePaymentAction = () => {
     setPaymentAction(null);
@@ -338,12 +356,12 @@ export default function MonthlySheet() {
   const submitVoidPayment = async (payment) => {
     if (!payment?.id) return;
     const finalReason =
-      voidReasonType === "Other"
-        ? customReasonText.trim()
-        : voidReasonType;
+      voidReasonType === "Other" ? customReasonText.trim() : voidReasonType;
 
     if (voidReasonType === "Other" && !finalReason) {
-      setVoidError("Please enter a custom reason before marking this payment as voided.");
+      setVoidError(
+        "Please enter a custom reason before marking this payment as voided.",
+      );
       return;
     }
     try {
@@ -357,7 +375,9 @@ export default function MonthlySheet() {
         voidTime: timestamp.toTimeString().split(" ")[0].slice(0, 5),
         ownerId: signedInUser?.uid || payment?.ownerId || "",
         paymentDateText: payment?.paymentDateText || "",
-        paymentTime: payment?.paymentTime || timestamp.toTimeString().split(" ")[0].slice(0, 5),
+        paymentTime:
+          payment?.paymentTime ||
+          timestamp.toTimeString().split(" ")[0].slice(0, 5),
       });
       if (!voidRecords) throw new Error("No payment record found");
       const originalRef = doc(db, "payments", payment.id);
@@ -470,7 +490,12 @@ export default function MonthlySheet() {
           <section className="monthly-sheet-hero">
             <div className="monthly-sheet-header-copy">
               <h2>{t("monthly_sheet")}</h2>
-              <p>{t("monthly_sheet_subtitle", "View and manage monthly collections.")}</p>
+              <p>
+                {t(
+                  "monthly_sheet_subtitle",
+                  "View and manage monthly collections.",
+                )}
+              </p>
             </div>
           </section>
 
@@ -505,7 +530,10 @@ export default function MonthlySheet() {
             </button>
           </div>
 
-          <div className="monthly-sheet-summary-mobile-card" aria-label="Summary">
+          <div
+            className="monthly-sheet-summary-mobile-card"
+            aria-label="Summary"
+          >
             {mobileSummaryCards.map((card) => (
               <div
                 key={card.label}
@@ -518,13 +546,25 @@ export default function MonthlySheet() {
             ))}
           </div>
 
-          <div className="monthly-sheet-financial-mobile-card" aria-label="Financial Summary">
+          <div
+            className="monthly-sheet-financial-mobile-card"
+            aria-label="Financial Summary"
+          >
             {mobileFinancialCards.map((card) => (
-              <div key={card.label} className="monthly-sheet-financial-mobile-item">
-                <div className="monthly-sheet-financial-mobile-icon">{card.icon}</div>
+              <div
+                key={card.label}
+                className="monthly-sheet-financial-mobile-item"
+              >
+                <div className="monthly-sheet-financial-mobile-icon">
+                  {card.icon}
+                </div>
                 <div className="monthly-sheet-financial-mobile-copy">
-                  <div className="monthly-sheet-financial-mobile-value">{card.value}</div>
-                  <div className="monthly-sheet-financial-mobile-label">{card.label}</div>
+                  <div className="monthly-sheet-financial-mobile-value">
+                    {card.value}
+                  </div>
+                  <div className="monthly-sheet-financial-mobile-label">
+                    {card.label}
+                  </div>
                 </div>
               </div>
             ))}
@@ -548,7 +588,10 @@ export default function MonthlySheet() {
               <FiSearch />
               <input
                 ref={searchRef}
-                placeholder={t("search_customer_placeholder", "Search customer by name or phone")}
+                placeholder={t(
+                  "search_customer_placeholder",
+                  "Search customer by name or phone",
+                )}
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
               />
@@ -562,10 +605,18 @@ export default function MonthlySheet() {
           >
             {rows.length ? (
               <>
-                <div className="monthly-table-topbar" aria-label="Collection overview">
+                <div
+                  className="monthly-table-topbar"
+                  aria-label="Collection overview"
+                >
                   <div className="monthly-table-topbar-copy">
-                    <div className="monthly-table-kicker">{t("collection_list_of", "Collection List of")}</div>
-                    <h3>{translateMonth(monthNames[month - 1])} {language === "bn" ? toBengaliNumerals(year) : year}</h3>
+                    <div className="monthly-table-kicker">
+                      {t("collection_list_of", "Collection List of")}
+                    </div>
+                    <h3>
+                      {translateMonth(monthNames[month - 1])}{" "}
+                      {language === "bn" ? toBengaliNumerals(year) : year}
+                    </h3>
                   </div>
                 </div>
                 <table className="monthly-table">
@@ -612,42 +663,20 @@ export default function MonthlySheet() {
                         },
                         i,
                       ) => {
-                        const isPaid =
-                          Number(currentPaid || payment?.amount || 0) > 0;
                         const rowIndex =
                           (currentPageIndex - 1) * ITEMS_PER_PAGE + (i + 1);
-                        const badgeStatus =
-                          status ||
-                          (isPaid && Number(due) > 0
-                            ? "Partial"
-                            : isPaid
-                              ? "Paid"
-                              : "Pending");
                         const badgeMeta = getMonthlySheetStatusMeta(
-                          badgeStatus,
-                          Number(user?.monthlyBill || 0),
-                          Number(currentPaid || payment?.amount || 0),
-                          Number(due || 0),
-                          Number(carryForward || 0),
+                          status,
+                          translateStatus,
                         );
-                        const displayBalance = getDisplayBalanceValues({
-                          due,
-                          carryForward,
-                          currentDue: due,
-                          currentAdvance: carryForward,
-                          bill: Number(user?.monthlyBill || 0),
-                          amount: Number(currentPaid || payment?.amount || 0),
-                          previousDue: Number(openingDue || 0),
-                          previousAdvance: Number(openingAdvance || 0),
-                        });
                         const balanceLabel = formatBalanceDisplayValue({
-                          due: displayBalance.due,
-                          carryForward: displayBalance.carryForward,
+                          due: Number(due || 0),
+                          carryForward: Number(carryForward || 0),
                         });
                         const balanceClassName =
-                          displayBalance.due > 0
+                          Number(due || 0) > 0
                             ? "due-pill"
-                            : displayBalance.carryForward > 0
+                            : Number(carryForward || 0) > 0
                               ? "balance-pill balance-pill--advance"
                               : "balance-pill";
                         return (
@@ -659,7 +688,9 @@ export default function MonthlySheet() {
                                   {getInitials(user.name)}
                                 </div>
                                 <div>
-                                  <div className="customer-name">{user.name}</div>
+                                  <div className="customer-name">
+                                    {user.name}
+                                  </div>
                                   <div className="customer-phone">
                                     {user.phone || "No phone saved"}
                                   </div>
@@ -673,11 +704,13 @@ export default function MonthlySheet() {
                             </td>
                             <td data-label="Paid">
                               <div className="balance-pill">
-                                {money(currentPaid || payment?.amount || 0)}
+                                {money(currentPaid || 0)}
                               </div>
                             </td>
                             <td data-label="Balance">
-                              <div className={balanceClassName}>{balanceLabel}</div>
+                              <div className={balanceClassName}>
+                                {balanceLabel}
+                              </div>
                             </td>
                             <td data-label="Status">
                               <span
@@ -689,8 +722,12 @@ export default function MonthlySheet() {
                             <td data-label="Payment Date">
                               {payment?.paymentDate ? (
                                 <div className="payment-date-group">
-                                  <strong>{formatDate(payment.paymentDate)}</strong>
-                                  <small>{formatTime(payment.paymentDate)}</small>
+                                  <strong>
+                                    {formatDate(payment.paymentDate)}
+                                  </strong>
+                                  <small>
+                                    {formatTime(payment.paymentDate)}
+                                  </small>
                                 </div>
                               ) : (
                                 <span className="muted-pill">No payment</span>
@@ -736,7 +773,11 @@ export default function MonthlySheet() {
                   </tbody>
                 </table>
                 {mobileView === "detail" && selectedCustomer ? (
-                  <div className="users-mobile-detail-screen" role="dialog" aria-modal="false">
+                  <div
+                    className="users-mobile-detail-screen"
+                    role="dialog"
+                    aria-modal="false"
+                  >
                     <button
                       type="button"
                       className="users-mobile-back-btn"
@@ -751,71 +792,23 @@ export default function MonthlySheet() {
                       </div>
                       <div className="users-mobile-profile-copy">
                         <div className="users-mobile-profile-title">
-                          <h3>{selectedCustomer.user.name || "Unnamed customer"}</h3>
+                          <h3>
+                            {selectedCustomer.user.name || "Unnamed customer"}
+                          </h3>
                           <span
-                            className={`status ${(() => {
-                              const selectedStatus = selectedCustomer.status ||
-                                (Number(
-                                  selectedCustomer.currentPaid ||
-                                    selectedCustomer.payment?.amount ||
-                                    0,
-                                ) > 0 && Number(selectedCustomer.due) > 0
-                                  ? "Partial"
-                                  : Number(
-                                      selectedCustomer.currentPaid ||
-                                        selectedCustomer.payment?.amount ||
-                                        0,
-                                    ) > 0
-                                    ? "Paid"
-                                    : "Pending");
-                              return getMonthlySheetStatusMeta(
-                                selectedStatus,
-                                Number(selectedCustomer.user?.monthlyBill || 0),
-                                Number(
-                                  selectedCustomer.currentPaid ||
-                                    selectedCustomer.payment?.amount ||
-                                    0,
-                                ),
-                                Number(selectedCustomer.due || 0),
-                                Number(selectedCustomer.carryForward || 0),
-                              ).className;
-                            })()} user-inline-badge user-inline-badge--status`}
+                            className={`status ${selectedCustomerStatusMeta.className} user-inline-badge user-inline-badge--status`}
                           >
-                            {(() => {
-                              const selectedStatus = selectedCustomer.status ||
-                                (Number(
-                                  selectedCustomer.currentPaid ||
-                                    selectedCustomer.payment?.amount ||
-                                    0,
-                                ) > 0 && Number(selectedCustomer.due) > 0
-                                  ? "Partial"
-                                  : Number(
-                                      selectedCustomer.currentPaid ||
-                                        selectedCustomer.payment?.amount ||
-                                        0,
-                                    ) > 0
-                                    ? "Paid"
-                                    : "Pending");
-                              return getMonthlySheetStatusMeta(
-                                selectedStatus,
-                                Number(selectedCustomer.user?.monthlyBill || 0),
-                                Number(
-                                  selectedCustomer.currentPaid ||
-                                    selectedCustomer.payment?.amount ||
-                                    0,
-                                ),
-                                Number(selectedCustomer.due || 0),
-                                Number(selectedCustomer.carryForward || 0),
-                              ).label;
-                            })()}
+                            {selectedCustomerStatusMeta.label}
                           </span>
                         </div>
                         <div className="users-mobile-profile-meta">
                           <span>
-                            <FiPhone /> {selectedCustomer.user.phone || "No phone on file"}
+                            <FiPhone />{" "}
+                            {selectedCustomer.user.phone || "No phone on file"}
                           </span>
                           <span>
-                            <FiTag /> {selectedCustomer.user.category || "Uncategorized"}
+                            <FiTag />{" "}
+                            {selectedCustomer.user.category || "Uncategorized"}
                           </span>
                         </div>
                       </div>
@@ -823,13 +816,22 @@ export default function MonthlySheet() {
 
                     <div className="users-mobile-summary-grid">
                       {detailProfileCards.map((item) => (
-                        <div className="users-mobile-summary-card users-mobile-summary-card--monthly" key={item.label}>
+                        <div
+                          className="users-mobile-summary-card users-mobile-summary-card--monthly"
+                          key={item.label}
+                        >
                           <div className="users-mobile-summary-icon-wrap">
-                            <div className="users-mobile-summary-icon">{item.icon}</div>
+                            <div className="users-mobile-summary-icon">
+                              {item.icon}
+                            </div>
                           </div>
                           <div className="users-mobile-summary-copy">
-                            <div className="users-mobile-summary-value">{item.value}</div>
-                            <div className="users-mobile-summary-label">{item.label}</div>
+                            <div className="users-mobile-summary-value">
+                              {item.value}
+                            </div>
+                            <div className="users-mobile-summary-label">
+                              {item.label}
+                            </div>
                           </div>
                         </div>
                       ))}
@@ -862,7 +864,12 @@ export default function MonthlySheet() {
                         <button
                           type="button"
                           className="users-mobile-action users-mobile-action--ghost"
-                          onClick={() => setPaymentAction({ payment: selectedCustomer.payment, mode: "void" })}
+                          onClick={() =>
+                            setPaymentAction({
+                              payment: selectedCustomer.payment,
+                              mode: "void",
+                            })
+                          }
                         >
                           <FiTrash2 /> Void Payment
                         </button>
@@ -882,32 +889,10 @@ export default function MonthlySheet() {
                         currentPaid,
                         status,
                       } = row;
-                      const isPaid =
-                        Number(currentPaid || payment?.amount || 0) > 0;
-                      const badgeStatus =
-                        status ||
-                        (isPaid && Number(due) > 0
-                          ? "Partial"
-                          : isPaid
-                            ? "Paid"
-                            : "Pending");
                       const badgeMeta = getMonthlySheetStatusMeta(
-                        badgeStatus,
-                        Number(user?.monthlyBill || 0),
-                        Number(currentPaid || payment?.amount || 0),
-                        Number(due || 0),
-                        Number(carryForward || 0),
+                        status,
+                        translateStatus,
                       );
-                      const displayBalance = getDisplayBalanceValues({
-                        due,
-                        carryForward,
-                        currentDue: due,
-                        currentAdvance: carryForward,
-                        bill: Number(user?.monthlyBill || 0),
-                        amount: Number(currentPaid || payment?.amount || 0),
-                        previousDue: Number(openingDue || 0),
-                        previousAdvance: Number(openingAdvance || 0),
-                      });
                       const isSelected = selectedCustomerId === user.id;
                       return (
                         <div
@@ -923,7 +908,10 @@ export default function MonthlySheet() {
                           }}
                           key={user.id}
                         >
-                          <div className="users-mobile-avatar" aria-hidden="true">
+                          <div
+                            className="users-mobile-avatar"
+                            aria-hidden="true"
+                          >
                             {getInitials(user.name)}
                           </div>
                           <div className="users-mobile-item-content">
@@ -979,9 +967,19 @@ export default function MonthlySheet() {
                 <span>
                   <FiUsers />
                 </span>
-                <h3>{t("start_with_first_customer", "Start with your first customer")}</h3>
+                <h3>
+                  {t(
+                    "start_with_first_customer",
+                    "Start with your first customer",
+                  )}
+                </h3>
                 <p>
-                  {t("add_customers_hint", "Add customers from the Users page, then come back to record their payments for")} {translateMonth(monthNames[month - 1])} {language === "bn" ? toBengaliNumerals(year) : year}.
+                  {t(
+                    "add_customers_hint",
+                    "Add customers from the Users page, then come back to record their payments for",
+                  )}{" "}
+                  {translateMonth(monthNames[month - 1])}{" "}
+                  {language === "bn" ? toBengaliNumerals(year) : year}.
                 </p>
                 <Link className="btn btn-primary" to="/users">
                   {t("users")}
@@ -989,20 +987,26 @@ export default function MonthlySheet() {
               </div>
             )}
             {rows.length > 0 && !filteredRows.length && (
-              <p className="empty">{t("no_customers_found", "No customers match your search.")}</p>
+              <p className="empty">
+                {t("no_customers_found", "No customers match your search.")}
+              </p>
             )}
             {rows.length > 0 && filteredRows.length > 0 && pageCount > 1 && (
               <div className="table-footer monthly-sheet-footer">
                 <div className="table-footer-info monthly-sheet-footer-info">
-                  Showing {formatNumber(showingFrom)}–{formatNumber(showingTo)} of {formatNumber(filteredRows.length)} records
+                  Showing {formatNumber(showingFrom)}–{formatNumber(showingTo)}{" "}
+                  of {formatNumber(filteredRows.length)} records
                 </div>
                 <div className="table-footer-page monthly-sheet-footer-page">
-                  Page {formatNumber(currentPageIndex)} of {formatNumber(pageCount)}
+                  Page {formatNumber(currentPageIndex)} of{" "}
+                  {formatNumber(pageCount)}
                 </div>
                 <div className="table-footer-nav monthly-sheet-footer-nav">
                   <button
                     disabled={currentPageIndex === 1}
-                    onClick={() => setCurrentPage((page) => Math.max(1, page - 1))}
+                    onClick={() =>
+                      setCurrentPage((page) => Math.max(1, page - 1))
+                    }
                     type="button"
                   >
                     ◀ Previous
@@ -1023,7 +1027,11 @@ export default function MonthlySheet() {
         </>
       )}
       {showStandaloneMobileDetail && (
-        <div className="users-mobile-detail-screen" role="dialog" aria-modal="false">
+        <div
+          className="users-mobile-detail-screen"
+          role="dialog"
+          aria-modal="false"
+        >
           <button
             type="button"
             className="users-mobile-back-btn"
@@ -1040,66 +1048,15 @@ export default function MonthlySheet() {
               <div className="users-mobile-profile-title">
                 <h3>{selectedCustomer.user.name || "Unnamed customer"}</h3>
                 <span
-                  className={`status ${(() => {
-                    const selectedStatus = selectedCustomer.status ||
-                      (Number(
-                        selectedCustomer.currentPaid ||
-                          selectedCustomer.payment?.amount ||
-                          0,
-                      ) > 0 && Number(selectedCustomer.due) > 0
-                        ? "Partial"
-                        : Number(
-                            selectedCustomer.currentPaid ||
-                              selectedCustomer.payment?.amount ||
-                              0,
-                          ) > 0
-                          ? "Paid"
-                          : "Pending");
-                    return getMonthlySheetStatusMeta(
-                      selectedStatus,
-                      Number(selectedCustomer.user?.monthlyBill || 0),
-                      Number(
-                        selectedCustomer.currentPaid ||
-                          selectedCustomer.payment?.amount ||
-                          0,
-                      ),
-                      Number(selectedCustomer.due || 0),
-                      Number(selectedCustomer.carryForward || 0),
-                    ).className;
-                  })()} user-inline-badge user-inline-badge--status`}
+                  className={`status ${selectedCustomerStatusMeta.className} user-inline-badge user-inline-badge--status`}
                 >
-                  {(() => {
-                    const selectedStatus = selectedCustomer.status ||
-                      (Number(
-                        selectedCustomer.currentPaid ||
-                          selectedCustomer.payment?.amount ||
-                          0,
-                      ) > 0 && Number(selectedCustomer.due) > 0
-                        ? "Partial"
-                        : Number(
-                            selectedCustomer.currentPaid ||
-                              selectedCustomer.payment?.amount ||
-                              0,
-                          ) > 0
-                          ? "Paid"
-                          : "Pending");
-                    return getMonthlySheetStatusMeta(
-                      selectedStatus,
-                      Number(selectedCustomer.user?.monthlyBill || 0),
-                      Number(
-                        selectedCustomer.currentPaid ||
-                          selectedCustomer.payment?.amount ||
-                          0,
-                      ),
-                      Number(selectedCustomer.due || 0),
-                      Number(selectedCustomer.carryForward || 0),
-                    ).label;
-                  })()}
+                  {selectedCustomerStatusMeta.label}
                 </span>
               </div>
               <div className="users-mobile-profile-meta">
                 <span>
-                  <FiPhone /> {selectedCustomer.user.phone || "No phone on file"}
+                  <FiPhone />{" "}
+                  {selectedCustomer.user.phone || "No phone on file"}
                 </span>
                 <span>
                   <FiTag /> {selectedCustomer.user.category || "Uncategorized"}
@@ -1110,7 +1067,10 @@ export default function MonthlySheet() {
 
           <div className="users-mobile-summary-grid">
             {detailProfileCards.map((item) => (
-              <div className="users-mobile-summary-card users-mobile-summary-card--monthly" key={item.label}>
+              <div
+                className="users-mobile-summary-card users-mobile-summary-card--monthly"
+                key={item.label}
+              >
                 <div className="users-mobile-summary-icon-wrap">
                   <div className="users-mobile-summary-icon">{item.icon}</div>
                 </div>
@@ -1149,7 +1109,12 @@ export default function MonthlySheet() {
               <button
                 type="button"
                 className="users-mobile-action users-mobile-action--ghost"
-                onClick={() => setPaymentAction({ payment: selectedCustomer.payment, mode: "void" })}
+                onClick={() =>
+                  setPaymentAction({
+                    payment: selectedCustomer.payment,
+                    mode: "void",
+                  })
+                }
               >
                 <FiTrash2 /> Void Payment
               </button>
@@ -1182,41 +1147,80 @@ export default function MonthlySheet() {
               <div className="payment-list-select">
                 {allPayments
                   .filter((payment) => {
-                    const { month: paymentMonth, year: paymentYear } = getPaymentMonthYear(payment);
-                    const isCurrentMonth = Number(paymentMonth) === Number(month) && Number(paymentYear) === Number(year);
-                    const sameUser = payment.userId === selectedCustomer?.user?.id || payment.userName === selectedCustomer?.user?.name || payment.customerId === selectedCustomer?.user?.id || payment.customerName === selectedCustomer?.user?.name;
-                    return isCurrentMonth && sameUser && !payment.isDeleted && !payment.deletedAt;
+                    const { month: paymentMonth, year: paymentYear } =
+                      getPaymentMonthYear(payment);
+                    const isCurrentMonth =
+                      Number(paymentMonth) === Number(month) &&
+                      Number(paymentYear) === Number(year);
+                    const sameUser =
+                      payment.userId === selectedCustomer?.user?.id ||
+                      payment.userName === selectedCustomer?.user?.name ||
+                      payment.customerId === selectedCustomer?.user?.id ||
+                      payment.customerName === selectedCustomer?.user?.name;
+                    return (
+                      isCurrentMonth &&
+                      sameUser &&
+                      !payment.isDeleted &&
+                      !payment.deletedAt
+                    );
                   })
-                  .sort((left, right) => Number(right.amount || 0) - Number(left.amount || 0))
+                  .sort(
+                    (left, right) =>
+                      Number(right.amount || 0) - Number(left.amount || 0),
+                  )
                   .map((payment, index) => {
                     const isSelected = paymentAction.payment?.id === payment.id;
-                    const paymentDateLabel = payment.paymentDateText || formatDate(payment.paymentDate || payment.createdAt);
+                    const paymentDateLabel =
+                      payment.paymentDateText ||
+                      formatDate(payment.paymentDate || payment.createdAt);
                     const shortDate = (() => {
                       const baseDate = payment.paymentDate || payment.createdAt;
-                      const dateValue = baseDate?.toDate ? baseDate.toDate() : baseDate instanceof Date ? baseDate : new Date(baseDate);
-                      if (Number.isNaN(dateValue?.getTime?.() ?? NaN)) return paymentDateLabel;
+                      const dateValue = baseDate?.toDate
+                        ? baseDate.toDate()
+                        : baseDate instanceof Date
+                          ? baseDate
+                          : new Date(baseDate);
+                      if (Number.isNaN(dateValue?.getTime?.() ?? NaN))
+                        return paymentDateLabel;
                       return new Intl.DateTimeFormat("en-GB", {
                         day: "numeric",
                         month: "short",
                         year: "numeric",
                       }).format(dateValue);
                     })();
-                    const additionalDue = Number(payment.additionalDue || payment.extraDue || payment.extraAmountDue || 0);
+                    const additionalDue = Number(
+                      payment.additionalDue ||
+                        payment.extraDue ||
+                        payment.extraAmountDue ||
+                        0,
+                    );
                     return (
                       <button
                         key={payment.id || `${payment.userId}-${index}`}
                         type="button"
                         className={`payment-option${isSelected ? " payment-option--selected" : ""}`}
-                        onClick={() => setPaymentAction({ ...paymentAction, payment })}
+                        onClick={() =>
+                          setPaymentAction({ ...paymentAction, payment })
+                        }
                       >
                         <div className="payment-option__top">
-                          <span className="payment-option__title">Payment #{index + 1}</span>
-                          {isSelected ? <span className="payment-option__check">✓</span> : null}
+                          <span className="payment-option__title">
+                            Payment #{index + 1}
+                          </span>
+                          {isSelected ? (
+                            <span className="payment-option__check">✓</span>
+                          ) : null}
                         </div>
-                        <span className="payment-option__line">📅 {shortDate}</span>
-                        <span className="payment-option__line">💰 Payment: {money(payment.amount || 0)}</span>
+                        <span className="payment-option__line">
+                          📅 {shortDate}
+                        </span>
+                        <span className="payment-option__line">
+                          💰 Payment: {money(payment.amount || 0)}
+                        </span>
                         {additionalDue > 0 ? (
-                          <span className="payment-option__line payment-option__line--muted">➕ Additional Due: {money(additionalDue)}</span>
+                          <span className="payment-option__line payment-option__line--muted">
+                            ➕ Additional Due: {money(additionalDue)}
+                          </span>
                         ) : null}
                       </button>
                     );
@@ -1225,11 +1229,16 @@ export default function MonthlySheet() {
             </label>
             <label className="void-payment-field">
               <span className="void-payment-label">Reason Type</span>
-              <select value={voidReasonType} onChange={(event) => setVoidReasonType(event.target.value)}>
+              <select
+                value={voidReasonType}
+                onChange={(event) => setVoidReasonType(event.target.value)}
+              >
                 <option value="Wrong Amount">Wrong Amount</option>
                 <option value="Duplicate Entry">Duplicate Entry</option>
                 <option value="Customer Refund">Customer Refund</option>
-                <option value="Transferred Customer">Transferred Customer</option>
+                <option value="Transferred Customer">
+                  Transferred Customer
+                </option>
                 <option value="Entered by Mistake">Entered by Mistake</option>
                 <option value="Other">Other</option>
               </select>
@@ -1244,7 +1253,9 @@ export default function MonthlySheet() {
                 />
               </label>
             ) : null}
-            {voidError ? <p className="payment-action-error">{voidError}</p> : null}
+            {voidError ? (
+              <p className="payment-action-error">{voidError}</p>
+            ) : null}
           </div>
         </ConfirmModal>
       )}

@@ -160,6 +160,80 @@ test('billing engine passes all requested scenario rules', () => {
   assert.equal(dueZeroAfterEnd.label, 'Due');
 });
 
+test('deriveMonthlySheetBillingState applies the Monthly Sheet-only running balance rules', () => {
+  const currentDate = new Date('2026-07-15');
+
+  const partial = deriveMonthlySheetBillingState({
+    bill: 1000,
+    openingDue: 500,
+    openingAdvance: 0,
+    currentPayments: [{ amount: 700, status: 'active' }],
+    month: 7,
+    year: 2026,
+    currentDate,
+  });
+  assert.equal(partial.status, 'Partial');
+  assert.equal(partial.previousDue, 500);
+  assert.equal(partial.previousAdvance, 0);
+  assert.equal(partial.runningBalance, -800);
+  assert.equal(partial.due, 800);
+  assert.equal(partial.carryForward, 0);
+
+  const paidWithPreviousDue = deriveMonthlySheetBillingState({
+    bill: 1000,
+    openingDue: 500,
+    openingAdvance: 0,
+    currentPayments: [{ amount: 1500, status: 'active' }],
+    month: 7,
+    year: 2026,
+    currentDate,
+  });
+  assert.equal(paidWithPreviousDue.status, 'Paid');
+  assert.equal(paidWithPreviousDue.runningBalance, 0);
+  assert.equal(paidWithPreviousDue.due, 0);
+  assert.equal(paidWithPreviousDue.carryForward, 0);
+
+  const advance = deriveMonthlySheetBillingState({
+    bill: 1000,
+    openingDue: 0,
+    openingAdvance: 0,
+    currentPayments: [{ amount: 1500, status: 'active' }],
+    month: 7,
+    year: 2026,
+    currentDate,
+  });
+  assert.equal(advance.status, 'Advance');
+  assert.equal(advance.runningBalance, 500);
+  assert.equal(advance.due, 0);
+  assert.equal(advance.carryForward, 500);
+
+  const pastDue = deriveMonthlySheetBillingState({
+    bill: 1000,
+    openingDue: 0,
+    openingAdvance: 0,
+    currentPayments: [{ amount: 400, status: 'active' }],
+    month: 6,
+    year: 2026,
+    currentDate,
+  });
+  assert.equal(pastDue.status, 'Due');
+  assert.equal(pastDue.runningBalance, -600);
+  assert.equal(pastDue.due, 600);
+  assert.equal(pastDue.carryForward, 0);
+
+  const futurePending = deriveMonthlySheetBillingState({
+    bill: 1000,
+    openingDue: 0,
+    openingAdvance: 0,
+    currentPayments: [{ amount: 1500, status: 'active' }],
+    month: 8,
+    year: 2026,
+    currentDate,
+  });
+  assert.equal(futurePending.status, 'Pending');
+  assert.equal(futurePending.runningBalance, 500);
+});
+
 test('getMonthPaymentTransactions keeps every transaction for the same customer and month before recalculating totals', () => {
   const payments = [
     { userId: 'cust-1', month: 7, year: 2026, amount: 700, status: 'Completed' },
@@ -264,7 +338,7 @@ test('computePaymentSummary allocates overpayments after clearing prior due and 
   assert.equal(summary.status, 'Advance');
 });
 
-test('deriveMonthlySheetBillingState applies current bill before previous due and marks advance only when the surplus remains', () => {
+test('deriveMonthlySheetBillingState keeps paid status when previous due existed and only advances with no prior due', () => {
   const exampleOne = deriveMonthlySheetBillingState({
     bill: 500,
     openingDue: 500,
@@ -284,7 +358,7 @@ test('deriveMonthlySheetBillingState applies current bill before previous due an
     currentPayments: [{ amount: 1000, status: 'active' }],
   });
 
-  assert.equal(exampleTwo.status, 'Advance');
+  assert.equal(exampleTwo.status, 'Paid');
   assert.equal(exampleTwo.currentBillPaid, 500);
   assert.equal(exampleTwo.previousDueRemaining, 0);
   assert.equal(exampleTwo.carryForward, 300);
@@ -296,10 +370,97 @@ test('deriveMonthlySheetBillingState applies current bill before previous due an
     currentPayments: [{ amount: 200, status: 'active' }],
   });
 
-  assert.equal(exampleThree.status, 'Paid');
+  assert.equal(exampleThree.status, 'Partial');
   assert.equal(exampleThree.currentBillPaid, 500);
   assert.equal(exampleThree.previousDueRemaining, 0);
   assert.equal(exampleThree.carryForward, 0);
+});
+
+test('deriveMonthlySheetBillingState matches the Monthly Sheet balance and status rules for the requested scenarios', () => {
+  const currentDate = new Date('2026-07-15');
+
+  const scenarioOne = deriveMonthlySheetBillingState({
+    bill: 1000,
+    openingDue: 0,
+    openingAdvance: 0,
+    currentPayments: [{ amount: 1500, status: 'active' }],
+    month: 7,
+    year: 2026,
+    currentDate,
+  });
+  assert.equal(scenarioOne.runningBalance, 500);
+  assert.equal(scenarioOne.carryForward, 500);
+  assert.equal(scenarioOne.status, 'Advance');
+
+  const scenarioTwo = deriveMonthlySheetBillingState({
+    bill: 1000,
+    openingDue: 500,
+    openingAdvance: 0,
+    currentPayments: [{ amount: 1500, status: 'active' }],
+    month: 7,
+    year: 2026,
+    currentDate,
+  });
+  assert.equal(scenarioTwo.runningBalance, 0);
+  assert.equal(scenarioTwo.carryForward, 0);
+  assert.equal(scenarioTwo.status, 'Paid');
+
+  const scenarioThree = deriveMonthlySheetBillingState({
+    bill: 1000,
+    openingDue: 1500,
+    openingAdvance: 0,
+    currentPayments: [{ amount: 3000, status: 'active' }],
+    month: 7,
+    year: 2026,
+    currentDate,
+  });
+  assert.equal(scenarioThree.runningBalance, 500);
+  assert.equal(scenarioThree.carryForward, 500);
+  assert.equal(scenarioThree.status, 'Paid');
+
+  const scenarioFourCurrent = deriveMonthlySheetBillingState({
+    bill: 1000,
+    openingDue: 0,
+    openingAdvance: 0,
+    currentPayments: [{ amount: 700, status: 'active' }],
+    month: 7,
+    year: 2026,
+    currentDate,
+  });
+  assert.equal(scenarioFourCurrent.status, 'Partial');
+
+  const scenarioFourPast = deriveMonthlySheetBillingState({
+    bill: 1000,
+    openingDue: 0,
+    openingAdvance: 0,
+    currentPayments: [{ amount: 700, status: 'active' }],
+    month: 6,
+    year: 2026,
+    currentDate,
+  });
+  assert.equal(scenarioFourPast.status, 'Due');
+
+  const scenarioFiveCurrent = deriveMonthlySheetBillingState({
+    bill: 1000,
+    openingDue: 0,
+    openingAdvance: 0,
+    currentPayments: [],
+    month: 7,
+    year: 2026,
+    currentDate,
+  });
+  assert.equal(scenarioFiveCurrent.status, 'Pending');
+
+  const scenarioFivePast = deriveMonthlySheetBillingState({
+    bill: 1000,
+    openingDue: 0,
+    openingAdvance: 0,
+    currentPayments: [],
+    month: 6,
+    year: 2026,
+    currentDate,
+  });
+  assert.equal(scenarioFivePast.status, 'Due');
 });
 
 test('deriveMonthlySheetBillingState keeps the current month pending until the billing month has fully ended', () => {

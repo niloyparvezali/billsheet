@@ -430,11 +430,11 @@ tbody tr:hover {
   background: var(--status-paid-bg);
 }
 .status.active {
-  color: var(--status-paid-text);
+  color: var(--active-text);
   background: var(--status-paid-bg);
 }
 .status.inactive {
-  color: var(--status-due-text);
+  color: var(--inactive-text);
   background: var(--status-due-bg);
 }
 .status.pending {

@@ -57,6 +57,8 @@
   --chart-label: #f4f7ff;
   --chart-tooltip-bg: rgba(4, 17, 26, 0.95);
   --chart-tooltip-text: #f4f7ff;
+  --active-text: #39FF14;
+  --inactive-text: #FF1744;
 }
 
 :root[data-theme="ocean"] {
@@ -117,6 +119,8 @@
   --chart-label: #eef9ff;
   --chart-tooltip-bg: rgba(4, 19, 35, 0.96);
   --chart-tooltip-text: #eef9ff;
+  --active-text: #39FF14;
+  --inactive-text: #FF1744;
 }
 
 :root[data-theme="sunrise"],
@@ -179,6 +183,8 @@
   --chart-label: #1C1917;
   --chart-tooltip-bg: rgba(28, 25, 23, 0.95);
   --chart-tooltip-text: #FAF7F2;
+  --active-text: #39FF14;
+  --inactive-text: #FF1744;
 }
 
 :root[data-theme="midnight"],
@@ -241,6 +247,8 @@
   --chart-label: #F9FAFB;
   --chart-tooltip-bg: rgba(11, 15, 25, 0.95);
   --chart-tooltip-text: #F9FAFB;
+  --active-text: #39FF14;
+  --inactive-text: #FF1744;
 }
 
 html,

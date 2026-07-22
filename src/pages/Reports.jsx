@@ -10,6 +10,7 @@ import {
   FiSearch,
   FiUser,
 } from "react-icons/fi";
+import { ChevronRight, ChevronDown } from "lucide-react";
 import useOwnedCollection from "../hooks/useOwnedCollection";
 import { useLanguage } from "../context/LanguageContext";
 import { exportAnnualCustomerPdf } from "../utils/pdf";
@@ -71,6 +72,7 @@ export default function Reports() {
   const [yearInput, setYearInput] = useState(String(now.getFullYear()));
   const [customerSearch, setCustomerSearch] = useState("");
   const [selectedCustomerId, setSelectedCustomerId] = useState(null);
+  const [expandedMonths, setExpandedMonths] = useState({});
   const {
     data: users = [],
     loading: usersLoading,
@@ -188,6 +190,26 @@ export default function Reports() {
     if (!selectedCustomer || !yearlySummary) return [];
     return yearlySummary.months || [];
   }, [selectedCustomer, yearlySummary]);
+
+  const toggleMonthExpanded = (monthIndex) => {
+    setExpandedMonths((prev) => ({
+      ...prev,
+      [monthIndex]: !prev[monthIndex],
+    }));
+  };
+
+  const expandAllMonths = () => {
+    const allExpanded = {};
+    monthlyHistory.forEach((_, index) => {
+      allExpanded[index] = true;
+    });
+    setExpandedMonths(allExpanded);
+  };
+
+  const collapseAllMonths = () => {
+    setExpandedMonths({});
+  };
+
   const yearOverview = useMemo(() => {
     const selectedYear = Number(year);
     const today = new Date();
@@ -592,8 +614,28 @@ export default function Reports() {
                 </div>
                 <h3>{t("payment_history", "Payment History")}</h3>
               </div>
-              <div className="reports-history-chip">
-                12 {t("months", "months")}
+              <div className="reports-history-controls">
+                <div className="reports-history-chip">
+                  12 {t("months", "months")}
+                </div>
+                <div className="reports-history-buttons">
+                  <button
+                    className="reports-history-btn"
+                    onClick={expandAllMonths}
+                    title="Expand all months"
+                    type="button"
+                  >
+                    Expand All
+                  </button>
+                  <button
+                    className="reports-history-btn"
+                    onClick={collapseAllMonths}
+                    title="Collapse all months"
+                    type="button"
+                  >, monthIndex
+                    Collapse All
+                  </button>
+                </div>
               </div>
             </div>
             <div className="reports-history-table-wrap">
@@ -657,12 +699,47 @@ export default function Reports() {
                       entry.status || "pending"
                     ).toLowerCase();
                     const txList = entry.transactions || [];
+                    const isExpanded = expandedMonths[monthIndex];
 
                     return (
                       <React.Fragment key={entry.month}>
-                        <tr className="reports-history-row">
+                        <tr
+                          className="reports-history-row reports-history-row--expandable"
+                          onClick={() => txList.length > 0 && toggleMonthExpanded(monthIndex)}
+                          role="button"
+                          tabIndex={txList.length > 0 ? 0 : -1}
+                          onKeyDown={(e) => {
+                            if (
+                              txList.length > 0 &&
+                              (e.key === "Enter" || e.key === " ")
+                            ) {
+                              e.preventDefault();
+                              toggleMonthExpanded(monthIndex);
+                            }
+                          }}
+                          style={{
+                            cursor: txList.length > 0 ? "pointer" : "default",
+                          }}
+                        >
                           <td>
                             <span className="reports-history-month-cell">
+                              <span className="reports-history-chevron">
+                                {txList.length > 0 ? (
+                                  isExpanded ? (
+                                    <ChevronDown size={18} />
+                                  ) : (
+                                    <ChevronRight size={18} />
+                                  )
+                                ) : (
+                                  <span
+                                    style={{
+                                      width: 18,
+                                      height: 18,
+                                      display: "inline-block",
+                                    }}
+                                  />
+                                )}
+                              </span>
                               <span
                                 className={`reports-history-status-dot reports-history-status-dot--${
                                   statusClass === "paid"
@@ -701,15 +778,11 @@ export default function Reports() {
                             {isPlaceholderRow || isInactiveEntry
                               ? "—"
                               : formatMoney(totalRequiredValue)}
-                          </td>
-                          <td
-                            style={{
-                              fontWeight: 600,
-                              color: paidValue > 0 ? "#10B981" : undefined,
-                            }}
-                          >
-                            {isPlaceholderRow || isInactiveEntry
-                              ? "—"
+                          </td>isExpanded && (
+                          <tr className="reports-tx-subrow reports-tx-subrow--expanded">
+                            <td
+                              colSpan="7"
+                              className="reports-tx-subrow-cell""—"
                               : formatMoney(paidValue)}
                           </td>
                           <td
