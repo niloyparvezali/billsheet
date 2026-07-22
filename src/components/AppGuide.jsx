@@ -1,0 +1,75 @@
+import {
+  FiBarChart2,
+  FiCheckCircle,
+  FiFileText,
+  FiInfo,
+  FiSettings,
+  FiUsers,
+} from "react-icons/fi";
+import Modal from "./Modal";
+export default function AppGuide({ onClose }) {
+  return (
+    <Modal title="How to use BillSheet" onClose={onClose}>
+      <div className="guide">
+        <p className="guide-intro">
+          Use BillSheet to keep customers, monthly payments, reports, and
+          backups in one simple place.
+        </p>
+        <div className="guide-step">
+          <FiUsers />
+          <div>
+            <b>1. Add users</b>
+            <span>
+              Open Users, click Add user, choose or create a category, then save
+              the customer.
+            </span>
+          </div>
+        </div>
+        <div className="guide-step">
+          <FiFileText />
+          <div>
+            <b>2. Record monthly payments</b>
+            <span>
+              Open Monthly Sheet, choose a month and year, then edit a customer
+              row to enter an amount, due, and note.
+            </span>
+          </div>
+        </div>
+        <div className="guide-step">
+          <FiCheckCircle />
+          <div>
+            <b>3. Check payment status</b>
+            <span>
+              Any amount greater than zero is Paid. Empty or zero amounts remain
+              Pending.
+            </span>
+          </div>
+        </div>
+        <div className="guide-step">
+          <FiBarChart2 />
+          <div>
+            <b>4. View or export reports</b>
+            <span>
+              Use Reports to filter records and download PDF or Excel files, or
+              print the result.
+            </span>
+          </div>
+        </div>
+        <div className="guide-step">
+          <FiSettings />
+          <div>
+            <b>5. Manage settings</b>
+            <span>
+              Use Settings to update your profile and password, manage
+              notifications, and create or restore backups.
+            </span>
+          </div>
+        </div>
+        <div className="guide-tip">
+          <FiInfo /> Categories created from the Add User form are available
+          immediately for selection.
+        </div>
+      </div>
+    </Modal>
+  );
+}

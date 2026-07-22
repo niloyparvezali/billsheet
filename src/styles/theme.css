@@ -1,0 +1,461 @@
+/* Forest / Ocean theme system. */
+:root {
+  --bg: #062c2b;
+  --surface: #0a3938;
+  --card: #104542;
+  --text: #edf5ef;
+  --text-muted: #b6cec8;
+  --primary: #f1c54d;
+  --primary-hover: #ffd966;
+  --primary-shadow: rgba(241, 197, 77, 0.22);
+  --divider: #1b5c58;
+  --input-bg: #0c4140;
+  --input-border: #1b5c58;
+  --sidebar-bg: #031c1d;
+  --sidebar-text: #c3dcd6;
+  --sidebar-hover: #0d4a48;
+  --header-bg: #082f30;
+  --overlay: rgba(0, 0, 0, 0.55);
+  --success: #65e3a9;
+  --success-bg: #083f33;
+  --warning: #ffb86f;
+  --warning-bg: #3b291b;
+  --danger: #ff7980;
+  --danger-bg: #3d171d;
+  --info: #7dd3fc;
+  --info-bg: rgba(125, 211, 252, 0.16);
+  --status-paid-bg: rgba(34, 197, 94, 0.16);
+  --status-paid-text: #22C55E;
+  --status-advance-bg: rgba(59, 130, 246, 0.16);
+  --status-advance-text: #3B82F6;
+  --status-partial-bg: rgba(249, 115, 22, 0.16);
+  --status-partial-text: #F97316;
+  --status-due-bg: rgba(239, 68, 68, 0.16);
+  --status-due-text: #EF4444;
+  --status-pending-bg: rgba(139, 92, 246, 0.16);
+  --status-pending-text: #8B5CF6;
+  --due-text: #EF4444;
+  --chart1: #65e3a9;
+  --chart2: #f1c54d;
+  --chart3: #ff7980;
+  --chart4: #7dd3fc;
+  --chart5: #8dd1c1;
+  --sheet-gold: #f5c32a;
+  --sheet-gold-soft: rgba(245, 195, 42, 0.14);
+  --accent: var(--primary);
+  --accent-hover: var(--primary-hover);
+  --accent-shadow: var(--primary-shadow);
+  --theme-active: #f1c54d;
+  --theme-card-bg: #104846;
+  --theme-card-border: #1b5c58;
+  --theme-card-text: #ffffff;
+  --theme-card-subtext: #9fbdb8;
+  --chart-bar-active: #48d8c5;
+  --chart-bar-default: #4ecdc4;
+  --chart-grid: rgba(244, 247, 255, 0.16);
+  --chart-axis: rgba(244, 247, 255, 0.74);
+  --chart-label: #f4f7ff;
+  --chart-tooltip-bg: rgba(4, 17, 26, 0.95);
+  --chart-tooltip-text: #f4f7ff;
+}
+
+:root[data-theme="ocean"] {
+  --bg: #04131f;
+  --surface: #0c2440;
+  --card: #113a5c;
+  --text: #eef9ff;
+  --text-muted: #9dd8ee;
+  --primary: #22d3ee;
+  --primary-hover: #67e8f9;
+  --primary-shadow: rgba(34, 211, 238, 0.28);
+  --divider: #1b5b82;
+  --input-bg: #0f2d49;
+  --input-border: #1e6e92;
+  --sidebar-bg: #061a2d;
+  --sidebar-text: #dceeef;
+  --sidebar-hover: #153f66;
+  --header-bg: #071d31;
+  --overlay: rgba(3, 14, 28, 0.62);
+  --success: #6ee7b7;
+  --success-bg: #0a3d3d;
+  --warning: #fbbf24;
+  --warning-bg: #3b2d09;
+  --danger: #fb7185;
+  --danger-bg: #3f1724;
+  --info: #67e8f9;
+  --info-bg: rgba(34, 211, 238, 0.16);
+  --status-paid-bg: rgba(34, 197, 94, 0.16);
+  --status-paid-text: #22C55E;
+  --status-advance-bg: rgba(59, 130, 246, 0.16);
+  --status-advance-text: #3B82F6;
+  --status-partial-bg: rgba(249, 115, 22, 0.16);
+  --status-partial-text: #F97316;
+  --status-due-bg: rgba(239, 68, 68, 0.16);
+  --status-due-text: #EF4444;
+  --status-pending-bg: rgba(139, 92, 246, 0.16);
+  --status-pending-text: #8B5CF6;
+  --due-text: #EF4444;
+  --chart1: #7dd3fc;
+  --chart2: #22d3ee;
+  --chart3: #fb7185;
+  --chart4: #67e8f9;
+  --chart5: #38bdf8;
+  --sheet-gold: #22d3ee;
+  --sheet-gold-soft: rgba(34, 211, 238, 0.16);
+  --accent: var(--primary);
+  --accent-hover: var(--primary-hover);
+  --accent-shadow: var(--primary-shadow);
+  --theme-active: #22d3ee;
+  --theme-card-bg: #123b5d;
+  --theme-card-border: #1d6490;
+  --theme-card-text: #f7feff;
+  --theme-card-subtext: #9dd8ee;
+  --chart-bar-active: #22d3ee;
+  --chart-bar-default: #38bdf8;
+  --chart-grid: rgba(125, 211, 252, 0.22);
+  --chart-axis: rgba(220, 241, 255, 0.82);
+  --chart-label: #eef9ff;
+  --chart-tooltip-bg: rgba(4, 19, 35, 0.96);
+  --chart-tooltip-text: #eef9ff;
+}
+
+:root[data-theme="sunrise"],
+:root[data-theme="light"] {
+  --bg: #FAF7F2;
+  --surface: #FFFDFB;
+  --card: #FFFDFB;
+  --text: #1C1917;
+  --text-muted: #57534E;
+  --text-primary: #ffffff;
+  --primary: #2563EB;
+  --primary-hover: #1D4ED8;
+  --primary-shadow: rgba(37, 99, 235, 0.22);
+  --divider: #E8E2D8;
+  --input-bg: #F4F0E8;
+  --input-border: #DCD5C9;
+  --sidebar-bg: #F6F3ED;
+  --sidebar-text: #44403C;
+  --sidebar-hover: #ECE7DE;
+  --header-bg: #FAF7F2;
+  --overlay: rgba(28, 25, 23, 0.35);
+  --success: #16A34A;
+  --success-bg: #DCFCE7;
+  --warning: #D97706;
+  --warning-bg: #FEF3C7;
+  --danger: #DC2626;
+  --danger-bg: #FEE2E2;
+  --info: #0EA5E9;
+  --info-bg: #E0F2FE;
+  --status-paid-bg: rgba(22, 163, 74, 0.14);
+  --status-paid-text: #16A34A;
+  --status-advance-bg: rgba(37, 99, 235, 0.14);
+  --status-advance-text: #2563EB;
+  --status-partial-bg: rgba(217, 119, 6, 0.14);
+  --status-partial-text: #D97706;
+  --status-due-bg: rgba(220, 38, 38, 0.14);
+  --status-due-text: #DC2626;
+  --status-pending-bg: rgba(124, 58, 237, 0.14);
+  --status-pending-text: #7C3AED;
+  --due-text: #DC2626;
+  --chart1: #16A34A;
+  --chart2: #2563EB;
+  --chart3: #DC2626;
+  --chart4: #0EA5E9;
+  --chart5: #7C3AED;
+  --sheet-gold: #2563EB;
+  --sheet-gold-soft: rgba(37, 99, 235, 0.14);
+  --accent: var(--primary);
+  --accent-hover: var(--primary-hover);
+  --accent-shadow: var(--primary-shadow);
+  --theme-active: #2563EB;
+  --theme-card-bg: #FFFDFB;
+  --theme-card-border: #E8E2D8;
+  --theme-card-text: #1C1917;
+  --theme-card-subtext: #57534E;
+  --chart-bar-active: #2563EB;
+  --chart-bar-default: #3B82F6;
+  --chart-grid: rgba(28, 25, 23, 0.08);
+  --chart-axis: rgba(28, 25, 23, 0.64);
+  --chart-label: #1C1917;
+  --chart-tooltip-bg: rgba(28, 25, 23, 0.95);
+  --chart-tooltip-text: #FAF7F2;
+}
+
+:root[data-theme="midnight"],
+:root[data-theme="dark"] {
+  --bg: #0B0F19;
+  --surface: #111827;
+  --card: #1F2937;
+  --text: #F9FAFB;
+  --text-muted: #CBD5E1;
+  --text-primary: #ffffff;
+  --primary: #3B82F6;
+  --primary-hover: #60A5FA;
+  --primary-shadow: rgba(59, 130, 246, 0.28);
+  --divider: #374151;
+  --input-bg: #1F2937;
+  --input-border: #4B5563;
+  --sidebar-bg: #0B0F19;
+  --sidebar-text: #CBD5E1;
+  --sidebar-hover: #1F2937;
+  --header-bg: #111827;
+  --overlay: rgba(0, 0, 0, 0.75);
+  --success: #22C55E;
+  --success-bg: #063718;
+  --warning: #F59E0B;
+  --warning-bg: #3B2908;
+  --danger: #EF4444;
+  --danger-bg: #3F1717;
+  --info: #06B6D4;
+  --info-bg: rgba(6, 182, 212, 0.16);
+  --status-paid-bg: rgba(34, 197, 94, 0.16);
+  --status-paid-text: #22C55E;
+  --status-advance-bg: rgba(59, 130, 246, 0.16);
+  --status-advance-text: #3B82F6;
+  --status-partial-bg: rgba(249, 115, 22, 0.16);
+  --status-partial-text: #F97316;
+  --status-due-bg: rgba(239, 68, 68, 0.16);
+  --status-due-text: #EF4444;
+  --status-pending-bg: rgba(139, 92, 246, 0.16);
+  --status-pending-text: #8B5CF6;
+  --due-text: #EF4444;
+  --chart1: #22C55E;
+  --chart2: #3B82F6;
+  --chart3: #EF4444;
+  --chart4: #06B6D4;
+  --chart5: #A855F7;
+  --sheet-gold: #3B82F6;
+  --sheet-gold-soft: rgba(59, 130, 246, 0.16);
+  --accent: var(--primary);
+  --accent-hover: var(--primary-hover);
+  --accent-shadow: var(--primary-shadow);
+  --theme-active: #3B82F6;
+  --theme-card-bg: #111827;
+  --theme-card-border: #374151;
+  --theme-card-text: #F9FAFB;
+  --theme-card-subtext: #CBD5E1;
+  --chart-bar-active: #3B82F6;
+  --chart-bar-default: #60A5FA;
+  --chart-grid: rgba(243, 244, 246, 0.14);
+  --chart-axis: rgba(243, 244, 246, 0.75);
+  --chart-label: #F9FAFB;
+  --chart-tooltip-bg: rgba(11, 15, 25, 0.95);
+  --chart-tooltip-text: #F9FAFB;
+}
+
+html,
+body,
+#root {
+  color: var(--text);
+  background: var(--bg);
+}
+
+body {
+  background: var(--bg);
+  color: var(--text);
+}
+
+.sidebar {
+  background: var(--sidebar-bg);
+  color: var(--sidebar-text);
+  border-right: 1px solid var(--divider);
+}
+
+.sidebar a {
+  color: var(--sidebar-text);
+}
+
+.sidebar a:hover,
+.sidebar a.active,
+nav a:hover,
+nav a.active {
+  background: var(--sidebar-hover);
+  color: white;
+}
+
+.sidebar-bottom {
+  border-color: var(--divider);
+}
+
+.sidebar-bottom button {
+  color: var(--sidebar-text);
+}
+
+header {
+  background: var(--header-bg);
+  border-color: var(--divider);
+}
+
+header p,
+.page-title p,
+.panel > p,
+.settings-hero p,
+.settings-card-head p,
+.activity span,
+.muted-line,
+.security-row span,
+.device span,
+.settings-stat p {
+  color: var(--text-muted);
+}
+
+.stat,
+.settings-card,
+.settings-stat,
+.summary div,
+.panel,
+.modal,
+.guide-item,
+.invite-user,
+.report-table-heading span,
+.sheet-empty-content > span {
+  background: var(--surface);
+  border-color: var(--divider);
+  color: var(--text);
+}
+
+.profile-meta span,
+guide-step,
+.theme-card.active {
+  background: color-mix(in srgb, var(--primary) 12%, var(--surface) 88%);
+}
+
+.profile-meta b,
+.guide-item span,
+.theme-card b {
+  color: var(--text);
+}
+
+.search,
+.filters input,
+.filters select,
+.customer-count,
+.profile-form input,
+.preference-form select,
+.password-input,
+.form input,
+.form textarea,
+.form select {
+  background: var(--input-bg);
+  border-color: var(--input-border);
+  color: var(--text);
+}
+
+.settings-choice {
+  background: var(--surface);
+  color: var(--text);
+}
+
+.settings-choice.active {
+  background: color-mix(in srgb, var(--primary) 15%, var(--surface) 85%);
+  color: var(--text);
+  border-color: var(--primary);
+}
+
+th {
+  background: var(--surface);
+  color: var(--text-muted);
+}
+
+td,
+.activity,
+.security-row,
+.device {
+  border-color: var(--divider);
+}
+
+tr:hover {
+  background: color-mix(in srgb, var(--surface) 92%, var(--primary) 8%);
+}
+
+.tag {
+  background: color-mix(in srgb, var(--primary) 10%, var(--surface) 90%);
+  color: var(--primary);
+}
+
+.actions button {
+  background: var(--surface);
+  color: var(--text);
+}
+
+.monthly-table .pending-row {
+  background: var(--status-pending-bg);
+  color: var(--text);
+}
+
+.monthly-table .paid-row {
+  background: var(--status-paid-bg);
+  color: var(--text);
+}
+
+.monthly-table .pending-row:hover,
+.monthly-table .paid-row:hover {
+  filter: brightness(1.05);
+}
+
+.monthly-table .pending-row td,
+.monthly-table .paid-row td {
+  color: inherit;
+  border-color: var(--divider);
+}
+
+.monthly-table .pending-row .status {
+  color: var(--status-pending-text);
+}
+
+.monthly-table .paid-row .status {
+  color: var(--status-paid-text);
+}
+
+.monthly-table .due-value {
+  color: var(--due-text);
+}
+
+.report-kicker {
+  color: var(--primary);
+}
+
+.report-table-heading p {
+  color: var(--text-muted);
+}
+
+.report-table-heading span {
+  background: color-mix(in srgb, var(--primary) 8%, var(--surface) 92%);
+  color: var(--primary);
+}
+
+.report-due {
+  color: var(--warning);
+}
+
+.report-clear {
+  color: var(--success);
+}
+
+.invite-user {
+  background: var(--surface);
+}
+
+.invite-user-copy span {
+  color: var(--text-muted);
+}
+
+.primary {
+  background: linear-gradient(135deg, var(--primary), var(--primary-hover));
+  box-shadow: 0 6px 12px var(--primary-shadow);
+}
+
+.secondary {
+  background: color-mix(in srgb, var(--primary) 12%, var(--surface) 88%);
+  color: var(--text);
+}
+
+.theme-card {
+  background: var(--theme-card-bg);
+  border-color: var(--theme-card-border);
+  color: var(--theme-card-text);
+}
+
+.theme-card small {
+  color: var(--theme-card-subtext);
+}

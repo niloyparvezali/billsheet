@@ -1,0 +1,35 @@
+{
+  "name": "bill-sheet",
+  "private": true,
+  "version": "1.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite --host 0.0.0.0 --port 3000",
+    "build": "vite build",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "dayjs": "latest",
+    "firebase": "latest",
+    "framer-motion": "latest",
+    "i18next": "^26.3.6",
+    "jspdf": "latest",
+    "jspdf-autotable": "latest",
+    "lucide-react": "^1.24.0",
+    "react": "latest",
+    "react-dom": "latest",
+    "react-hot-toast": "latest",
+    "react-i18next": "^17.0.10",
+    "react-icons": "latest",
+    "react-router-dom": "latest",
+    "recharts": "latest",
+    "xlsx": "latest"
+  },
+  "devDependencies": {
+    "@vitejs/plugin-react": "latest",
+    "autoprefixer": "latest",
+    "postcss": "latest",
+    "tailwindcss": "latest",
+    "vite": "latest"
+  }
+}

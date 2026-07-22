@@ -1,0 +1,101 @@
+import { useState } from "react";
+import { addDoc, collection, doc, serverTimestamp } from "firebase/firestore";
+
+import toast from "react-hot-toast";
+import { FiTrash2 } from "react-icons/fi";
+
+import Modal from "./Modal";
+import { db } from "../firebase/config";
+import { getDisplayPackages } from "../utils/users";
+import { useLanguage } from "../context/LanguageContext";
+
+export default function CategoryModal({
+  ownerId,
+  categories,
+  users,
+  close,
+  onAdded,
+  onRemoved,
+  requestRemoveCategory,
+}) {
+  const { t } = useLanguage();
+  const [name, setName] = useState("");
+  const save = async (event) => {
+    event.preventDefault();
+    const clean = name.trim();
+    if (!clean) return;
+    if (
+      categories.some(
+        (category) =>
+          category.name.trim().toLowerCase() === clean.toLowerCase(),
+      )
+    ) {
+      toast.error(`The category “${clean}” already exists`);
+      return;
+    }
+    try {
+      const added = await addDoc(collection(db, "categories"), {
+        ownerId,
+        name: clean,
+        createdAt: serverTimestamp(),
+      });
+      onAdded({ id: added.id, name: clean });
+      toast.success(`${clean} category added`);
+      setName("");
+    } catch (error) {
+      toast.error(`Could not add category: ${error.message}`);
+    }
+  };
+  return (
+    <Modal title={t("category", "Manage categories")} onClose={close}>
+      <form className="form" onSubmit={save}>
+        <label>
+          {t("category", "New category name")}
+          <input
+            autoFocus
+            required
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+          />
+        </label>
+        <button className="btn btn-primary">{t("save", "Save category")}</button>
+      </form>
+      {categories.length > 0 && (
+        <div className="category-list">
+          {categories.map((category) => {
+            const inUse = users.some((user) => {
+              const packages = getDisplayPackages(user);
+              return packages.some(
+                (packageName) =>
+                  packageName.trim().toLowerCase() ===
+                  category.name.trim().toLowerCase(),
+              );
+            });
+            return (
+              <div className="activity" key={category.id}>
+                <b>{category.name}</b>
+                <div className="actions">
+                  <button
+                    className="danger"
+                    type="button"
+                    title={
+                      inUse ? t("category_in_use", "This category is in use") : t("delete", "Remove category")
+                    }
+                    disabled={inUse}
+                    onClick={(event) => {
+                      event.preventDefault();
+                      event.stopPropagation();
+                      requestRemoveCategory(category);
+                    }}
+                  >
+                    <FiTrash2 />
+                  </button>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
+    </Modal>
+  );
+}
