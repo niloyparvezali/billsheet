@@ -756,7 +756,9 @@
   height: 18px;
   margin-right: 4px;
   color: rgba(255, 255, 255, 0.6);
-  transition: transform 250ms ease, color 200ms ease;
+  transition:
+    transform 250ms ease,
+    color 200ms ease;
 }
 
 .reports-history-row--expandable:hover .reports-history-chevron {
@@ -1249,4 +1251,33 @@
   .reports-empty-state {
     padding: 28px 16px;
   }
+}
+.reports-transactions {
+  width: 100%;
+  overflow-x: auto;
+}
+
+.reports-transactions-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 14px;
+}
+
+.reports-transactions-table th {
+  padding: 10px 12px;
+  text-align: left;
+  font-size: 12px;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--text-secondary);
+  border-bottom: 1px solid var(--border);
+}
+
+.reports-transactions-table td {
+  padding: 12px;
+  border-bottom: 1px solid var(--border);
+}
+
+.reports-transactions-table tbody tr:hover {
+  background: rgba(255, 255, 255, 0.04);
 }

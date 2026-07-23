@@ -73,6 +73,9 @@ export default function Reports() {
   const [customerSearch, setCustomerSearch] = useState("");
   const [selectedCustomerId, setSelectedCustomerId] = useState(null);
   const [expandedMonths, setExpandedMonths] = useState({});
+  React.useEffect(() => {
+    console.log("expandedMonths changed:", expandedMonths);
+  }, [expandedMonths]);
   const {
     data: users = [],
     loading: usersLoading,
@@ -632,7 +635,7 @@ export default function Reports() {
                     onClick={collapseAllMonths}
                     title="Collapse all months"
                     type="button"
-                  >, monthIndex
+                  >
                     Collapse All
                   </button>
                 </div>
@@ -652,7 +655,7 @@ export default function Reports() {
                   </tr>
                 </thead>
                 <tbody>
-                  {monthlyHistory.map((entry) => {
+                  {monthlyHistory.map((entry, monthIndex) => {
                     const billValue = Number(
                       entry.bill ?? entry.monthlyBill ?? 0,
                     );
@@ -699,26 +702,30 @@ export default function Reports() {
                       entry.status || "pending"
                     ).toLowerCase();
                     const txList = entry.transactions || [];
-                    const isExpanded = expandedMonths[monthIndex];
 
+                    const isExpanded = !!expandedMonths[monthIndex];
+
+                    console.log({
+                      month: entry.monthName,
+                      monthIndex,
+                      expanded: isExpanded,
+                      expandedMonths,
+                      count: txList.length,
+                    });
                     return (
                       <React.Fragment key={entry.month}>
                         <tr
-                          className="reports-history-row reports-history-row--expandable"
-                          onClick={() => txList.length > 0 && toggleMonthExpanded(monthIndex)}
-                          role="button"
-                          tabIndex={txList.length > 0 ? 0 : -1}
-                          onKeyDown={(e) => {
-                            if (
-                              txList.length > 0 &&
-                              (e.key === "Enter" || e.key === " ")
-                            ) {
-                              e.preventDefault();
+                          onClick={() => {
+                            console.log(
+                              "Clicked:",
+                              monthIndex,
+                              entry.monthName,
+                            );
+                            console.log("Before:", expandedMonths);
+
+                            if (txList.length > 0) {
                               toggleMonthExpanded(monthIndex);
                             }
-                          }}
-                          style={{
-                            cursor: txList.length > 0 ? "pointer" : "default",
                           }}
                         >
                           <td>
@@ -778,13 +785,13 @@ export default function Reports() {
                             {isPlaceholderRow || isInactiveEntry
                               ? "—"
                               : formatMoney(totalRequiredValue)}
-                          </td>isExpanded && (
-                          <tr className="reports-tx-subrow reports-tx-subrow--expanded">
-                            <td
-                              colSpan="7"
-                              className="reports-tx-subrow-cell""—"
+                          </td>
+                          <td>
+                            {isPlaceholderRow || isInactiveEntry
+                              ? "—"
                               : formatMoney(paidValue)}
                           </td>
+
                           <td
                             style={
                               endingBalanceValue < 0
@@ -796,6 +803,7 @@ export default function Reports() {
                           >
                             {endingBalanceLabel}
                           </td>
+
                           <td>
                             {isPlaceholderRow || isInactiveEntry ? (
                               <span className="reports-history-status reports-history-status--neutral">
@@ -808,160 +816,139 @@ export default function Reports() {
                             )}
                           </td>
                         </tr>
-
-                        {txList.length > 0 && (
-                          <tr className="reports-tx-subrow">
+                        {isExpanded && txList.length > 0 && (
+                          <tr
+                            className="reports-tx-subrow"
+                            style={{
+                              background: "red",
+                              display: "table-row",
+                            }}
+                          >
                             <td
-                              colSpan="7"
+                              colSpan={7}
                               style={{
-                                padding: "8px 16px 16px 36px",
-                                background:
-                                  "color-mix(in srgb, var(--surface) 92%, var(--text-primary) 8%)",
+                                padding: "16px 20px",
+                                background: "var(--surface)",
                               }}
                             >
-                              <div
-                                style={{
-                                  fontSize: "12px",
-                                  fontWeight: 700,
-                                  color: "var(--text-secondary)",
-                                  marginBottom: "6px",
-                                  textTransform: "uppercase",
-                                  letterSpacing: "0.05em",
-                                }}
-                              >
-                                {t("payment_history", "Payment History")} (
-                                {formatNumber(txList.length)})
-                              </div>
-                              <div
-                                style={{
-                                  display: "flex",
-                                  flexDirection: "column",
-                                  gap: "6px",
-                                }}
-                              >
-                                {txList.map((tx, idx) => {
-                                  const isVoided =
-                                    tx.isDeleted ||
-                                    tx.status === "Voided" ||
-                                    tx.status === "Reversed" ||
-                                    Boolean(tx.voidedBy);
-                                  return (
-                                    <div
-                                      key={tx.id || idx}
-                                      style={{
-                                        display: "flex",
-                                        alignItems: "center",
-                                        justifyContent: "space-between",
-                                        padding: "8px 12px",
-                                        borderRadius: "6px",
-                                        fontSize: "13px",
-                                        background: isVoided
-                                          ? "var(--warning-bg)"
-                                          : "var(--surface)",
-                                        border: "1px solid var(--border)",
-                                        borderLeft: isVoided
-                                          ? "4px solid var(--danger)"
-                                          : "1px solid var(--border)",
-                                        borderTop: "1px solid var(--border)",
-                                        borderRight: "1px solid var(--border)",
-                                        borderBottom: "1px solid var(--border)",
-                                      }}
-                                    >
-                                      <div
-                                        style={{
-                                          display: "flex",
-                                          alignItems: "center",
-                                          gap: "10px",
-                                        }}
-                                      >
-                                        <span
-                                          style={{
-                                            fontWeight: 600,
-                                            color: "var(--text-secondary)",
-                                          }}
-                                        >
-                                          {formatDate(
-                                            tx.paymentDate ||
-                                              tx.createdAt ||
-                                              tx.timestamp,
-                                          )}
-                                        </span>
-                                        <span
-                                          className="tag"
-                                          style={{
-                                            fontSize: "11px",
-                                            padding: "2px 8px",
-                                          }}
-                                        >
-                                          {tx.paymentMethod ||
-                                            tx.method ||
-                                            "Cash"}
-                                        </span>
-                                        {tx.notes && (
-                                          <span
-                                            style={{
-                                              color: "var(--text-secondary)",
-                                              fontStyle: "italic",
-                                              fontSize: "12px",
-                                            }}
-                                          >
-                                            "{tx.notes}"
-                                          </span>
-                                        )}
-                                      </div>
+                              <div className="reports-transactions">
+                                <table className="reports-transactions-table">
+                                  <thead>
+                                    <tr>
+                                      <th>Date</th>
+                                      <th>Amount</th>
+                                      <th>Status</th>
+                                    </tr>
+                                  </thead>
 
-                                      <div
-                                        style={{
-                                          display: "flex",
-                                          alignItems: "center",
-                                          gap: "12px",
-                                        }}
-                                      >
-                                        <span
-                                          style={{
-                                            fontWeight: 700,
-                                            textDecoration: isVoided
-                                              ? "line-through"
-                                              : "none",
-                                            color: isVoided
-                                              ? "#9CA3AF"
-                                              : "#10B981",
-                                          }}
-                                        >
-                                          {formatMoney(tx.amount)}
-                                        </span>
-                                        {isVoided ? (
-                                          <span
-                                            className="status voided"
-                                            style={{
-                                              fontSize: "11px",
-                                              padding: "2px 8px",
-                                              background: "var(--danger-bg)",
-                                              color: "var(--danger)",
-                                            }}
-                                          >
-                                            {t("voided", "Voided")}{" "}
-                                            {tx.reason || tx.reversalReason
-                                              ? `(${tx.reason || tx.reversalReason})`
-                                              : ""}
-                                          </span>
-                                        ) : (
-                                          <span
-                                            className="status paid"
-                                            style={{
-                                              fontSize: "11px",
-                                              padding: "2px 8px",
-                                            }}
-                                          >
-                                            {translateStatus(
-                                              tx.status || "Paid",
+                                  <tbody>
+                                    {txList.map((tx, idx) => {
+                                      const isVoided =
+                                        tx.isDeleted ||
+                                        tx.status === "Voided" ||
+                                        tx.status === "Reversed" ||
+                                        Boolean(tx.voidedBy);
+
+                                      return (
+                                        <tr key={tx.id || idx}>
+                                          <td>
+                                            {(() => {
+                                              const dateValue =
+                                                tx.paymentDate ||
+                                                tx.createdAt ||
+                                                tx.timestamp;
+
+                                              const date = new Date(
+                                                typeof dateValue?.toDate ===
+                                                  "function"
+                                                  ? dateValue.toDate()
+                                                  : dateValue,
+                                              );
+
+                                              return (
+                                                <>
+                                                  <div
+                                                    style={{ fontWeight: 600 }}
+                                                  >
+                                                    {date.getDate()}{" "}
+                                                    {translateMonth(
+                                                      date.toLocaleString(
+                                                        "en",
+                                                        { month: "long" },
+                                                      ),
+                                                    )}
+                                                  </div>
+                                                  <small
+                                                    style={{
+                                                      display: "block",
+                                                      opacity: 0.7,
+                                                      fontSize: "11px",
+                                                      marginTop: "2px",
+                                                    }}
+                                                  >
+                                                    {date.getFullYear()}
+                                                  </small>
+                                                </>
+                                              );
+                                            })()}
+                                          </td>
+
+                                          <td>
+                                            <div
+                                              style={{
+                                                fontWeight: 700,
+                                                color: isVoided
+                                                  ? "#9CA3AF"
+                                                  : "#10B981",
+                                                textDecoration: isVoided
+                                                  ? "line-through"
+                                                  : "none",
+                                              }}
+                                            >
+                                              {formatMoney(tx.amount)}
+                                            </div>
+
+                                            {isVoided && (
+                                              <small
+                                                style={{
+                                                  display: "block",
+                                                  marginTop: "3px",
+                                                  color: "#EF4444",
+                                                  fontSize: "11px",
+                                                  lineHeight: 1.3,
+                                                  fontStyle: "italic",
+                                                }}
+                                              >
+                                                Reason:{" "}
+                                                {tx.voidReason ||
+                                                  tx.reason ||
+                                                  tx.deleteReason ||
+                                                  tx.deletedReason ||
+                                                  "No reason provided"}
+                                              </small>
                                             )}
-                                          </span>
-                                        )}
-                                      </div>
-                                    </div>
-                                  );
-                                })}
+                                          </td>
+
+                                          <td>
+                                            <span
+                                              className={`status ${
+                                                isVoided
+                                                  ? "voided"
+                                                  : (
+                                                      tx.status || "paid"
+                                                    ).toLowerCase()
+                                              }`}
+                                            >
+                                              {translateStatus(
+                                                tx.status || "Paid",
+                                              )}
+                                            </span>
+                                          </td>
+                                        </tr>
+                                      );
+                                    })}
+                                  </tbody>
+                                </table>
                               </div>
                             </td>
                           </tr>

@@ -14,8 +14,16 @@ import { db } from "../firebase/config";
 import useOwnedCollection from "../hooks/useOwnedCollection";
 import { useLanguage } from "../context/LanguageContext";
 import { money } from "../utils/date";
-import { buildBillingLedger, computePaymentSummary, formatBalanceDisplayValue, getMonthPaymentTransactions } from "../utils/payments";
-import { buildTransactionRecord, TRANSACTION_TYPES } from "../utils/transactions.js";
+import {
+  buildBillingLedger,
+  computePaymentSummary,
+  formatBalanceDisplayValue,
+  getMonthPaymentTransactions,
+} from "../utils/payments";
+import {
+  buildTransactionRecord,
+  TRANSACTION_TYPES,
+} from "../utils/transactions.js";
 
 export default function PaymentModal({ data, month, year, ownerId, close }) {
   const { t, formatMoney } = useLanguage();
@@ -73,7 +81,10 @@ export default function PaymentModal({ data, month, year, ownerId, close }) {
     }
     const paymentTimestamp = new Date();
     const paymentDateText = paymentTimestamp.toISOString().split("T")[0];
-    const paymentTimeText = paymentTimestamp.toTimeString().split(" ")[0].slice(0, 5);
+    const paymentTimeText = paymentTimestamp
+      .toTimeString()
+      .split(" ")[0]
+      .slice(0, 5);
     const notes = addedDue > 0 ? `Additional due: ${addedDue}` : "";
     const previousPaid = Number(alreadyPaid || 0);
     const billingLedger = buildBillingLedger({
@@ -84,15 +95,18 @@ export default function PaymentModal({ data, month, year, ownerId, close }) {
       additionalDue: addedDue,
     });
     const currentPaid = billingLedger.currentBillPaid;
-    const currentDue = billingLedger.currentBillRemaining + billingLedger.previousDueRemaining;
+    const currentDue =
+      billingLedger.currentBillRemaining + billingLedger.previousDueRemaining;
     const currentAdvance = billingLedger.carryForwardNext;
-    const transactionStatus = billingLedger.currentBillPaid === 0
-      ? "Pending"
-      : billingLedger.currentBillPaid < bill
-        ? "Partial"
-        : billingLedger.previousDueRemaining === 0 && billingLedger.carryForwardNext > 0
-          ? "Advance"
-          : "Paid";
+    const transactionStatus =
+      billingLedger.currentBillPaid === 0
+        ? "Pending"
+        : billingLedger.currentBillPaid < bill
+          ? "Partial"
+          : billingLedger.previousDueRemaining === 0 &&
+              billingLedger.carryForwardNext > 0
+            ? "Advance"
+            : "Paid";
     const transaction = buildTransactionRecord({
       userId: data.user.id,
       customerId: data.user.id,
@@ -129,8 +143,13 @@ export default function PaymentModal({ data, month, year, ownerId, close }) {
     });
     const base = {
       ownerId,
+      
       userId: data.user.id,
+      customerId: data.user.customerId,
+      
       userName: data.user.name,
+      customerName: data.user.name,
+
       customerId: data.user.id,
       customerName: data.user.name,
       userCategory: data.user.category,
@@ -182,12 +201,26 @@ export default function PaymentModal({ data, month, year, ownerId, close }) {
   };
 
   return (
-    <Modal title={`${t("payment", "Payment")} · ${data.user.name}`} onClose={close}>
+    <Modal
+      title={`${t("payment", "Payment")} · ${data.user.name}`}
+      onClose={close}
+    >
       <form className="form" onSubmit={attemptSave}>
         <p className="payment-note">
-          {t("monthly_bill")}: <b>{formatMoney(bill)}</b> · {t("paid")}: <b>{formatMoney(alreadyPaid)}</b>
+          {t("monthly_bill")}: <b>{formatMoney(bill)}</b> · {t("paid")}:{" "}
+          <b>{formatMoney(alreadyPaid)}</b>
           <br />
-          {t("due")}: <b style={{ color: "#EF4444" }}>{formatBalanceDisplayValue({ due: outstandingBalance, carryForward: 0 })}</b> · {t("advance")}: <b style={{ color: "#3B82F6" }}>{formatBalanceDisplayValue({ due: 0, carryForward })}</b>
+          {t("due")}:{" "}
+          <b style={{ color: "#EF4444" }}>
+            {formatBalanceDisplayValue({
+              due: outstandingBalance,
+              carryForward: 0,
+            })}
+          </b>{" "}
+          · {t("advance")}:{" "}
+          <b style={{ color: "#3B82F6" }}>
+            {formatBalanceDisplayValue({ due: 0, carryForward })}
+          </b>
         </p>
         <label>
           {t("payment_amount", "Payment Amount")}
@@ -211,7 +244,9 @@ export default function PaymentModal({ data, month, year, ownerId, close }) {
           />
         </label>
         <button className="btn btn-primary" disabled={saving}>
-          {saving ? t("saving", "Saving...") : t("save_payment", "Save Payment")}
+          {saving
+            ? t("saving", "Saving...")
+            : t("save_payment", "Save Payment")}
         </button>
       </form>
       {showSaveConfirm && (
