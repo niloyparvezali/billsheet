@@ -765,18 +765,6 @@ export default function Reports() {
                                 </span>
                               )}
 
-                              <span
-                                className={`reports-history-status-dot reports-history-status-dot--${
-                                  statusClass === "paid"
-                                    ? "paid"
-                                    : statusClass === "advance"
-                                      ? "positive"
-                                      : statusClass === "due"
-                                        ? "negative"
-                                        : "pending"
-                                }`}
-                              />
-
                               <strong>{translateMonth(entry.monthName)}</strong>
                             </span>
                           </td>

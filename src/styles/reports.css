@@ -965,141 +965,332 @@
   }
 }
 
+/* Mobile - Expanded payment row */
 @media (max-width: 768px) {
-  .reports-summary-grid--overview {
-    grid-template-columns: 1fr;
-    gap: 10px;
-  }
-  .reports-summary-card {
-    width: 100%;
-    min-height: 72px;
-    flex-direction: row;
-    align-items: center;
-    gap: 12px;
-    padding: 10px 12px;
-    border-radius: 16px;
-    border: 1px solid rgba(255, 255, 255, 0.06);
-    background: rgba(255, 255, 255, 0.03);
-    box-shadow: none;
-    overflow: hidden;
-  }
-  .reports-summary-icon {
-    width: 44px;
-    height: 44px;
-    min-width: 44px;
-    border-radius: 12px;
-    font-size: 20px;
-    flex-shrink: 0;
-  }
-  .reports-summary-copy {
+  /* ===========================
+     Payment History Header
+  ============================ */
+
+  .reports-history-head {
     display: flex;
-    flex: 1 1 auto;
     flex-direction: column;
-    justify-content: center;
-    gap: 2px;
+    align-items: flex-start;
+    gap: 12px;
+  }
+
+  .reports-history-controls {
+    width: 100%;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .reports-history-buttons {
+    display: flex;
+    gap: 8px;
+  }
+
+  .reports-history-btn {
+    padding: 10px 14px;
+    font-size: 14px;
+  }
+
+  /* ===========================
+     Main Table
+  ============================ */
+
+  .reports-history-table-wrap {
+    width: 100%;
+    overflow-x: hidden;
+  }
+
+  .reports-history-table {
+    width: 100%;
+    table-layout: fixed;
+    min-width: 100% !important;
+  }
+
+  /* Hide desktop columns */
+
+  .reports-history-table th:nth-child(2),
+  .reports-history-table td:nth-child(2),
+  .reports-history-table th:nth-child(3),
+  .reports-history-table td:nth-child(3),
+  .reports-history-table th:nth-child(4),
+  .reports-history-table td:nth-child(4),
+  .reports-history-table th:nth-child(5),
+  .reports-history-table td:nth-child(5) {
+    display: none;
+  }
+
+  /* Remaining columns */
+
+  .reports-history-table th:nth-child(1),
+  .reports-history-table td:nth-child(1) {
+    width: 42%;
+    padding: 10px 8px;
+  }
+
+  .reports-history-table th:nth-child(6),
+  .reports-history-table td:nth-child(6) {
+    width: 28%;
+    text-align: center;
+    padding: 10px 4px;
+    white-space: nowrap;
+  }
+
+  .reports-history-table th:nth-child(7),
+  .reports-history-table td:nth-child(7) {
+    width: 30%;
+    text-align: center;
+    padding: 10px 4px;
+    white-space: nowrap;
+  }
+
+  .reports-history-month-cell {
+    display: flex;
+    align-items: center;
+    gap: 6px;
     min-width: 0;
   }
-  .reports-summary-number {
+
+  .reports-history-month-cell strong {
     font-size: 16px;
-    font-weight: 800;
-    line-height: 1.15;
-    color: #f7fbf8;
   }
-  .reports-summary-label {
-    font-size: 11px;
-    font-weight: 700;
-    letter-spacing: 0.08em;
-    text-transform: uppercase;
-    color: rgba(255, 255, 255, 0.6);
+
+  .reports-month-arrow {
+    font-size: 14px;
+    flex-shrink: 0;
   }
-  .reports-toolbar {
+
+  .status-paid,
+  .status-due,
+  .status-advance,
+  .status-pending,
+  .status-partial {
+    font-size: 10px;
+    padding: 4px 8px;
+    white-space: nowrap;
+  }
+
+  /* ===========================
+     Expanded Transactions
+  ============================ */
+
+  .reports-transactions {
     width: 100%;
-    box-sizing: border-box;
+    padding: 8px;
+    overflow: hidden;
+  }
+
+  .reports-transaction {
+    display: grid;
+    grid-template-columns: 75px 1fr 70px;
+    align-items: center;
+    gap: 8px;
+
+    width: 100%;
+    max-width: 100%;
     padding: 10px;
-    gap: 10px;
-  }
-  .reports-toolbar-row {
-    display: flex;
-    flex-wrap: wrap;
-    width: 100%;
-    gap: 12px;
-    align-items: center;
-  }
-  .reports-search-field--wide {
-    flex-basis: 100%;
-    width: 100%;
-    min-width: 0;
-  }
-  .reports-year-field {
-    flex: 0 0 35%;
-    width: auto;
-    min-width: 0;
-  }
-  .reports-export-btn {
-    flex: 1;
-    width: auto;
-    min-width: 0;
-  }
-  .reports-customer-list-shell {
-    width: 100%;
+
     box-sizing: border-box;
-  }
-  .reports-customer-list {
-    width: 100%;
-    max-height: 320px;
-    box-sizing: border-box;
-  }
-  .reports-customer-item {
-    width: 100%;
-    min-width: 0;
-  }
-  .reports-summary-grid {
-    display: flex;
-    flex-direction: column;
-    gap: 10px;
-  }
-  .reports-summary-card {
-    width: 100%;
-    min-height: 72px;
-    flex-direction: row;
-    align-items: center;
-    gap: 12px;
-    padding: 10px 12px;
-    border-radius: 16px;
-    border: 1px solid rgba(255, 255, 255, 0.06);
-    background: rgba(255, 255, 255, 0.03);
-    box-shadow: none;
     overflow: hidden;
   }
-  .reports-summary-icon {
-    width: 44px;
-    height: 44px;
-    min-width: 44px;
-    border-radius: 12px;
-    font-size: 20px;
-    flex-shrink: 0;
-  }
-  .reports-summary-copy {
+
+  /* Date */
+
+  .reports-payment-date {
     display: flex;
-    flex: 1 1 auto;
     flex-direction: column;
     justify-content: center;
-    gap: 2px;
     min-width: 0;
   }
-  .reports-summary-number {
+
+  .reports-payment-day {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 13px;
+    font-weight: 600;
+    white-space: nowrap;
+  }
+
+  /* Hide year on mobile */
+
+  .reports-payment-year {
+    display: none;
+  }
+
+  /* Amount */
+
+  .reports-payment-amount {
+    display: block !important;
+    text-align: center;
     font-size: 16px;
-    font-weight: 800;
-    line-height: 1.15;
-    color: #f7fbf8;
-  }
-  .reports-summary-label {
-    font-size: 11px;
     font-weight: 700;
-    letter-spacing: 0.08em;
-    text-transform: uppercase;
-    color: rgba(255, 255, 255, 0.6);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    min-width: 0;
   }
+
+  /* Status */
+
+  .reports-payment-status {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    min-width: 0;
+  }
+
+  .reports-payment-status span {
+    font-size: 10px;
+    padding: 3px 8px;
+  }
+
+  .reports-void-message {
+    margin-top: 2px;
+    font-size: 9px;
+    line-height: 1.2;
+    text-align: right;
+    word-break: break-word;
+  }
+}
+
+.reports-summary-grid--overview {
+  grid-template-columns: 1fr;
+  gap: 10px;
+}
+.reports-summary-card {
+  width: 100%;
+  min-height: 72px;
+  flex-direction: row;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 12px;
+  border-radius: 16px;
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  background: rgba(255, 255, 255, 0.03);
+  box-shadow: none;
+  overflow: hidden;
+}
+.reports-summary-icon {
+  width: 44px;
+  height: 44px;
+  min-width: 44px;
+  border-radius: 12px;
+  font-size: 20px;
+  flex-shrink: 0;
+}
+.reports-summary-copy {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  justify-content: center;
+  gap: 2px;
+  min-width: 0;
+}
+.reports-summary-number {
+  font-size: 16px;
+  font-weight: 800;
+  line-height: 1.15;
+  color: #f7fbf8;
+}
+.reports-summary-label {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.6);
+}
+.reports-toolbar {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 10px;
+  gap: 10px;
+}
+.reports-toolbar-row {
+  display: flex;
+  flex-wrap: wrap;
+  width: 100%;
+  gap: 12px;
+  align-items: center;
+}
+.reports-search-field--wide {
+  flex-basis: 100%;
+  width: 100%;
+  min-width: 0;
+}
+.reports-year-field {
+  flex: 0 0 35%;
+  width: auto;
+  min-width: 0;
+}
+.reports-export-btn {
+  flex: 1;
+  width: auto;
+  min-width: 0;
+}
+.reports-customer-list-shell {
+  width: 100%;
+  box-sizing: border-box;
+}
+.reports-customer-list {
+  width: 100%;
+  max-height: 320px;
+  box-sizing: border-box;
+}
+.reports-customer-item {
+  width: 100%;
+  min-width: 0;
+}
+.reports-summary-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.reports-summary-card {
+  width: 100%;
+  min-height: 72px;
+  flex-direction: row;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 12px;
+  border-radius: 16px;
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  background: rgba(255, 255, 255, 0.03);
+  box-shadow: none;
+  overflow: hidden;
+}
+.reports-summary-icon {
+  width: 44px;
+  height: 44px;
+  min-width: 44px;
+  border-radius: 12px;
+  font-size: 20px;
+  flex-shrink: 0;
+}
+.reports-summary-copy {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  justify-content: center;
+  gap: 2px;
+  min-width: 0;
+}
+.reports-summary-number {
+  font-size: 16px;
+  font-weight: 800;
+  line-height: 1.15;
+  color: #f7fbf8;
+}
+.reports-summary-label {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.6);
 }
 
 @media (max-width: 780px) {
@@ -1284,76 +1475,42 @@
   padding: 12px;
 }
 
-/* Transaction Card */
+/* Desktop */
 .reports-transaction {
   display: grid;
   grid-template-columns: 120px 1fr 140px;
   align-items: center;
   gap: 14px;
-
   padding: 10px 14px;
-
   border-radius: 12px;
-
   background: rgba(255, 255, 255, 0.035);
-
   border: 1px solid rgba(255, 255, 255, 0.06);
-
-  transition: all 0.2s ease;
+  transition: 0.2s;
 }
-
-.reports-transaction:hover {
-  background: rgba(255, 255, 255, 0.05);
-  border-color: rgba(59, 130, 246, 0.2);
-}
-
-/* Date */
 
 .reports-payment-date {
   display: flex;
   flex-direction: column;
-  gap: 1px;
 }
 
 .reports-payment-day {
   display: flex;
   align-items: center;
   gap: 6px;
-
   font-size: 15px;
   font-weight: 700;
-  color: #fff;
-}
-
-.reports-payment-day svg {
-  color: #60a5fa;
-  font-size: 15px;
 }
 
 .reports-payment-year {
   margin-left: 21px;
-
   font-size: 11px;
-  font-weight: 600;
-
-  letter-spacing: 0.08em;
-
-  color: rgba(255, 255, 255, 0.55);
 }
-
-/* Amount */
 
 .reports-payment-amount {
   text-align: center;
-
   font-size: 19px;
-
   font-weight: 700;
-
-  color: #fff;
 }
-
-/* Status */
 
 .reports-payment-status {
   display: flex;
@@ -1362,20 +1519,54 @@
   gap: 4px;
 }
 
-/* Voided Reason */
-
 .reports-void-message {
   margin-top: 2px;
-
   font-size: 11px;
-
-  color: #ff9b9b;
-
-  font-style: italic;
-
   text-align: right;
+}
 
-  line-height: 1.3;
+/* ---------- MOBILE ---------- */
+
+@media (max-width: 768px) {
+  .reports-transaction {
+    grid-template-columns: 70px 1fr 72px;
+
+    gap: 8px;
+
+    padding: 10px;
+
+    width: 100%;
+  }
+
+  .reports-payment-day {
+    font-size: 13px;
+  }
+
+  .reports-payment-year {
+    display: none;
+  }
+
+  .reports-payment-amount {
+    font-size: 15px;
+
+    text-align: center;
+
+    white-space: nowrap;
+  }
+
+  .reports-payment-status {
+    align-items: flex-end;
+  }
+
+  .reports-payment-status span {
+    font-size: 10px;
+
+    padding: 3px 8px;
+  }
+
+  .reports-void-message {
+    font-size: 9px;
+  }
 }
 
 /* Voided */
