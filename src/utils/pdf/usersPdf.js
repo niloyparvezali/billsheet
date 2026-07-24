@@ -34,7 +34,9 @@ export function exportUsersPdf({
     ]),
   });
 
-  drawFooter();
+  pdf.setPage(pdf.getNumberOfPages());
+
+drawFooter();
 
   pdf.save("Customer List.pdf");
 }

@@ -42,7 +42,12 @@ export default function PaymentModal({ data, month, year, ownerId, close }) {
       month,
       year,
     });
-    return computePaymentSummary({ bill, payments: monthPayments });
+    return computePaymentSummary({
+      bill,
+      payments: monthPayments,
+      openingDue: Number(data.openingDue || 0),
+      openingAdvance: Number(data.openingAdvance || 0),
+    });
   }, [bill, data.user.id, data.user.name, month, payments, year]);
 
   const alreadyPaid = Number(paymentSummary.totalPaid || 0);
@@ -86,27 +91,29 @@ export default function PaymentModal({ data, month, year, ownerId, close }) {
       .split(" ")[0]
       .slice(0, 5);
     const notes = addedDue > 0 ? `Additional due: ${addedDue}` : "";
-    const previousPaid = Number(alreadyPaid || 0);
-    const billingLedger = buildBillingLedger({
+    const previousPaid = Number(paymentSummary.totalPaid || 0);
+    const previousBalance =
+      Number(paymentSummary.previousAdvance || 0) -
+      Number(paymentSummary.previousDue || 0);
+
+    const endingBalance = previousBalance + paid - bill - addedDue;
+
+    const currentDue = endingBalance < 0 ? Math.abs(endingBalance) : 0;
+
+    const currentAdvance = endingBalance > 0 ? endingBalance : 0;
+
+    const currentPaid = Math.min(
       bill,
-      previousDue: outstandingBalance,
-      carryForward,
-      paid,
-      additionalDue: addedDue,
-    });
-    const currentPaid = billingLedger.currentBillPaid;
-    const currentDue =
-      billingLedger.currentBillRemaining + billingLedger.previousDueRemaining;
-    const currentAdvance = billingLedger.carryForwardNext;
-    const transactionStatus =
-      billingLedger.currentBillPaid === 0
-        ? "Pending"
-        : billingLedger.currentBillPaid < bill
-          ? "Partial"
-          : billingLedger.previousDueRemaining === 0 &&
-              billingLedger.carryForwardNext > 0
-            ? "Advance"
-            : "Paid";
+      Number(paymentSummary.previousAdvance || 0) + paid,
+    );
+
+    let transactionStatus = "Paid";
+
+    if (currentAdvance > 0) {
+      transactionStatus = "Advance";
+    } else if (currentDue > 0) {
+      transactionStatus = paid > 0 ? "Partial" : "Due";
+    }
     const transaction = buildTransactionRecord({
       userId: data.user.id,
       customerId: data.user.customerId,
@@ -118,9 +125,9 @@ export default function PaymentModal({ data, month, year, ownerId, close }) {
       billAmount: bill,
       previousPaid,
       currentPaid,
-      previousDue: outstandingBalance,
+      previousDue: Number(paymentSummary.previousDue || 0),
       currentDue,
-      previousAdvance: carryForward,
+      previousAdvance: Number(paymentSummary.previousAdvance || 0),
       currentAdvance,
       status: transactionStatus,
       remarks: notes,
@@ -158,7 +165,7 @@ export default function PaymentModal({ data, month, year, ownerId, close }) {
       paymentTime: paymentTimeText,
       paymentType: "Payment",
       createdBy: ownerId || "",
-      status: "Completed",
+      status: transactionStatus,
       notes,
       ...transaction,
     };

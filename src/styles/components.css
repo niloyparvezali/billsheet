@@ -3,19 +3,14 @@
   align-items: center;
   justify-content: center;
   gap: 8px;
-
   min-height: 42px;
   padding: 10px 16px;
-
   border: 1px solid transparent;
   border-radius: var(--radius-md);
-
   cursor: pointer;
   user-select: none;
-
   font-size: 14px;
   font-weight: 600;
-
   transition:
     background 0.2s ease,
     color 0.2s ease,
@@ -36,104 +31,102 @@
   opacity: 0.6;
   cursor: not-allowed;
 }
+
 .btn-primary {
   color: #fff;
-  background: linear-gradient(135deg, var(--accent), var(--accent-hover));
-  box-shadow: 0 12px 28px rgba(0, 0, 0, 0.16);
+  background: linear-gradient(135deg, var(--primary), var(--primary-hover));
+  box-shadow: var(--primary-shadow);
 }
+
 .btn-secondary {
-  background: var(--card-bg);
-  color: var(--text-primary);
-  border-color: var(--card-border);
+  border-color: var(--divider);
+  background: var(--card);
+  color: var(--text);
   box-shadow: 0 8px 18px rgba(0, 0, 0, 0.08);
 }
+
 .btn-secondary:hover {
-  background: var(--surface);
+  border-color: var(--primary);
+  background: color-mix(in srgb, var(--surface) 90%, var(--primary) 10%);
 }
+
 .btn-primary:active,
 .btn-secondary:active {
   transform: translateY(0);
 }
+
 .btn-danger {
   background: var(--danger);
-
-  color: white;
+  color: #fff;
 }
+
 .btn-success {
   background: var(--success);
-
-  color: white;
+  color: #fff;
 }
+
 .btn-outline {
+  border-color: var(--divider);
   background: transparent;
-
-  color: var(--text-primary);
-
-  border-color: var(--card-border);
+  color: var(--text);
 }
+
 .btn-icon {
-  width: 38px;
-
-  height: 38px;
-
   display: grid;
-
   place-items: center;
-
+  width: 38px;
+  height: 38px;
+  border: 1px solid var(--divider);
   border-radius: var(--radius-md);
-
-  border: 1px solid var(--card-border);
-
-  background: var(--card-bg);
-
-  color: var(--text-secondary);
-
-  transition: 0.2s;
+  background: var(--card);
+  color: var(--text-muted);
+  transition:
+    background 0.2s,
+    border-color 0.2s,
+    color 0.2s;
 }
-.btn-icon:hover {
-  color: var(--accent);
 
-  border-color: var(--accent);
+.btn-icon:hover {
+  border-color: var(--primary);
+  background: color-mix(in srgb, var(--card) 90%, var(--primary) 10%);
+  color: var(--primary);
 }
 
 /* ===========================================
    INPUT SYSTEM
 =========================================== */
+
 .input,
 input,
 textarea,
 select {
   width: 100%;
-
   padding: 10px 14px;
-
   border: 1px solid var(--input-border);
   border-radius: var(--radius-md);
-
   background: var(--input-bg);
-
-  color: var(--text-primary);
-
+  color: var(--text);
   font-size: 14px;
-
   outline: none;
-
   transition:
     border-color 0.2s ease,
     box-shadow 0.2s ease,
     background 0.2s ease;
 }
+
 .input:focus,
 input:focus,
 textarea:focus,
 select:focus {
-  border-color: var(--accent);
-  box-shadow: 0 0 0 3px var(--accent-shadow);
+  border-color: var(--primary);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--primary) 22%, transparent);
 }
+
 input::placeholder,
 textarea::placeholder {
-  color: var(--text-secondary);
+  color: var(--text-muted);
 }
+
 input:disabled,
 textarea:disabled,
 select:disabled {
@@ -142,228 +135,257 @@ select:disabled {
 }
 
 /* ===========================================
-   unerversal Card System
+   Universal Card System
 =========================================== */
+
 .card {
-  background: var(--card-bg);
-
-  border: 1px solid var(--card-border);
-
+  border: 1px solid var(--divider);
   border-radius: var(--radius-lg);
-
-  box-shadow: var(--shadow);
-
-  color: var(--text-primary);
+  background: var(--card);
+  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.1);
+  color: var(--text);
 }
+
 .badge {
   display: inline-flex;
   align-items: center;
-
   padding: 6px 12px;
-
   border-radius: var(--radius-pill);
-
   font-size: 12px;
   font-weight: 600;
 }
+
 .badge-success {
-  background: var(--success-bg);
+  background: color-mix(in srgb, var(--success) 14%, transparent);
   color: var(--success);
 }
 
 .badge-danger {
-  background: var(--danger-bg);
+  background: color-mix(in srgb, var(--danger) 14%, transparent);
   color: var(--danger);
 }
 
 .badge-warning {
-  background: var(--warning-bg);
+  background: color-mix(in srgb, var(--warning) 14%, transparent);
   color: var(--warning);
 }
+
 /* ===========================================
    Table System
 =========================================== */
+
 table {
-  background: var(--card-bg);
-  border: 1px solid var(--card-border);
-  border-radius: var(--radius-lg);
   overflow: hidden;
+  border: 1px solid var(--divider);
+  border-radius: var(--radius-lg);
+  background: var(--card);
 }
 
 th {
   padding: 14px 16px;
-  text-align: left;
-  color: var(--text-secondary);
-  border-bottom: 1px solid var(--card-border);
+  border-bottom: 1px solid var(--divider);
+  color: var(--text-muted);
   font-weight: 600;
+  text-align: left;
 }
 
 td {
   padding: 14px 16px;
-  color: var(--text-primary);
-  border-bottom: 1px solid var(--card-border);
+  border-bottom: 1px solid var(--divider);
+  color: var(--text);
 }
 
-tbody tr:hover {
-  background: color-mix(in srgb, var(--card-bg) 85%, var(--accent) 15%);
-}
 tbody tr {
-  transition: 0.2s;
+  transition: background 0.2s;
 }
 
 tbody tr:hover {
-  background: rgba(99, 102, 241, 0.05);
+  background: color-mix(in srgb, var(--card) 88%, var(--primary) 12%);
 }
 
 .transaction-row--voided-original {
-  background: linear-gradient(90deg, rgba(253, 224, 71, 0.28), rgba(253, 224, 71, 0.1));
-  border-left: 4px solid #dc2626;
+  border-left: 4px solid var(--danger);
+  background: linear-gradient(
+    90deg,
+    color-mix(in srgb, var(--warning) 24%, transparent),
+    color-mix(in srgb, var(--warning) 10%, transparent)
+  );
   opacity: 0.92;
 }
 
 .transaction-row--voided-original:hover {
-  background: linear-gradient(90deg, rgba(253, 224, 71, 0.34), rgba(253, 224, 71, 0.14));
+  background: linear-gradient(
+    90deg,
+    color-mix(in srgb, var(--warning) 30%, transparent),
+    color-mix(in srgb, var(--warning) 14%, transparent)
+  );
 }
 
 /* ===========================================
    Search System
 =========================================== */
+
 .search {
   display: flex;
   align-items: center;
   gap: 10px;
-
   width: 100%;
   min-width: 0;
   padding: 10px 14px;
-
-  background: var(--input-bg);
   border: 1px solid var(--input-border);
   border-radius: var(--radius-md);
-  color: var(--text-primary);
-  transition: 0.2s;
+  background: var(--input-bg);
+  color: var(--text);
+  transition:
+    border-color 0.2s,
+    box-shadow 0.2s,
+    background 0.2s;
 }
-.search:focus-within {
-  border-color: var(--accent);
-  box-shadow: 0 0 0 3px var(--accent-shadow);
-}
-.search input {
-  border: 0;
-  width: 100%;
-  outline: 0;
 
-  background: transparent;
-  color: var(--text-primary);
+.search:focus-within {
+  border-color: var(--primary);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--primary) 22%, transparent);
 }
+
+.search input {
+  width: 100%;
+  border: 0;
+  outline: 0;
+  background: transparent;
+  color: var(--text);
+}
+
 .search input:focus {
   border: none;
-  box-shadow: none;
   outline: none;
+  box-shadow: none;
 }
 
 /* ===========================================
-   Search System
+   Button Rows
 =========================================== */
+
 .button-row {
   display: flex;
+  justify-content: flex-end;
   gap: 14px;
   flex-wrap: wrap;
-  justify-content: flex-end;
   margin-bottom: 20px;
 }
+
 .transaction-actions {
   display: flex;
+  align-items: center;
+  justify-content: flex-end;
   gap: 14px;
   flex-wrap: wrap;
-  justify-content: flex-end;
-  align-items: center;
 }
+
 .button-row button,
 .transaction-actions button {
   min-width: 140px;
+  min-height: 46px;
   padding: 13px 20px;
   border-radius: 16px;
   transition:
     transform 0.2s ease,
     box-shadow 0.2s ease;
-  min-height: 46px;
 }
+
 .transaction-actions button {
   flex: 0 1 auto;
 }
+
 .button-row button:hover,
 .transaction-actions button:hover {
   transform: translateY(-1px);
-  box-shadow: 0 12px 26px rgba(0, 0, 0, 0.14);
+  box-shadow: var(--primary-shadow);
 }
+
 .button-row button {
   font-weight: 600;
-}
-/* ===========================================
+} /* ===========================================
    Table Wrapper
 =========================================== */
+
 .table-wrap {
   padding: 0;
   overflow: clip;
   overflow-x: auto;
   border-radius: 18px;
 }
+
 .table-wrap th,
 .table-wrap td {
   padding: 18px 20px;
   vertical-align: middle;
 }
+
 .table-wrap thead {
   background: transparent;
 }
 
 .table-wrap tbody tr {
   background: var(--surface);
-  border: 1px solid rgba(148, 163, 184, 0.18);
+  border: 1px solid var(--divider);
   border-radius: 18px;
-  box-shadow: 0 10px 24px rgba(15, 23, 42, 0.06);
+  box-shadow: 0 10px 24px rgba(0, 0, 0, 0.08);
   transition:
     transform 0.2s ease,
-    box-shadow 0.2s ease;
+    box-shadow 0.2s ease,
+    background 0.2s ease,
+    border-color 0.2s ease;
 }
+
+.table-wrap tbody tr:hover {
+  border-color: var(--primary);
+  background: color-mix(in srgb, var(--surface) 90%, var(--primary) 10%);
+  box-shadow: var(--primary-shadow);
+}
+
 .table-wrap td.actions {
   text-align: right;
 }
+
 /* ===========================================
    Floating Search Button Styles
 =========================================== */
+
 .search-fab {
   position: fixed;
-  top: 92px;
-  right: 6px;
-
-  width: 50px;
-  height: 50px;
+  top: 96px;
+  right: 28px;
+  z-index: 1000;
 
   display: flex;
   align-items: center;
   justify-content: center;
 
-  border: 1px solid rgba(255, 255, 255, 0.16);
+  width: 52px;
+  height: 52px;
+
+  margin-left: auto;
+
+  border: none;
   border-radius: 50%;
 
-  background: rgba(255, 255, 255, 0.12);
-  color: rgba(255, 255, 255, 0.96);
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
-
-  box-shadow: 0 18px 40px rgba(0, 0, 0, 0.2);
-
   cursor: pointer;
-  z-index: 1000;
 
-  transition: transform 220ms ease, box-shadow 220ms ease, background 220ms ease;
+  background: linear-gradient(135deg, var(--primary), var(--primary-hover));
+  color: #fff;
+
+  box-shadow: var(--primary-shadow);
+
+  transition:
+    transform 0.2s ease,
+    box-shadow 0.2s ease,
+    background 0.2s ease;
 }
 
 .search-fab:hover {
-  transform: translateY(-2px) scale(1.04);
-  background: rgba(255, 255, 255, 0.18);
-  box-shadow: 0 22px 44px rgba(0, 0, 0, 0.25);
+  transform: translateY(-2px);
+  background: linear-gradient(135deg, var(--primary-hover), var(--primary));
+  box-shadow: var(--primary-shadow);
 }
 
 .search-fab:active {
@@ -372,13 +394,15 @@ tbody tr:hover {
 
 .search-fab:focus-visible {
   outline: none;
-  box-shadow: 0 0 0 2px rgba(125, 211, 252, 0.35), 0 22px 44px rgba(0, 0, 0, 0.25);
+  box-shadow:
+    0 0 0 3px color-mix(in srgb, var(--primary) 30%, transparent),
+    var(--primary-shadow);
 }
 
 .search-fab svg {
-  width: 18px;
-  height: 18px;
-  stroke-width: 2;
+  width: 20px;
+  height: 20px;
+  stroke-width: 2.4;
   color: inherit;
 }
 
@@ -390,151 +414,131 @@ tbody tr:hover {
     height: 48px;
   }
 }
+
 .actions {
   white-space: nowrap;
 }
+
 .actions button {
-  background: #f0f1fb;
-  color: #5c5e7f;
-  border-radius: 7px;
-  padding: 7px;
   margin-left: 4px;
+  padding: 7px;
+  border-radius: 7px;
+  background: var(--surface);
+  color: var(--text-muted);
+  border: 1px solid var(--divider);
+  transition:
+    background 0.2s,
+    color 0.2s,
+    border-color 0.2s;
 }
+
+.actions button:hover {
+  background: color-mix(in srgb, var(--surface) 88%, var(--primary) 12%);
+  border-color: var(--primary);
+  color: var(--primary);
+}
+
 .actions .danger {
-  color: #dd4d58;
-  background: #fff0f1;
+  background: color-mix(in srgb, var(--danger) 12%, transparent);
+  border-color: color-mix(in srgb, var(--danger) 25%, transparent);
+  color: var(--danger);
 }
+
 .button-row {
   display: flex;
+  justify-content: flex-end;
   gap: 14px;
   flex-wrap: wrap;
-  justify-content: flex-end;
   margin-bottom: 20px;
 }
+
 .status {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-
   padding: 6px 12px;
-
   border-radius: 999px;
-
   font-size: 13px;
   font-weight: 700;
 }
+
 .status.completed,
 .status.complete,
 .status.paid {
   color: var(--status-paid-text);
   background: var(--status-paid-bg);
 }
+
 .status.active {
   color: var(--status-paid-text);
   background: var(--status-paid-bg);
 }
+
 .status.inactive {
   color: var(--status-due-text);
   background: var(--status-due-bg);
 }
+
 .status.pending {
   color: var(--status-pending-text);
   background: var(--status-pending-bg);
 }
+
 .status.advance {
   color: var(--status-advance-text);
   background: var(--status-advance-bg);
 }
+
 .status.partial {
   color: var(--status-partial-text);
   background: var(--status-partial-bg);
 }
+
 .status.due,
 .status.voided,
 .status.reversed {
   color: var(--status-due-text);
   background: var(--status-due-bg);
 }
+
 .tag {
-  font-size: 12px;
   padding: 6px 10px;
-  background: #eef2ff;
-  color: #3730a3;
   border-radius: var(--radius-xl);
+  background: color-mix(in srgb, var(--primary) 12%, transparent);
+  color: var(--primary);
+  font-size: 12px;
 }
+
 .empty {
   padding: 60px 20px;
-
+  color: var(--text-muted);
   text-align: center;
-
-  color: var(--text-secondary);
-}
-.search-fab {
-  position: fixed;
-  top: 96px;
-  right: 28px;
-
-  width: 52px;
-  height: 52px;
-
-  display: flex;
-  align-items: center;
-  justify-content: center;
-
-  margin-left: auto;
-
-  border: none;
-  border-radius: 50%;
-
-  cursor: pointer;
-
-  background: linear-gradient(135deg, var(--accent), var(--accent-hover));
-  color: #fff;
-
-  box-shadow: 0 12px 28px var(--accent-shadow);
-
-  z-index: 1000;
-
-  transition:
-    transform 0.2s ease,
-    box-shadow 0.2s ease;
 }
 
-.search-fab:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 16px 34px var(--accent-shadow);
-}
-
-.search-fab svg {
-  width: 20px;
-  height: 20px;
-  stroke-width: 2.4;
-  color: inherit;
-}
 .summary-subtitle {
   display: block;
   margin-top: 6px;
+  color: var(--text-muted);
   font-size: 12px;
-  color: var(--text-secondary);
 }
+
 .section-header {
   display: flex;
-  justify-content: space-between;
   align-items: flex-start;
+  justify-content: space-between;
   gap: 18px;
-
   padding: 22px 24px;
-
-  border-bottom: 1px solid var(--border);
+  border-bottom: 1px solid var(--divider);
 }
 
 .section-title h3 {
   margin: 0;
+  color: var(--text);
 }
 
 .section-title p {
   margin: 6px 0 0;
-  color: var(--text-secondary);
+  color: var(--text-muted);
 }
 
 .section-action {

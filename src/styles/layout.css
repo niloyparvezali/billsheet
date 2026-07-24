@@ -1,119 +1,136 @@
 html {
   font-family: "DM Sans", sans-serif;
-  color: var(--text-primary);
-  background: var(--page-bg);
+  color: var(--text);
+  background: var(--bg);
 }
+
 body {
   margin: 0;
-  color: inherit;
-  background: inherit;
   min-height: 100vh;
   overflow-x: hidden;
+  color: inherit;
+  background: inherit;
 }
+
 header {
-  height: 82px;
-  padding: 0 clamp(20px, 3vw, 38px);
-  background: var(--header-bg);
-  border-bottom: 1px solid #e7e8ef;
-  display: flex;
-  align-items: center;
-  gap: 16px;
-  justify-content: space-between;
   position: sticky;
   top: 0;
   z-index: 10;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  height: 82px;
+  padding: 0 clamp(20px, 3vw, 38px);
+  background: var(--surface);
+  border-bottom: 1px solid var(--divider);
 }
+
 .sidebar {
-  width: 252px;
-  background: var(--nav-bg);
-  color: var(--nav-text);
   position: fixed;
   inset: 0 auto 0 0;
-  padding: 24px 14px;
+  z-index: 10;
   display: flex;
   flex-direction: column;
-  z-index: 10;
+  width: 252px;
+  padding: 24px 14px;
+  background: var(--card);
+  color: var(--text);
 }
+
 .sidebar a {
-  color: var(--nav-text);
+  color: var(--text);
 }
+
 .sidebar a:hover {
-  background: var(--nav-hover);
+  background: color-mix(in srgb, var(--primary) 12%, transparent);
 }
+
 .sidebar a.active {
-  background: var(--nav-active);
-  color: white;
+  background: var(--primary);
+  color: #fff;
 }
+
 .sidebar-bottom {
   margin-top: auto;
-  border-top: 1px solid #303652;
   padding: 18px 8px 0;
+  border-top: 1px solid var(--divider);
 }
+
 .sidebar-bottom button {
-  background: none;
-  color: #cbd1e9;
   display: flex;
   gap: 9px;
   padding: 10px 2px;
+  background: none;
+  color: var(--text-muted);
 }
+
 .brand {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 0 12px 28px;
+  color: var(--text);
   font-size: 23px;
   font-weight: 700;
-  color: #fff;
-  padding: 0 12px 28px;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  gap: 10px;
 }
+
 .brand-text {
   display: inline-flex;
   align-items: center;
   gap: 0.4em;
   flex-wrap: wrap;
 }
+
 .brand-word {
   display: inline-block;
   line-height: 1;
 }
+
 .brand-word-bill {
-  color: #fff;
+  color: var(--text);
 }
+
 .brand-word-sheet {
   color: var(--primary);
   transition: color 280ms ease;
 }
+
 nav {
   display: grid;
   gap: 5px;
 }
+
 nav a {
   display: flex;
-  gap: 13px;
   align-items: center;
+  gap: 13px;
   padding: 12px 14px;
   border-radius: 10px;
-  color: #aeb6d7;
+  color: var(--text-muted);
   text-decoration: none;
 }
+
 nav a:hover,
 nav a.active {
-  background: #292e4c;
-  color: white;
+  background: color-mix(in srgb, var(--primary) 18%, transparent);
+  color: var(--text);
 }
+
 .page {
-  padding: 34px clamp(20px, 3vw, 38px);
   width: min(100%, 1600px);
   margin: 0 auto;
+  padding: 34px clamp(20px, 3vw, 38px);
 }
 
 .page-title {
   display: flex;
-  justify-content: space-between;
   align-items: center;
+  justify-content: space-between;
   gap: 18px;
-  margin-bottom: 18px;
   flex-wrap: wrap;
+  margin-bottom: 18px;
 }
 
 .page-title > div:first-child {
@@ -126,32 +143,34 @@ nav a.active {
   font-size: 30px;
   font-weight: 700;
   line-height: 1.15;
+  color: var(--text);
 }
 
 .page-title p {
   margin: 6px 0 0;
   font-size: 14px;
-  color: var(--text-secondary);
   line-height: 1.5;
+  color: var(--text-muted);
 }
+
 .page-header {
   display: flex;
-  justify-content: space-between;
   align-items: center;
+  justify-content: space-between;
   gap: 20px;
   margin-bottom: 28px;
 }
 
 .page-title h1 {
   margin: 0;
-  color: var(--text-primary);
+  color: var(--text);
   font-size: clamp(24px, 3vw, 34px);
   font-weight: 700;
 }
 
 .page-title p {
   margin: 6px 0 0;
-  color: var(--text-secondary);
+  color: var(--text-muted);
 }
 
 .grid-2 {
@@ -159,28 +178,32 @@ nav a.active {
   grid-template-columns: 1.3fr 1fr;
   gap: 22px;
 }
+
 .toolbar {
   display: flex;
-  gap: 12px;
-  margin-bottom: 16px;
-  flex-wrap: wrap;
   align-items: center;
   justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-bottom: 16px;
 }
+
 .panel {
-  padding: 24px;
-  background: var(--card-bg);
-  border-radius: 18px;
-  box-shadow: var(--shadow);
-  color: var(--text-primary);
-  border: 1px solid var(--card-border);
   margin-top: 16px;
+  padding: 24px;
+  border: 1px solid var(--divider);
+  border-radius: 18px;
+  background: var(--card);
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.1);
+  color: var(--text);
 }
+
 .panel h3 {
   margin: 0;
+  color: var(--text);
   font-size: 20px;
-  color: var(--text-primary);
 }
+
 .panel-header {
   display: flex;
   align-items: flex-start;
@@ -190,75 +213,84 @@ nav a.active {
 }
 
 .panel-header h3 {
+  margin: 0;
+  color: var(--text);
   font-size: clamp(20px, 2vw, 26px);
   font-weight: 700;
-  color: var(--text-primary);
-  margin: 0;
 }
+
 .monthly-panel .panel-header h3,
 .report-table-heading h3 {
-  color: var(--sheet-gold);
+  color: var(--primary);
 }
 
 .panel-header p {
-  font-size: 14px;
-  color: var(--text-secondary);
   margin: 6px 0 0;
+  color: var(--text-muted);
+  font-size: 14px;
 }
+
 .loader-screen {
-  min-height: 100vh;
   display: grid;
   place-items: center;
+  min-height: 100vh;
   padding: 24px;
   background:
-    radial-gradient(circle at top left, color-mix(in srgb, var(--primary) 18%, transparent), transparent 38%),
-    linear-gradient(135deg, color-mix(in srgb, var(--surface) 92%, var(--bg) 8%), var(--bg));
+    radial-gradient(
+      circle at top left,
+      color-mix(in srgb, var(--primary) 18%, transparent),
+      transparent 38%
+    ),
+    linear-gradient(
+      135deg,
+      color-mix(in srgb, var(--surface) 92%, var(--bg) 8%),
+      var(--bg)
+    );
   color: var(--text);
 }
 
 .loader-card {
+  display: grid;
+  justify-items: center;
+  gap: 20px;
   width: min(100%, 440px);
   padding: 32px;
-  border-radius: 28px;
   border: 1px solid var(--divider);
-  background: color-mix(in srgb, var(--surface) 82%, rgba(255,255,255,0.08));
-  box-shadow: 0 24px 70px rgba(0, 0, 0, 0.28);
+  border-radius: 28px;
+  background: color-mix(in srgb, var(--surface) 82%, transparent);
+  box-shadow: 0 24px 70px rgba(0, 0, 0, 0.18);
   backdrop-filter: blur(22px);
-  display: grid;
-  gap: 20px;
-  justify-items: center;
   text-align: center;
 }
-
 .loader-orbit {
   position: relative;
-  width: 96px;
-  height: 96px;
   display: grid;
   place-items: center;
+  width: 96px;
+  height: 96px;
 }
 
 .loader-core {
   width: 24px;
   height: 24px;
   border-radius: 999px;
-  background: linear-gradient(135deg, var(--primary), var(--accent));
+  background: linear-gradient(135deg, var(--primary), var(--primary-hover));
   box-shadow: 0 0 26px color-mix(in srgb, var(--primary) 45%, transparent);
 }
 
 .loader-ring {
   position: absolute;
   inset: 0;
-  border-radius: 50%;
   border: 2px solid transparent;
   border-top-color: var(--primary);
   border-right-color: color-mix(in srgb, var(--primary) 60%, var(--text));
+  border-radius: 50%;
   animation: loader-spin 1.2s linear infinite;
 }
 
 .loader-ring.ring-two {
   inset: 10px;
-  border-top-color: var(--accent);
+  border-top-color: var(--primary-hover);
   border-right-color: transparent;
   animation-duration: 1.6s;
   animation-direction: reverse;
@@ -274,27 +306,27 @@ nav a.active {
   align-self: center;
   padding: 7px 10px;
   border-radius: 999px;
+  background: color-mix(in srgb, var(--primary) 14%, transparent);
+  color: var(--primary);
   font-size: 0.73rem;
   font-weight: 700;
   letter-spacing: 0.24em;
   text-transform: uppercase;
-  color: var(--primary);
-  background: color-mix(in srgb, var(--primary) 14%, transparent);
 }
 
 .loader-copy h1 {
   margin: 0;
+  color: var(--text);
   font-size: clamp(1.2rem, 2.6vw, 1.5rem);
   font-weight: 700;
   letter-spacing: -0.02em;
-  color: var(--text);
 }
 
 .loader-copy p {
   margin: 0;
+  color: var(--text-muted);
   font-size: 0.95rem;
   line-height: 1.6;
-  color: var(--text-muted);
 }
 
 @keyframes loader-spin {
@@ -313,6 +345,7 @@ nav a.active {
   .sidebar {
     width: 220px;
   }
+
   main {
     margin-left: 220px;
   }
@@ -323,16 +356,20 @@ nav a.active {
     width: min(84vw, 270px);
     padding: 20px 12px;
   }
+
   main {
     margin-left: 0;
   }
+
   header {
     min-height: 74px;
     padding: 0 24px;
   }
+
   .page {
     padding: 24px 20px;
   }
+
   .page-title {
     align-items: flex-start;
   }
@@ -343,22 +380,28 @@ nav a.active {
     transform: translateX(-100%);
     transition: transform 0.24s ease;
   }
+
   .sidebar.open {
     transform: none;
   }
+
   .mobile-only {
     display: grid;
   }
+
   header {
     height: 70px;
     padding: 0 16px;
   }
+
   .page {
     padding: 20px 16px;
   }
+
   .page-title h2 {
     font-size: clamp(20px, 4vw, 24px);
   }
+
   .page-title p {
     max-width: 100%;
   }
@@ -369,11 +412,13 @@ nav a.active {
     min-height: 66px;
     padding: 0 12px;
   }
+
   .page {
     padding: 18px 12px;
   }
+
   .brand {
-    font-size: 20px;
     padding-inline: 6px;
+    font-size: 20px;
   }
 }

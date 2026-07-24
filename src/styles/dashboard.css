@@ -1,22 +1,20 @@
-/* ===========================================
-   .toggle-
-=========================================== */
 .monthly-panel .dashboard-summary {
   position: relative;
   z-index: 2;
 }
+
 .dashboard-layout {
   display: grid;
-  gap: 26px;
   width: 100%;
+  gap: 26px;
 }
 
 .dashboard-page .stats {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 16px;
-  margin-bottom: 18px;
   align-items: stretch;
+  margin-bottom: 18px;
 }
 
 .dashboard-page .stat {
@@ -29,18 +27,18 @@
 
 .dashboard-page .dashboard-summary {
   display: grid;
-  gap: 16px;
-  margin-top: 24px;
   grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 16px;
   align-items: stretch;
+  margin-top: 24px;
 }
 
 .dashboard-page .summary-card {
-  min-height: 100%;
   display: flex;
   flex-direction: column;
   justify-content: center;
   gap: 8px;
+  min-height: 100%;
   overflow: hidden;
 }
 
@@ -56,26 +54,28 @@
   width: min(230px, 100%);
   max-width: 230px;
   flex-shrink: 0;
-  background: var(--card-bg);
-  border: 1px solid var(--card-border);
-  border-radius: 14px;
   overflow: hidden;
+  border: 1px solid var(--divider);
+  border-radius: 14px;
+  background: var(--card);
 }
 
 .dashboard-page .chart-nav button {
   flex: 1;
+  padding: 10px 14px;
   border: none;
   background: transparent;
-  color: var(--text-secondary);
-  padding: 10px 14px;
-  cursor: pointer;
+  color: var(--text-muted);
   font-size: 13px;
   font-weight: 600;
-  transition: 0.25s;
+  cursor: pointer;
+  transition:
+    background 0.25s,
+    color 0.25s;
 }
 
 .dashboard-page .chart-nav button.active {
-  background: var(--accent);
+  background: var(--primary);
   color: #fff;
 }
 
@@ -108,20 +108,27 @@
 }
 
 .dashboard-page .sheet-circle {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
   width: 42px;
   height: 42px;
+  border: 1px solid var(--divider);
   border-radius: 50%;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  background: linear-gradient(145deg, rgba(255,255,255,0.12), rgba(255,255,255,0.04));
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
-  border: 1px solid rgba(255,255,255,0.1);
-  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.22), inset 0 1px 1px rgba(255,255,255,0.18);
-  color: #fff;
-  transition: 0.25s ease;
-  flex-shrink: 0;
+  background: linear-gradient(
+    145deg,
+    color-mix(in srgb, var(--surface) 88%, var(--primary) 12%),
+    color-mix(in srgb, var(--surface) 96%, var(--bg) 4%)
+  );
+  color: var(--text);
+  box-shadow:
+    0 8px 20px rgba(0, 0, 0, 0.12),
+    inset 0 1px 1px color-mix(in srgb, var(--text) 8%, transparent);
+  transition:
+    transform 0.25s ease,
+    box-shadow 0.25s ease,
+    border-color 0.25s ease;
 }
 
 .dashboard-page .sheet-circle svg {
@@ -131,12 +138,15 @@
 
 .dashboard-page .sheet-circle:hover {
   transform: translateY(-2px) scale(1.05);
+  border-color: var(--primary);
+  box-shadow: var(--primary-shadow);
 }
 
 @media (max-width: 1280px) {
   .dashboard-page .stats {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
+
   .dashboard-page .dashboard-summary {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
@@ -146,6 +156,7 @@
   .dashboard-page .dashboard-summary {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
+
   .dashboard-page .chart {
     height: clamp(250px, 38vh, 300px);
   }
@@ -156,34 +167,42 @@
     grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: 12px;
   }
+
   .dashboard-page .stat {
     min-height: 104px;
     padding: 16px;
   }
+
   .dashboard-page .dashboard-summary {
     grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: 12px;
   }
+
   .dashboard-page .panel-header {
     flex-direction: column;
     align-items: flex-start;
     gap: 12px;
   }
+
   .dashboard-page .chart-nav {
     width: 100%;
     max-width: none;
   }
+
   .dashboard-page .payment-row {
     grid-template-columns: minmax(0, 1.25fr) minmax(0, 0.8fr) minmax(0, 0.8fr);
     gap: 10px;
   }
+
   .dashboard-page .payment-row-head {
     display: none;
   }
+
   .dashboard-page .payment-row-item {
     padding: 14px 0;
     border-bottom: 1px solid var(--divider);
   }
+
   .dashboard-page .payment-date {
     align-items: flex-end;
     text-align: right;
@@ -195,6 +214,7 @@
     grid-template-columns: repeat(3, minmax(0, 1fr));
     gap: 8px;
   }
+
   .dashboard-page .stats .stat:nth-child(1),
   .dashboard-page .stats .stat:nth-child(2),
   .dashboard-page .stats .stat:nth-child(3) {
@@ -202,22 +222,26 @@
     padding: 12px;
     gap: 8px;
   }
+
   .dashboard-page .stats .stat:nth-child(4) {
     grid-column: 1 / -1;
     min-height: 92px;
     padding: 14px 16px;
   }
+
   .dashboard-page .stat h2 {
     font-size: 18px;
     line-height: 1.15;
   }
+
   .dashboard-page .stat p {
-    font-size: 11px;
     margin-bottom: 4px;
+    font-size: 11px;
   }
+
   .dashboard-page .chart {
-    height: 260px;
     min-height: 240px;
+    height: 260px;
   }
 }
 
@@ -226,30 +250,38 @@
     grid-template-columns: repeat(3, minmax(0, 1fr));
     gap: 8px;
   }
+
   .dashboard-page .dashboard-summary {
     grid-template-columns: 1fr;
   }
+
   .dashboard-page .stat {
     min-height: 86px;
     padding: 10px;
   }
+
   .dashboard-page .page-title h2 {
     font-size: 20px;
   }
+
   .dashboard-page .page-title p {
     font-size: 13px;
   }
+
   .dashboard-page .chart-nav {
     width: 100%;
   }
+
   .dashboard-page .chart-nav button {
-    padding: 10px 10px;
+    padding: 10px;
     font-size: 12px;
   }
+
   .dashboard-page .payment-row {
     grid-template-columns: 1fr;
     gap: 8px;
   }
+
   .dashboard-page .payment-date {
     align-items: flex-start;
     text-align: left;
@@ -258,9 +290,10 @@
 
 @media (max-width: 390px) {
   .dashboard-page .chart {
-    height: 240px;
     min-height: 220px;
+    height: 240px;
   }
+
   .dashboard-page .payment-row {
     grid-template-columns: 1fr;
     gap: 6px;
@@ -271,37 +304,37 @@
   display: flex;
   align-items: center;
   gap: 8px;
-
   padding: 10px 18px;
-
   border-radius: 12px;
-
-  background: var(--accent);
+  background: var(--primary);
   color: #fff;
-
   text-decoration: none;
-  font-weight: 600;
   font-size: 14px;
-
-  transition: 0.25s;
+  font-weight: 600;
+  transition:
+    transform 0.25s,
+    background 0.25s,
+    box-shadow 0.25s;
 }
+
 .dashboard-shortcut:hover {
   transform: translateY(-2px);
-  filter: brightness(1.05);
+  background: var(--primary-hover);
+  box-shadow: var(--primary-shadow);
 }
-
 .quick-actions .secondary {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
   width: 100%;
   height: 48px;
   padding: 0;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  gap: 8px;
+  border-radius: 10px;
   font-size: 15px;
   font-weight: 600;
-  border-radius: 10px;
 }
+
 /* ---------- Quick Guide ---------- */
 
 .quick-guide {
@@ -314,40 +347,64 @@
   display: flex;
   align-items: center;
   gap: 12px;
+  height: 44px;
+  margin-bottom: 6px;
   padding: 12px 14px;
+  border: 1px solid var(--divider);
   border-radius: var(--radius-md);
-  background: rgba(255, 255, 255, 0.05);
-  border: 1px solid rgba(255, 255, 255, 0.05);
-  transition: 0.25s;
+  background: var(--surface);
+  transition:
+    transform 0.25s,
+    background 0.25s,
+    border-color 0.25s,
+    box-shadow 0.25s;
 }
 
 .guide-item:hover {
   transform: translateX(5px);
-  background: rgba(255, 255, 255, 0.08);
+  border-color: var(--primary);
+  background: color-mix(in srgb, var(--surface) 90%, var(--primary) 10%);
+  box-shadow: var(--primary-shadow);
 }
 
 .guide-item svg {
-  color: #e7b329;
-  font-size: 18px;
   flex-shrink: 0;
+  color: var(--warning);
+  font-size: 18px;
 }
 
 .guide-item span {
+  color: var(--text);
   font-size: 14px;
   font-weight: 600;
-  color: #edf5ef;
-}
-.guide-item {
-  height: 44px;
-  margin-bottom: 6px;
 }
 
 .guide-item:last-of-type {
   margin-bottom: 18px;
 }
+
+.quick-action-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  min-height: 120px;
+  border: 1px solid var(--divider);
+  border-radius: 18px;
+  background: var(--card);
+  color: inherit;
+  text-decoration: none;
+  transition:
+    transform 0.25s,
+    box-shadow 0.25s,
+    border-color 0.25s,
+    background 0.25s;
+}
+
 .quick-action-card svg {
+  color: var(--primary);
   font-size: 28px;
-  color: var(--accent);
 }
 
 .quick-action-card span {
@@ -356,26 +413,11 @@
 
 .quick-action-card:hover {
   transform: translateY(-4px);
-  box-shadow: 0 12px 24px rgba(0, 0, 0, 0.08);
+  border-color: var(--primary);
+  background: color-mix(in srgb, var(--card) 92%, var(--primary) 8%);
+  box-shadow: var(--primary-shadow);
 }
-.quick-action-card {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 12px;
 
-  min-height: 120px;
-
-  text-decoration: none;
-  color: inherit;
-
-  background: var(--card-bg);
-  border: 1px solid var(--card-border);
-  border-radius: 18px;
-
-  transition: 0.25s;
-}
 .quick-actions-panel {
   margin-top: 22px;
 }
@@ -385,23 +427,28 @@
   grid-template-columns: repeat(3, 1fr);
   gap: 16px;
 }
+
 /* ===========================================
    .activity
 =========================================== */
+
 .activity {
-  padding: 12px 0;
-  border-bottom: 1px solid var(--divider);
   display: flex;
   justify-content: space-between;
   gap: 12px;
+  padding: 12px 0;
+  border-bottom: 1px solid var(--divider);
   font-size: 14px;
 }
+
 .activity span {
-  color: var(--text-secondary);
+  color: var(--text-muted);
 }
+
 /* ===========================================
    .payment-row
 =========================================== */
+
 .payment-row {
   display: grid;
   grid-template-columns: 1.8fr 1fr 0.9fr;
@@ -410,23 +457,25 @@
 }
 
 .payment-row-head {
+  margin-bottom: 8px;
   padding: 0 18px 10px;
   border-bottom: 1px solid var(--divider);
-  margin-bottom: 8px;
 }
 
 .payment-row-head div {
+  color: var(--text-muted);
   font-size: 11px;
   font-weight: 700;
-  color: var(--text-secondary);
-  text-transform: uppercase;
   letter-spacing: 0.08em;
+  text-transform: uppercase;
 }
 
 .payment-row-item {
   padding: 14px 18px;
-  border-bottom: 1px solid rgba(0, 0, 0, 0.05);
-  transition: 0.2s;
+  border-bottom: 1px solid var(--divider);
+  transition:
+    background 0.2s,
+    border-color 0.2s;
 }
 
 .payment-row-item:last-child {
@@ -434,11 +483,13 @@
 }
 
 .payment-row-item:hover {
-  background: rgba(79, 70, 229, 0.05);
+  background: color-mix(in srgb, var(--surface) 90%, var(--primary) 10%);
 }
+
 /* ===========================================
    .payment-name
 =========================================== */
+
 .payment-name {
   min-width: 0;
   overflow: hidden;
@@ -446,47 +497,55 @@
 
 .payment-name b {
   display: block;
+  max-width: 100%;
+  overflow: hidden;
+  color: var(--text);
   font-size: 16px;
   font-weight: 700;
   white-space: nowrap;
-  overflow: hidden;
   text-overflow: ellipsis;
-  max-width: 100%;
 }
+
 /* ===========================================
    .payment-amount
 =========================================== */
+
 .payment-amount {
+  color: var(--text);
   text-align: center;
   font-size: 16px;
   font-weight: 700;
 }
+
 /* ===========================================
    payment-date
 =========================================== */
+
 .payment-date {
   display: flex;
   flex-direction: column;
   align-items: flex-end;
   gap: 3px;
+  text-align: right;
+  color: var(--text-muted);
+  font-size: 14px;
 }
+
 .payment-date strong {
+  color: var(--text);
   font-size: 14px;
   font-weight: 700;
 }
 
 .payment-date small {
+  color: var(--text-muted);
   font-size: 12px;
-  color: var(--text-secondary);
 }
-.payment-date {
-  text-align: right;
-  font-size: 14px;
-  color: var(--text-secondary);
-}
+
 /* ===========================================
    .payment-label
 =========================================== */
+
 .payment-label {
   display: none;
 }
@@ -495,6 +554,7 @@
   .dashboard-summary {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
+
   .quick-actions-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
@@ -511,20 +571,25 @@
     grid-template-columns: 1fr 1fr;
     gap: 12px;
   }
+
   .quick-actions-grid {
     grid-template-columns: 1fr;
   }
+
   .payment-row {
     grid-template-columns: minmax(0, 1.2fr) minmax(0, 0.8fr) minmax(0, 0.8fr);
     gap: 10px;
   }
+
   .payment-row-head {
     display: none;
   }
+
   .payment-row-item {
     padding: 14px 0;
     border-bottom: 1px solid var(--divider);
   }
+
   .payment-date {
     align-items: flex-end;
     text-align: right;
@@ -535,10 +600,12 @@
   .dashboard-summary {
     grid-template-columns: 1fr;
   }
+
   .payment-row {
     grid-template-columns: 1fr;
     gap: 8px;
   }
+
   .payment-date {
     align-items: flex-start;
     text-align: left;

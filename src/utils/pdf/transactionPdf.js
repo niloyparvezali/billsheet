@@ -115,7 +115,9 @@ export function exportTransactionPdf({
     },
   });
 
-  drawFooter();
+  pdf.setPage(pdf.getNumberOfPages());
+
+drawFooter();
 
   pdf.save(`Bill Sheet Transaction History ${reportYear}.pdf`);
 }

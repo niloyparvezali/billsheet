@@ -325,28 +325,47 @@ export const buildBillingLedger = ({
   const safePaid = Number(paid || 0);
   const safeAdditionalDue = Number(additionalDue || 0);
 
-  const availablePayment = safePaid + safeCarryForward;
-  const currentBillPaid = Math.min(availablePayment, safeBill);
-  const currentBillRemaining = Math.max(0, safeBill - currentBillPaid);
-  const remainingAfterBill = Math.max(0, availablePayment - currentBillPaid);
-  const priorDue = safePreviousDue + safeAdditionalDue;
-  const previousDuePaid = Math.min(remainingAfterBill, priorDue);
-  const previousDueRemaining = Math.max(0, priorDue - previousDuePaid);
-  const carryForwardNext = Math.max(0, remainingAfterBill - previousDuePaid);
+  // Previous due INCLUDING any new additional due
+  let remainingDue = safePreviousDue + safeAdditionalDue;
+
+  // Money available
+  let available = safeCarryForward + safePaid;
+
+  // 1. Clear previous due first
+  const duePaid = Math.min(available, remainingDue);
+  remainingDue -= duePaid;
+  available -= duePaid;
+
+  // 2. Pay this month's bill
+  const billPaid = Math.min(available, safeBill);
+  const billRemaining = safeBill - billPaid;
+  available -= billPaid;
+
+  // 3. Leftover is advance
+  const advance = Math.max(0, available);
 
   return {
     bill: safeBill,
+
     previousDue: safePreviousDue,
+
     additionalDue: safeAdditionalDue,
+
     carryForward: safeCarryForward,
+
     paid: safePaid,
-    availablePayment,
-    currentBillPaid,
-    currentBillRemaining,
-    remainingAfterBill,
-    previousDuePaid,
-    previousDueRemaining,
-    carryForwardNext,
+
+    availablePayment: safePaid + safeCarryForward,
+
+    currentBillPaid: billPaid,
+
+    currentBillRemaining: billRemaining,
+
+    previousDuePaid: duePaid,
+
+    previousDueRemaining: remainingDue,
+
+    carryForwardNext: advance,
   };
 };
 
@@ -386,6 +405,9 @@ const resolveBillingStatus = ({
   const safePreviousDue = Number(previousDue || 0);
   const safePreviousAdvance = Number(previousAdvance || 0);
 
+  const totalRequired = safeBill + safePreviousDue;
+  const availablePayment = safePreviousAdvance + safePaid;
+
   const balance =
     endingBalance != null
       ? Number(endingBalance)
@@ -401,48 +423,41 @@ const resolveBillingStatus = ({
 
   const isCurrentPeriod =
     targetYear === currentYear && targetMonth === currentMonth;
+
   const isFuturePeriod =
     targetYear > currentYear ||
     (targetYear === currentYear && targetMonth > currentMonth);
-  // Future months
+
+  // Future month
   if (isFuturePeriod) {
-    if (safePaid > 0) {
-      const availablePayment = safePreviousAdvance + safePaid;
+    if (safePaid === 0) return "Pending";
 
-      if (availablePayment >= safeBill) {
-        return availablePayment > safeBill ? "Advance" : "Paid";
-      }
+    if (availablePayment < safeBill) return "Partial";
 
-      return "Partial";
-    }
+    if (availablePayment <= totalRequired) return "Paid";
 
-    return "Pending";
+    return "Advance";
   }
-  // Current (running) month
+
+  // Current month
   if (isCurrentPeriod) {
-    // Advance carried from previous month + payment made this month
-    const availablePayment = safePreviousAdvance + safePaid;
+    if (safePaid === 0) return "Pending";
 
-    // Full bill already covered
-    if (availablePayment >= safeBill) {
-      return availablePayment > safeBill ? "Advance" : "Paid";
-    }
+    if (availablePayment < safeBill) return "Partial";
 
-    // No payment this month
-    if (safePaid === 0) {
-      return "Pending";
-    }
+    if (availablePayment <= totalRequired) return "Paid";
 
-    // Customer paid something this month but not enough
-    return "Partial";
+    return "Advance";
   }
 
-  // Previous months
-  if (balance > 0) return "Advance";
+  // Past month
+  if (safePaid === 0) return "Due";
 
-  if (balance === 0) return "Paid";
+  if (availablePayment < safeBill) return "Due";
 
-  return "Due";
+  if (availablePayment <= totalRequired) return "Paid";
+
+  return "Advance";
 };
 
 export const formatAnnualReportBalanceValue = ({
@@ -826,10 +841,12 @@ export const computePaymentSummary = ({
 
   const currentBillRemaining = Math.max(0, safeBill - availablePayment);
 
+  const effectivePreviousDue = safeOpeningDue + totalAdditionalDue;
+
   const status = resolveBillingStatus({
     bill: safeBill,
     paid: totalPaid,
-    previousDue: safeOpeningDue,
+    previousDue: effectivePreviousDue,
     previousAdvance: safeOpeningAdvance,
     endingBalance,
     month,
@@ -1603,8 +1620,16 @@ export const buildVoidPaymentActionRecords = ({
     year: Number(payment?.year || 0),
     amount: 0,
     extraDue: Number(payment?.extraDue || payment?.additionalDue || 0),
-    paymentDateText: paymentDateText || payment?.paymentDateText || "",
-    paymentTime: paymentTime || payment?.paymentTime || timeValue,
+    paymentDate: timestamp,
+
+    paymentDateText: paymentDateText || timestamp.toISOString().split("T")[0],
+
+    paymentTime:
+      paymentTime ||
+      timestamp.toLocaleTimeString([], {
+        hour: "numeric",
+        minute: "2-digit",
+      }),
     paymentType: "Void Payment",
     transactionType: "payment_reversal",
     transactionId: relatedTransactionId || "",

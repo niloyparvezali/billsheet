@@ -10,20 +10,24 @@
   box-sizing: border-box;
 }
 
-html, body {
+html,
+body {
   max-width: 100%;
   overflow-x: hidden;
+  background: var(--bg);
+  color: var(--text);
 }
 
 .page {
   width: 100%;
   max-width: 1600px;
   margin: 0 auto;
-  box-sizing: border-box;
   padding: clamp(16px, 2.5vw, 38px);
+  box-sizing: border-box;
 }
 
 /* Modals & Dialog responsiveness */
+
 .modal-wrap {
   position: fixed;
   inset: 0;
@@ -32,7 +36,7 @@ html, body {
   align-items: center;
   justify-content: center;
   padding: max(12px, env(safe-area-inset-left));
-  background: rgba(10, 15, 30, 0.72);
+  background: color-mix(in srgb, var(--bg) 72%, #000 28%);
   backdrop-filter: blur(8px);
   -webkit-backdrop-filter: blur(8px);
   overflow-y: auto;
@@ -44,7 +48,10 @@ html, body {
   overflow-y: auto;
   padding: clamp(18px, 3.5vw, 28px);
   border-radius: clamp(16px, 2.5vw, 24px);
-  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.35);
+  background: var(--surface);
+  border: 1px solid var(--divider);
+  color: var(--text);
+  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.18);
   box-sizing: border-box;
 }
 
@@ -61,18 +68,20 @@ html, body {
 }
 
 /* Common Table Wrap Helper */
+
 .table-wrap,
 .monthly-sheet-panel .table-wrap,
 .reports-history-table-wrap {
   width: 100%;
+  max-width: 100%;
   overflow-x: auto;
   -webkit-overflow-scrolling: touch;
-  max-width: 100%;
 }
 
 /* ==========================================================================
    BREAKPOINT 1: Ultra Large Desktop (1536px+)
    ========================================================================== */
+
 @media (min-width: 1536px) {
   .page {
     padding: 38px 48px;
@@ -98,6 +107,7 @@ html, body {
 /* ==========================================================================
    BREAKPOINT 2: Standard Desktop (1280px – 1535px)
    ========================================================================== */
+
 @media (min-width: 1280px) and (max-width: 1535px) {
   .stats,
   .dashboard-summary {
@@ -119,6 +129,7 @@ html, body {
 /* ==========================================================================
    BREAKPOINT 3: Small Laptop / Desktop (1024px – 1279px)
    ========================================================================== */
+
 @media (min-width: 1024px) and (max-width: 1279px) {
   .sidebar {
     width: 230px;
@@ -162,6 +173,7 @@ html, body {
 /* ==========================================================================
    BREAKPOINT 4: Tablet (768px – 1023px)
    ========================================================================== */
+
 @media (min-width: 768px) and (max-width: 1023px) {
   .sidebar {
     width: 220px;
@@ -231,6 +243,9 @@ html, body {
     z-index: 100;
     transform: translateX(-100%);
     transition: transform 0.25s ease;
+    background: var(--sidebar-bg);
+    border-right: 1px solid var(--divider);
+    box-shadow: 0 20px 50px rgba(0, 0, 0, 0.18);
   }
 
   .sidebar.open {
@@ -245,6 +260,8 @@ html, body {
   header {
     height: 68px;
     padding: 0 16px;
+    background: var(--header-bg);
+    border-bottom: 1px solid var(--divider);
   }
 
   .page {
@@ -290,6 +307,8 @@ html, body {
     flex-direction: column;
     align-items: flex-start;
     padding: 16px;
+    background: var(--surface);
+    border: 1px solid var(--divider);
   }
 
   .reports-export-btn {
@@ -316,6 +335,7 @@ html, body {
 /* ==========================================================================
    BREAKPOINT 6: Mobile Portrait (320px – 479px)
    ========================================================================== */
+
 @media (max-width: 479px) {
   .sidebar {
     position: fixed;
@@ -324,6 +344,9 @@ html, body {
     z-index: 100;
     transform: translateX(-100%);
     transition: transform 0.25s ease;
+    background: var(--sidebar-bg);
+    border-right: 1px solid var(--divider);
+    box-shadow: 0 20px 50px rgba(0, 0, 0, 0.18);
   }
 
   .sidebar.open {
@@ -338,15 +361,18 @@ html, body {
   header {
     height: 64px;
     padding: 0 12px;
+    background: var(--header-bg);
+    border-bottom: 1px solid var(--divider);
   }
 
   .page {
     padding: 16px 12px;
   }
 
-  .page-title h2,
-  .page-title h1 {
+  .page-title h1,
+  .page-title h2 {
     font-size: clamp(20px, 6vw, 24px);
+    color: var(--text);
   }
 
   .grid-2 {
@@ -362,14 +388,18 @@ html, body {
   .stat {
     min-height: 90px;
     padding: 12px;
+    background: var(--surface);
+    border: 1px solid var(--divider);
   }
 
   .stat h2 {
     font-size: 18px;
+    color: var(--text);
   }
 
   .stat p {
     font-size: 11px;
+    color: var(--text-muted);
   }
 
   .dashboard-summary {
@@ -401,10 +431,13 @@ html, body {
     flex-direction: column;
     align-items: flex-start;
     padding: 14px 12px;
+    background: var(--surface);
+    border: 1px solid var(--divider);
   }
 
   .reports-hero h2 {
     font-size: 22px;
+    color: var(--text);
   }
 
   .reports-export-btn {
@@ -424,6 +457,9 @@ html, body {
   .monthly-sheet-mini-input {
     flex: 1 1 70px;
     width: auto;
+    background: var(--input-bg);
+    border-color: var(--input-border);
+    color: var(--text);
   }
 
   .monthly-sheet-export-btn {
@@ -433,8 +469,11 @@ html, body {
   }
 
   .modal {
-    padding: 16px 12px;
     width: 96vw;
+    padding: 16px 12px;
+    background: var(--surface);
+    border: 1px solid var(--divider);
+    color: var(--text);
   }
 
   .modal-actions {

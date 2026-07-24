@@ -412,7 +412,41 @@ export default function TransactionHistory() {
           const row = createTransactionRow(payment, index, ledgerRow);
 
           const permanentSnapshot = getPermanentBalanceSnapshot(payment, row);
-          const permanentStatus = getPermanentTransactionStatus(row, payment);
+          const displayStatus = (() => {
+            const due = Number(
+              payment?.currentDue ?? row.currentDue ?? row.due ?? 0,
+            );
+
+            const advance = Number(
+              payment?.currentAdvance ??
+                row.currentAdvance ??
+                row.carryForward ??
+                0,
+            );
+
+            const bill = Number(
+              payment?.billAmount ?? payment?.monthlyBill ?? row.bill ?? 0,
+            );
+
+            const paid = Number(payment?.amount ?? row.amount ?? 0);
+
+            const savedStatus = String(payment?.status || "")
+              .trim()
+              .toLowerCase();
+
+            // Preserve special statuses
+            if (["voided", "reversed", "removed"].includes(savedStatus)) {
+              return savedStatus;
+            }
+
+            if (advance > 0) return "Advance";
+
+            if (due === 0) return "Paid";
+
+            if (paid > 0 && paid < bill) return "Partial";
+
+            return "Due";
+          })();
 
           row.bill = permanentSnapshot.bill;
           row.amount = permanentSnapshot.amount;
@@ -425,11 +459,9 @@ export default function TransactionHistory() {
           row.previousPaid = permanentSnapshot.previousPaid;
           row.additionalDue = permanentSnapshot.additionalDue;
 
-          if (permanentStatus) {
-            row.status = permanentStatus;
-            row.ledgerStatus = permanentStatus;
-            row.transactionStatus = permanentStatus;
-          }
+          row.status = displayStatus;
+          row.ledgerStatus = displayStatus;
+          row.transactionStatus = displayStatus;
 
           return row;
         }),

@@ -51,6 +51,43 @@ export function exportMonthlySheetPdf({
   drawTable({
     startY: currentY,
 
+    columnStyles: {
+      0: {
+        cellWidth: 12,
+        halign: "center",
+      },
+
+      1: {
+        cellWidth: 46,
+        halign: "left",
+      },
+
+      2: {
+        cellWidth: 22,
+        halign: "right",
+      },
+
+      3: {
+        cellWidth: 22,
+        halign: "right",
+      },
+
+      4: {
+        cellWidth: 24,
+        halign: "right",
+      },
+
+      5: {
+        cellWidth: 22,
+        halign: "center",
+      },
+
+      6: {
+        cellWidth: 42,
+        halign: "center",
+      },
+    },
+
     head: [["SL", "Customer", "Bill", "Paid", "Due", "Status", "Payment Date"]],
 
     body: rows.map((row, index) => {
@@ -76,22 +113,22 @@ export function exportMonthlySheetPdf({
           due: displayBalance.due,
           carryForward: displayBalance.carryForward,
         }),
-      getDisplayPaymentStatus({
-        status: row.status,
-        bill: Number(row.user?.monthlyBill || 0),
-        paid: Number(row.currentPaid || 0),
-        due: Number(displayBalance.due || 0),
-        advance: Number(displayBalance.carryForward || 0),
-        month: Number(row.month || 0),
-        currentMonth: new Date().getMonth() + 1,
-        currentDate: new Date(),
-      }).label,
-      row.payment?.paymentDate
-        ? `${formatDate(row.payment.paymentDate)} ${formatTime(
-            row.payment.paymentDate,
-          )}`
-        : "-",
-    ];
+        getDisplayPaymentStatus({
+          status: row.status,
+          bill: Number(row.user?.monthlyBill || 0),
+          paid: Number(row.currentPaid || 0),
+          due: Number(displayBalance.due || 0),
+          advance: Number(displayBalance.carryForward || 0),
+          month: Number(row.month || 0),
+          currentMonth: new Date().getMonth() + 1,
+          currentDate: new Date(),
+        }).label,
+        row.payment?.paymentDate
+          ? `${formatDate(row.payment.paymentDate)} ${formatTime(
+              row.payment.paymentDate,
+            )}`
+          : "-",
+      ];
     }),
 
     didParseCell(data) {
@@ -127,6 +164,8 @@ export function exportMonthlySheetPdf({
       }
     },
   });
+
+  pdf.setPage(pdf.getNumberOfPages());
 
   drawFooter();
 

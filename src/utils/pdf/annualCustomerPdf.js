@@ -44,7 +44,11 @@ export function exportAnnualCustomerPdf({
       [
         "Remaining Due",
         pdfBalance({
-          due: summary.remainingDue || summary.outstandingBalance || summary.totalDue || 0,
+          due:
+            summary.remainingDue ||
+            summary.outstandingBalance ||
+            summary.totalDue ||
+            0,
           carryForward: 0,
         }),
       ],
@@ -63,7 +67,10 @@ export function exportAnnualCustomerPdf({
       [
         "Closing Balance",
         pdfBalance({
-          due: Number(summary.closingBalance || 0) < 0 ? Math.abs(Number(summary.closingBalance || 0)) : 0,
+          due:
+            Number(summary.closingBalance || 0) < 0
+              ? Math.abs(Number(summary.closingBalance || 0))
+              : 0,
           carryForward:
             Number(summary.closingBalance || 0) > 0
               ? Number(summary.closingBalance || 0)
@@ -89,7 +96,17 @@ export function exportAnnualCustomerPdf({
   drawTable({
     startY: currentY,
 
-    head: [["Month", "Bill", "Prev Bal", "Total Req", "Paid", "Ending Bal", "Status"]],
+    head: [
+      [
+        "Month",
+        "Bill",
+        "Prev Bal",
+        "Total Req",
+        "Paid",
+        "Ending Bal",
+        "Status",
+      ],
+    ],
 
     body: history.map((entry) => {
       const balanceValue = Number(entry.endingBalance ?? entry.balance ?? 0);
@@ -108,8 +125,10 @@ export function exportAnnualCustomerPdf({
         isInactiveEntry || entry.previousBalance == null
           ? "-"
           : pdfBalance({
-              due: entry.previousBalance < 0 ? Math.abs(entry.previousBalance) : 0,
-              carryForward: entry.previousBalance > 0 ? entry.previousBalance : 0,
+              due:
+                entry.previousBalance < 0 ? Math.abs(entry.previousBalance) : 0,
+              carryForward:
+                entry.previousBalance > 0 ? entry.previousBalance : 0,
             }),
 
         isInactiveEntry || entry.totalRequired == null
@@ -129,6 +148,8 @@ export function exportAnnualCustomerPdf({
       ];
     }),
   });
+  pdf.setPage(pdf.getNumberOfPages());
+
   drawFooter();
 
   pdf.save(

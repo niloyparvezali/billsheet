@@ -107,7 +107,7 @@ export default function UserForm({
         )}
       </label>
       <label>
-        {t("monthly_bill")}
+        {t("Monthly Bill")}
         <input
           type="number"
           required

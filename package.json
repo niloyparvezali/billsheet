@@ -10,7 +10,7 @@
   },
   "dependencies": {
     "dayjs": "latest",
-    "firebase": "latest",
+    "firebase": "^12.16.0",
     "framer-motion": "latest",
     "i18next": "^26.3.6",
     "jspdf": "latest",

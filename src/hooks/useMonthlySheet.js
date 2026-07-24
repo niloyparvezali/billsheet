@@ -71,21 +71,27 @@ export default function useMonthlySheet({
       ),
     [month, users, year],
   );
+  //chnaged
   const payments = useMemo(() => {
     const targetMonth = Number(month);
     const targetYear = Number(year);
-    return (allPayments || []).filter((payment) => {
+
+    const filtered = (allPayments || []).filter((payment) => {
       const isRemoved = Boolean(
         payment?.isDeleted ||
         payment?.deletedAt ||
         payment?.status === "removed",
       );
+
       return (
         !isRemoved &&
         Number(payment.month) === targetMonth &&
         Number(payment.year) === targetYear
       );
     });
+
+
+    return filtered;
   }, [allPayments, month, year]);
   const paymentsByUser = useMemo(() => {
     const map = new Map();
@@ -124,13 +130,17 @@ export default function useMonthlySheet({
 
     return activeUsers
       .map((user) => {
+        const rawPayments = paymentIndex.get(user.customerId || user.id) || [];
+
         const userPayments = getMonthPaymentTransactions({
-          payments: paymentIndex.get(user.customerId || user.id) || [],
+          payments: rawPayments,
           userId: user.id,
           userName: user.name,
           month,
           year,
         });
+
+
         const history = (
           paymentsByUser.get(user.customerId || user.id) || []
         ).filter((payment) => {
@@ -203,13 +213,7 @@ export default function useMonthlySheet({
         }
 
         const isLifecycleActive = isUserActiveForPeriod(user, { month, year });
-        console.log({
-          month,
-          year,
-          openingDue,
-          openingAdvance,
-          payments: userPayments,
-        });
+
         const summary = deriveMonthlySheetBillingState({
           bill: isLifecycleActive
             ? getEffectiveBillForPeriod(user, { month, year })
@@ -221,6 +225,17 @@ export default function useMonthlySheet({
           year,
           currentDate,
         });
+
+        const paymentSummary = computePaymentSummary({
+          bill: getEffectiveBillForPeriod(user, { month, year }),
+          payments: userPayments,
+          openingDue,
+          openingAdvance,
+          month,
+          year,
+          currentDate,
+        });
+
         const latestPayment =
           [...userPayments].sort((left, right) => {
             const leftTime = Number(

@@ -128,16 +128,22 @@ export function createPdfLayout({
   // Table
   // =============================
 
-  const drawTable = ({ head, body, startY, didParseCell }) => {
+  const drawTable = ({
+    head,
+    body,
+    startY,
+    didParseCell,
+    columnStyles = {},
+  }) => {
     autoTable(pdf, {
       margin: {
-        top: 40,
+        top: 15,
         bottom: 15,
         left: 15,
         right: 15,
       },
 
-      startY,
+     startY,
 
       head,
 
@@ -145,16 +151,27 @@ export function createPdfLayout({
 
       styles: {
         font: "helvetica",
-        fontSize: 9,
+        fontSize: 8.5,
+
         cellPadding: {
-          top: 3,
-          bottom: 3,
-          left: 2.5,
-          right: 2.5,
+          top: 2.8,
+          bottom: 2.8,
+          left: 2,
+          right: 2,
         },
+
         valign: "middle",
+
+        overflow: "ellipsize",
+
+        cellWidth: "wrap",
+
+        minCellHeight: 8,
+
         textColor: colors.text,
+
         lineColor: colors.border,
+
         lineWidth: 0.1,
       },
 
@@ -169,55 +186,10 @@ export function createPdfLayout({
       alternateRowStyles: {
         fillColor: [248, 249, 250],
       },
-      columnStyles: {
-        0: {
-          cellWidth: 24,
-          halign: "left",
-        },
-
-        1: {
-          cellWidth: 30,
-          halign: "right",
-        },
-
-        2: {
-          cellWidth: 26,
-          halign: "right",
-        },
-
-        3: {
-          cellWidth: 30,
-          halign: "right",
-        },
-
-        4: {
-          cellWidth: 34,
-          halign: "center",
-        },
-
-        5: {
-          cellWidth: 26,
-          halign: "center",
-        },
-      },
+      columnStyles,
       didParseCell,
 
-      didDrawPage: (data) => {
-        // Header on every page
-        drawHeader();
-
-        // Only the first page shows the report information
-        if (data.pageNumber > 1) {
-          pdf.setFont("helvetica", "bold");
-          pdf.setFontSize(11);
-          pdf.setTextColor(...colors.text);
-
-          pdf.text(reportTitle, 15, 42);
-        }
-
-        // Footer on every page
-        drawFooter();
-      },
+      didDrawPage: () => {},
     });
   };
 

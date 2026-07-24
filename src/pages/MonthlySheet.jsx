@@ -389,10 +389,13 @@ export default function MonthlySheet() {
         voidDate: timestamp,
         voidTime: timestamp.toTimeString().split(" ")[0].slice(0, 5),
         ownerId: signedInUser?.uid || payment?.ownerId || "",
-        paymentDateText: payment?.paymentDateText || "",
-        paymentTime:
-          payment?.paymentTime ||
-          timestamp.toTimeString().split(" ")[0].slice(0, 5),
+        paymentDateText: timestamp.toISOString().split("T")[0],
+
+        paymentTime: timestamp.toLocaleTimeString([], {
+          hour: "2-digit",
+          minute: "2-digit",
+          hour12: false,
+        }),
       });
       if (!voidRecords) throw new Error("No payment record found");
       const originalRef = doc(db, "payments", payment.id);
