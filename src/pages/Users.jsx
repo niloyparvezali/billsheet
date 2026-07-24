@@ -21,7 +21,12 @@ import useOwnedCollection from "../hooks/useOwnedCollection";
 import Modal from "../components/Modal";
 import ConfirmModal from "../components/ConfirmModal";
 import { formatDate, money } from "../utils/date";
-import { getDisplayPackages, normalizeBangladeshPhone, normalizePackages } from "../utils/users";
+import {
+  getDisplayPackages,
+  normalizeBangladeshPhone,
+  normalizePackages,
+} from "../utils/users";
+import { getNextCustomerId } from "../utils/customerId";
 
 const todayValue = () => {
   const today = new Date();
@@ -66,12 +71,15 @@ export default function Users() {
       ...(savedCategories || []),
       ...newCategories.filter((newItem) => !seenIds.has(newItem.id)),
     ];
-    const selectedPackages = normalizePackages(form?.packages || form?.category || []);
+    const selectedPackages = normalizePackages(
+      form?.packages || form?.category || [],
+    );
     selectedPackages.forEach((packageName) => {
       if (
         packageName &&
         !merged.some(
-          (item) => item.name?.trim().toLowerCase() === packageName.toLowerCase(),
+          (item) =>
+            item.name?.trim().toLowerCase() === packageName.toLowerCase(),
         )
       ) {
         merged.push({ id: `current-${packageName}`, name: packageName });
@@ -86,15 +94,22 @@ export default function Users() {
       users
         .filter((user) => {
           const displayPackages = getDisplayPackages(user).join(" ");
-          return [user.name, user.category, displayPackages, user.phone].some((value) =>
-            String(value || "")
-              .toLowerCase()
-              .includes(search.toLowerCase()),
+          return [user.name, user.category, displayPackages, user.phone].some(
+            (value) =>
+              String(value || "")
+                .toLowerCase()
+                .includes(search.toLowerCase()),
           );
         })
         .sort((a, b) => {
-          const aActive = String(a?.status || (a?.active === false ? "Inactive" : "Active")).trim().toLowerCase() !== "inactive";
-          const bActive = String(b?.status || (b?.active === false ? "Inactive" : "Active")).trim().toLowerCase() !== "inactive";
+          const aActive =
+            String(a?.status || (a?.active === false ? "Inactive" : "Active"))
+              .trim()
+              .toLowerCase() !== "inactive";
+          const bActive =
+            String(b?.status || (b?.active === false ? "Inactive" : "Active"))
+              .trim()
+              .toLowerCase() !== "inactive";
           if (aActive !== bActive) return aActive ? -1 : 1;
           return (a?.name || "").localeCompare(b?.name || "");
         }),
@@ -132,16 +147,28 @@ export default function Users() {
     }
     try {
       const normalizedStatus = String(form.status || "Active").trim();
-      const normalizedStatusValue = normalizedStatus === "Inactive" ? "Inactive" : "Active";
+      const normalizedStatusValue =
+        normalizedStatus === "Inactive" ? "Inactive" : "Active";
       const isActive = normalizedStatusValue !== "Inactive";
-      const previousStatus = String(form?.status || (form?.active === false ? "Inactive" : "Active")).trim().toLowerCase();
+      const previousStatus = String(
+        form?.status || (form?.active === false ? "Inactive" : "Active"),
+      )
+        .trim()
+        .toLowerCase();
       const nextStatus = normalizedStatusValue.toLowerCase();
-      const historyEntries = Array.isArray(form?.statusHistory) ? form.statusHistory : [];
+      const historyEntries = Array.isArray(form?.statusHistory)
+        ? form.statusHistory
+        : [];
       const statusChanged = previousStatus && previousStatus !== nextStatus;
       const nextHistory = statusChanged
-        ? [...historyEntries, { status: normalizedStatusValue, date: new Date().toISOString() }]
+        ? [
+            ...historyEntries,
+            { status: normalizedStatusValue, date: new Date().toISOString() },
+          ]
         : historyEntries;
-      const selectedPackages = normalizePackages(form?.packages || form?.category || []);
+      const selectedPackages = normalizePackages(
+        form?.packages || form?.category || [],
+      );
       const data = {
         name: form.name.trim(),
         category: selectedPackages[0] || form.category || "",
@@ -159,6 +186,7 @@ export default function Users() {
           : {
               ownerId: signedInUser.uid,
               createdAt: serverTimestamp(),
+              customerId: getNextCustomerId(users),
             }),
       };
       if (form.id)
@@ -178,13 +206,18 @@ export default function Users() {
   const remove = async (id) => {
     try {
       const existingUser = (allUsers || []).find((item) => item.id === id);
-      const historyEntries = Array.isArray(existingUser?.statusHistory) ? existingUser.statusHistory : [];
+      const historyEntries = Array.isArray(existingUser?.statusHistory)
+        ? existingUser.statusHistory
+        : [];
       await updateDoc(doc(db, "users", id), {
         active: false,
         status: "Inactive",
         inactiveDate: serverTimestamp(),
         disconnectedAt: serverTimestamp(),
-        statusHistory: [...historyEntries, { status: "Inactive", date: new Date().toISOString() }],
+        statusHistory: [
+          ...historyEntries,
+          { status: "Inactive", date: new Date().toISOString() },
+        ],
       });
       toast.success("User deactivated; payment history kept");
     } catch (error) {
@@ -235,7 +268,8 @@ export default function Users() {
       const packages = getDisplayPackages(user);
       return packages.some(
         (packageName) =>
-          packageName.trim().toLowerCase() === category.name.trim().toLowerCase(),
+          packageName.trim().toLowerCase() ===
+          category.name.trim().toLowerCase(),
       );
     });
     if (inUse) {
@@ -260,7 +294,9 @@ export default function Users() {
       toast.success("Category deleted successfully.");
     } catch (error) {
       setNewCategories((current) => {
-        const alreadyPresent = current.some((item) => item.id === optimisticRemoval.id);
+        const alreadyPresent = current.some(
+          (item) => item.id === optimisticRemoval.id,
+        );
         if (alreadyPresent) return current;
         return [...current, optimisticRemoval];
       });
@@ -274,7 +310,12 @@ export default function Users() {
         <div className="users-page-header">
           <div className="users-page-heading">
             <h1>{t("users")}</h1>
-            <p>{t("manage_users_subtitle", "Manage customers and account information.")}</p>
+            <p>
+              {t(
+                "manage_users_subtitle",
+                "Manage customers and account information.",
+              )}
+            </p>
           </div>
         </div>
         <div className="users-toolbar">
@@ -283,7 +324,10 @@ export default function Users() {
               <FiSearch />
               <input
                 ref={searchRef}
-                placeholder={t("search_users_placeholder", "Search users by name, category or phone...")}
+                placeholder={t(
+                  "search_users_placeholder",
+                  "Search users by name, category or phone...",
+                )}
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
               />
@@ -372,7 +416,10 @@ export default function Users() {
       {categoryToRemove && (
         <ConfirmModal
           title={t("delete_category", "Delete category")}
-          message={t("delete_category_confirm", "Are you sure you want to delete this category?")}
+          message={t(
+            "delete_category_confirm",
+            "Are you sure you want to delete this category?",
+          )}
           confirmText={t("delete", "Delete")}
           cancelText={t("cancel", "Cancel")}
           onConfirm={() => removeCategory(categoryToRemove)}

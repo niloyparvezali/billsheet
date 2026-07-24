@@ -22,7 +22,10 @@ export const deriveMonthlySheetBillingState = ({
   const safeOpeningDue = Number(openingDue || 0);
   const safeOpeningAdvance = Number(openingAdvance || 0);
   const paymentAmount = Array.isArray(currentPayments)
-    ? currentPayments.reduce((sum, payment) => sum + Number(payment?.amount || 0), 0)
+    ? currentPayments.reduce(
+        (sum, payment) => sum + Number(payment?.amount || 0),
+        0,
+      )
     : Number(currentPayments || 0);
   const safeCurrentPayments = Number(paymentAmount || 0);
 
@@ -62,7 +65,10 @@ export default function useMonthlySheet({
 }) {
   const currentDate = new Date();
   const activeUsers = useMemo(
-    () => (users || []).filter((user) => isUserActiveForPeriod(user, { month, year })),
+    () =>
+      (users || []).filter((user) =>
+        isUserActiveForPeriod(user, { month, year }),
+      ),
     [month, users, year],
   );
   const payments = useMemo(() => {
@@ -70,22 +76,37 @@ export default function useMonthlySheet({
     const targetYear = Number(year);
     return (allPayments || []).filter((payment) => {
       const isRemoved = Boolean(
-        payment?.isDeleted || payment?.deletedAt || payment?.status === "removed",
+        payment?.isDeleted ||
+        payment?.deletedAt ||
+        payment?.status === "removed",
       );
-      return !isRemoved && Number(payment.month) === targetMonth && Number(payment.year) === targetYear;
+      return (
+        !isRemoved &&
+        Number(payment.month) === targetMonth &&
+        Number(payment.year) === targetYear
+      );
     });
   }, [allPayments, month, year]);
   const paymentsByUser = useMemo(() => {
     const map = new Map();
+
     (allPayments || []).forEach((payment) => {
       const isRemoved = Boolean(
-        payment?.isDeleted || payment?.deletedAt || payment?.status === "removed",
+        payment?.isDeleted ||
+        payment?.deletedAt ||
+        payment?.status === "removed",
       );
-      if (!payment.userId || isRemoved) return;
-      const existing = map.get(payment.userId) || [];
+
+      if (isRemoved) return;
+
+      const key = payment.customerId || payment.userId;
+      if (!key) return;
+
+      const existing = map.get(key) || [];
       existing.push(payment);
-      map.set(payment.userId, existing);
+      map.set(key, existing);
     });
+
     return map;
   }, [allPayments]);
   const searchTerm = useMemo(() => search.trim().toLowerCase(), [search]);
@@ -93,69 +114,106 @@ export default function useMonthlySheet({
   const rows = useMemo(() => {
     const paymentIndex = new Map();
     payments.forEach((payment) => {
-      if (!payment.userId) return;
-      const existing = paymentIndex.get(payment.userId) || [];
+      const key = payment.customerId || payment.userId;
+      if (!key) return;
+
+      const existing = paymentIndex.get(key) || [];
       existing.push(payment);
-      paymentIndex.set(payment.userId, existing);
+      paymentIndex.set(key, existing);
     });
 
     return activeUsers
       .map((user) => {
         const userPayments = getMonthPaymentTransactions({
-          payments: paymentIndex.get(user.id) || [],
+          payments: paymentIndex.get(user.customerId || user.id) || [],
           userId: user.id,
           userName: user.name,
           month,
           year,
         });
-        const history = (paymentsByUser.get(user.id) || []).filter(
-          (payment) => period(payment.month, payment.year) < currentPeriod,
-        );
-        const priorPeriods = [...history]
-          .map((payment) => {
-            const { month: paymentMonth, year: paymentYear } = getPaymentMonthYear(payment);
-            return {
-              payment,
-              month: paymentMonth,
-              year: paymentYear,
-            };
-          })
-          .filter((entry) => {
-            const paymentMonth = Number(entry.month || 0);
-            const paymentYear = Number(entry.year || 0);
-            return isUserActiveForPeriod(user, { month: paymentMonth, year: paymentYear });
-          })
-          .sort((left, right) => {
-            const leftKey = Number(left.year) * 100 + Number(left.month);
-            const rightKey = Number(right.year) * 100 + Number(right.month);
-            return leftKey - rightKey;
-          });
+        const history = (
+          paymentsByUser.get(user.customerId || user.id) || []
+        ).filter((payment) => {
+          const { month: paymentMonth, year: paymentYear } =
+            getPaymentMonthYear(payment);
+
+          return period(paymentMonth, paymentYear) < currentPeriod;
+        });
+        const priorPeriods = [];
+
+        const joinDate = user.joinDate?.toDate
+          ? user.joinDate.toDate()
+          : user.joinDate
+            ? new Date(user.joinDate)
+            : null;
+
+        let startMonth = joinDate ? joinDate.getMonth() + 1 : month;
+        let startYear = joinDate ? joinDate.getFullYear() : year;
+
+        while (period(startMonth, startYear) < currentPeriod) {
+          if (
+            isUserActiveForPeriod(user, {
+              month: startMonth,
+              year: startYear,
+            })
+          ) {
+            priorPeriods.push({
+              month: startMonth,
+              year: startYear,
+              payment: null,
+            });
+          }
+
+          startMonth++;
+
+          if (startMonth > 12) {
+            startMonth = 1;
+            startYear++;
+          }
+        }
 
         let openingDue = 0;
         let openingAdvance = 0;
 
-        for (const { payment: priorPayment } of priorPeriods) {
-          const priorMonth = Number(getPaymentMonthYear(priorPayment).month || 0);
-          const priorYear = Number(getPaymentMonthYear(priorPayment).year || 0);
-          const priorPeriodPayments = priorPeriods
-            .filter((entry) => Number(entry.month) === priorMonth && Number(entry.year) === priorYear)
-            .map((entry) => entry.payment);
-          const priorSummary = deriveMonthlySheetBillingState({
-            bill: getEffectiveBillForPeriod(user, { month: priorMonth, year: priorYear }),
+        for (const { month: priorMonth, year: priorYear } of priorPeriods) {
+          const priorPayments = history.filter((payment) => {
+            const p = getPaymentMonthYear(payment);
+
+            return (
+              Number(p.month) === Number(priorMonth) &&
+              Number(p.year) === Number(priorYear)
+            );
+          });
+
+          const summary = computePaymentSummary({
+            bill: getEffectiveBillForPeriod(user, {
+              month: priorMonth,
+              year: priorYear,
+            }),
+            payments: priorPayments,
             openingDue,
             openingAdvance,
-            currentPayments: priorPeriodPayments,
             month: priorMonth,
             year: priorYear,
             currentDate,
           });
-          openingDue = priorSummary.due;
-          openingAdvance = priorSummary.carryForward;
+
+          openingDue = summary.currentDue;
+          openingAdvance = summary.currentAdvance;
         }
 
         const isLifecycleActive = isUserActiveForPeriod(user, { month, year });
+        console.log({
+          month,
+          year,
+          openingDue,
+          openingAdvance,
+          payments: userPayments,
+        });
         const summary = deriveMonthlySheetBillingState({
-          bill: isLifecycleActive ? getEffectiveBillForPeriod(user, { month, year }) : 0,
+          bill: isLifecycleActive
+            ? getEffectiveBillForPeriod(user, { month, year })
+            : 0,
           openingDue: isLifecycleActive ? openingDue : 0,
           openingAdvance: isLifecycleActive ? openingAdvance : 0,
           currentPayments: userPayments || [],
@@ -163,11 +221,16 @@ export default function useMonthlySheet({
           year,
           currentDate,
         });
-        const latestPayment = [...userPayments].sort((left, right) => {
-          const leftTime = Number(left?.paymentDate?.seconds || left?.createdAt?.seconds || 0);
-          const rightTime = Number(right?.paymentDate?.seconds || right?.createdAt?.seconds || 0);
-          return rightTime - leftTime;
-        })[0] || null;
+        const latestPayment =
+          [...userPayments].sort((left, right) => {
+            const leftTime = Number(
+              left?.paymentDate?.seconds || left?.createdAt?.seconds || 0,
+            );
+            const rightTime = Number(
+              right?.paymentDate?.seconds || right?.createdAt?.seconds || 0,
+            );
+            return rightTime - leftTime;
+          })[0] || null;
 
         return {
           user,
@@ -178,7 +241,10 @@ export default function useMonthlySheet({
           due: isLifecycleActive ? summary.due : 0,
           carryForward: isLifecycleActive ? summary.carryForward : 0,
           status: isLifecycleActive ? summary.status : "N/A",
-          totalPayable: isLifecycleActive ? Number(getEffectiveBillForPeriod(user, { month, year }) || 0) + summary.previousDue : 0,
+          totalPayable: isLifecycleActive
+            ? Number(getEffectiveBillForPeriod(user, { month, year }) || 0) +
+              summary.previousDue
+            : 0,
           totalPaid: isLifecycleActive ? summary.currentPaid : 0,
           currentDue: isLifecycleActive ? summary.due : 0,
           currentAdvance: isLifecycleActive ? summary.carryForward : 0,
@@ -186,19 +252,23 @@ export default function useMonthlySheet({
       })
       .sort((a, b) => a.user.name.localeCompare(b.user.name));
   }, [activeUsers, currentPeriod, month, payments, paymentsByUser, year]);
-  const paid = rows.filter((row) => ["Paid", "Advance"].includes(String(row.status || "")));
-  const total = rows.reduce((sum, row) => sum + Number(row.currentPaid || 0), 0);
+  const paid = rows.filter((row) =>
+    ["Paid", "Advance"].includes(String(row.status || "")),
+  );
+  const total = rows.reduce(
+    (sum, row) => sum + Number(row.currentPaid || 0),
+    0,
+  );
   const totalDue = rows.reduce((sum, row) => sum + Number(row.due || 0), 0);
   const totalBill = rows.reduce(
     (sum, row) => sum + Number(row.user.monthlyBill || 0),
     0,
   );
   const getStatusPriority = (row) => {
-    const isPending = String(row.status || "Pending").toLowerCase() === "pending";
+    const isPending =
+      String(row.status || "Pending").toLowerCase() === "pending";
 
-    return statusOrder === "pending"
-      ? isPending ? 0 : 1
-      : isPending ? 1 : 0;
+    return statusOrder === "pending" ? (isPending ? 0 : 1) : isPending ? 1 : 0;
   };
   const filteredRows = useMemo(() => {
     const rowsWithStatus = [...rows].sort((a, b) => {

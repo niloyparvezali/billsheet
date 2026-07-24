@@ -167,21 +167,55 @@ const createTransactionRow = (payment, index, ledgerRow) =>
   createTransactionRowFromPayment(payment, index, ledgerRow);
 
 const normalizeStoredTransactionStatus = (value) => {
-  const normalized = String(value || "").trim().toLowerCase();
+  const normalized = String(value || "")
+    .trim()
+    .toLowerCase();
   return normalized || null;
 };
 
-const normalizeStatusValue = (value) => String(value || "").trim().toLowerCase();
+const normalizeStatusValue = (value) =>
+  String(value || "")
+    .trim()
+    .toLowerCase();
 
 const getPermanentBalanceSnapshot = (payment = {}, row = {}) => ({
-  bill: Number(payment?.billAmount ?? payment?.monthlyBill ?? payment?.bill ?? row?.bill ?? row?.monthlyBill ?? 0),
-  amount: Number(payment?.currentPaid ?? payment?.amount ?? row?.currentPaid ?? row?.amount ?? 0),
-  due: Number(payment?.currentDue ?? payment?.due ?? row?.currentDue ?? row?.due ?? 0),
-  carryForward: Number(payment?.currentAdvance ?? payment?.carryForward ?? row?.currentAdvance ?? row?.carryForward ?? 0),
+  bill: Number(
+    payment?.billAmount ??
+      payment?.monthlyBill ??
+      payment?.bill ??
+      row?.bill ??
+      row?.monthlyBill ??
+      0,
+  ),
+  amount: Number(
+    payment?.currentPaid ??
+      payment?.amount ??
+      row?.currentPaid ??
+      row?.amount ??
+      0,
+  ),
+  due: Number(
+    payment?.currentDue ?? payment?.due ?? row?.currentDue ?? row?.due ?? 0,
+  ),
+  carryForward: Number(
+    payment?.currentAdvance ??
+      payment?.carryForward ??
+      row?.currentAdvance ??
+      row?.carryForward ??
+      0,
+  ),
   previousDue: Number(payment?.previousDue ?? row?.previousDue ?? 0),
-  previousAdvance: Number(payment?.previousAdvance ?? row?.previousAdvance ?? 0),
+  previousAdvance: Number(
+    payment?.previousAdvance ?? row?.previousAdvance ?? 0,
+  ),
   previousPaid: Number(payment?.previousPaid ?? row?.previousPaid ?? 0),
-  additionalDue: Number(payment?.additionalDue ?? payment?.extraDue ?? row?.additionalDue ?? row?.extraDue ?? 0),
+  additionalDue: Number(
+    payment?.additionalDue ??
+      payment?.extraDue ??
+      row?.additionalDue ??
+      row?.extraDue ??
+      0,
+  ),
 });
 
 const getPermanentTransactionStatus = (row, payment = null) => {
@@ -198,7 +232,9 @@ const getPermanentTransactionStatus = (row, payment = null) => {
     if (isVoidActionRow(row)) {
       return explicitStatus;
     }
-    const originalStatus = normalizeStoredTransactionStatus(payment?.originalStatus || row?.originalStatus);
+    const originalStatus = normalizeStoredTransactionStatus(
+      payment?.originalStatus || row?.originalStatus,
+    );
     if (originalStatus) {
       return originalStatus;
     }
@@ -211,7 +247,8 @@ const getTransactionStatusDetails = (row, payment = null) => {
   const explicitStatus = getPermanentTransactionStatus(row, payment);
 
   if (explicitStatus) {
-    const label = explicitStatus.charAt(0).toUpperCase() + explicitStatus.slice(1);
+    const label =
+      explicitStatus.charAt(0).toUpperCase() + explicitStatus.slice(1);
     return {
       label,
       tone: explicitStatus,
@@ -230,7 +267,15 @@ const getTransactionStatusBadgeClass = (row, payment = null) =>
   getTransactionStatusDetails(row, payment).className;
 
 export default function TransactionHistory() {
-  const { t, formatMoney, formatNumber, translateMonth, translateStatus, toBengaliNumerals, language } = useLanguage();
+  const {
+    t,
+    formatMoney,
+    formatNumber,
+    translateMonth,
+    translateStatus,
+    toBengaliNumerals,
+    language,
+  } = useLanguage();
   const currentYear = new Date().getFullYear();
   const currentMonth = `${currentYear}-${String(new Date().getMonth() + 1).padStart(2, "0")}`;
   const [selectedMonth, setSelectedMonth] = useState(currentMonth);
@@ -322,16 +367,23 @@ export default function TransactionHistory() {
     () =>
       sortRowsForDisplay(
         filteredPayments.map((payment, index) => {
-          const user = (users || []).find((candidate) => matchesPaymentToUser(payment, candidate)) || {
+          const user = (users || []).find((candidate) =>
+            matchesPaymentToUser(payment, candidate),
+          ) || {
             id: payment?.userId || payment?.customerId || payment?.id || "",
             userId: payment?.userId || payment?.customerId || payment?.id || "",
             name: payment?.userName || payment?.customerName || "Customer",
             userName: payment?.userName || payment?.customerName || "Customer",
-            customerId: payment?.customerId || payment?.userId || payment?.id || "",
-            customerName: payment?.customerName || payment?.userName || "Customer",
-            monthlyBill: Number(payment?.monthlyBill || payment?.bill || payment?.billAmount || 0),
+            customerId:
+              payment?.customerId || payment?.userId || payment?.id || "",
+            customerName:
+              payment?.customerName || payment?.userName || "Customer",
+            monthlyBill: Number(
+              payment?.monthlyBill || payment?.bill || payment?.billAmount || 0,
+            ),
           };
-          const { month: paymentMonth, year: paymentYear } = getPaymentMonthYear(payment);
+          const { month: paymentMonth, year: paymentYear } =
+            getPaymentMonthYear(payment);
           const resolvedMonth = Number(paymentMonth || 0);
           const resolvedYear = Number(paymentYear || 0);
           const currentPeriodKey = getPeriodKey(resolvedMonth, resolvedYear);
@@ -344,8 +396,11 @@ export default function TransactionHistory() {
           });
           const history = (payments || []).filter((candidate) => {
             if (!matchesPaymentToUser(candidate, user)) return false;
-            const { month: candidateMonth, year: candidateYear } = getPaymentMonthYear(candidate);
-            return getPeriodKey(candidateMonth, candidateYear) < currentPeriodKey;
+            const { month: candidateMonth, year: candidateYear } =
+              getPaymentMonthYear(candidate);
+            return (
+              getPeriodKey(candidateMonth, candidateYear) < currentPeriodKey
+            );
           });
           const ledgerRow = buildMonthlySheetLedgerRow({
             user,
@@ -387,7 +442,8 @@ export default function TransactionHistory() {
 
     transactionRows.forEach((row) => {
       if (!isVoidActionRow(row)) return;
-      const relatedReference = row.relatedPaymentId || row.relatedTransactionId || "";
+      const relatedReference =
+        row.relatedPaymentId || row.relatedTransactionId || "";
       if (relatedReference) {
         references.add(String(relatedReference));
       }
@@ -397,7 +453,12 @@ export default function TransactionHistory() {
   }, [transactionRows]);
 
   const isVoidedOriginalTransaction = (row) => {
-    const identifiers = [row?.id, row?.transactionId, row?.paymentId, row?.customerId]
+    const identifiers = [
+      row?.id,
+      row?.transactionId,
+      row?.paymentId,
+      row?.customerId,
+    ]
       .filter(Boolean)
       .map((value) => String(value));
     return identifiers.some((value) => voidedOriginalReferences.has(value));
@@ -540,7 +601,12 @@ export default function TransactionHistory() {
         <div>
           <h2>📒 {t("transaction_history")}</h2>
 
-          <p>{t("transaction_history_subtitle", "Browse transactions by month, date range, or customer name.")}</p>
+          <p>
+            {t(
+              "transaction_history_subtitle",
+              "Browse transactions by month, date range, or customer name.",
+            )}
+          </p>
         </div>
         <div className="transaction-actions">
           <div className="year-selector-shell">
@@ -602,7 +668,10 @@ export default function TransactionHistory() {
 
                     <input
                       type="text"
-                      placeholder={t("search_customer_placeholder", "Search customer by name or phone")}
+                      placeholder={t(
+                        "search_customer_placeholder",
+                        "Search customer by name or phone",
+                      )}
                       value={search}
                       onChange={(e) => setSearch(e.target.value)}
                     />
@@ -638,7 +707,7 @@ export default function TransactionHistory() {
             <div>{t("name")}</div>
             <div>{t("monthly_bill")}</div>
             <div>{t("paid")}</div>
-            <div>{t("due")}</div>
+            <div>{t("Balance")}</div>
             <div>{t("status")}</div>
           </div>
 
@@ -660,10 +729,14 @@ export default function TransactionHistory() {
                         previousDue: Number(row.previousDue || 0),
                         previousAdvance: Number(row.previousAdvance || 0),
                         previousPaid: Number(row.previousPaid || 0),
-                        additionalDue: Number(row.additionalDue ?? row.extraDue ?? 0),
+                        additionalDue: Number(
+                          row.additionalDue ?? row.extraDue ?? 0,
+                        ),
                       });
                       const dueValue = Number(displayBalance.due || 0);
-                      const carryForwardValue = Number(displayBalance.carryForward || 0);
+                      const carryForwardValue = Number(
+                        displayBalance.carryForward || 0,
+                      );
                       const balanceStyle =
                         dueValue > 0
                           ? { color: "#fda4af" }
@@ -696,7 +769,8 @@ export default function TransactionHistory() {
                         voidReasonLabel &&
                         voidReasonLabel.toLowerCase() !== "voided",
                       );
-                      const isHighlightedVoidedOriginal = isVoidedOriginalTransaction(row);
+                      const isHighlightedVoidedOriginal =
+                        isVoidedOriginalTransaction(row);
                       const paidValue = Number(row.amount || 0);
 
                       const showPaidRow = paidValue > 0;
@@ -746,7 +820,13 @@ export default function TransactionHistory() {
                             {formatMoney(row.bill)}
                           </div>
 
-                          <div className="transaction-history-paid-cell">
+                          <div
+                            className={`transaction-history-paid-cell ${
+                              isHighlightedVoidedOriginal || isVoidedRow
+                                ? "transaction-history-paid-cell--voided"
+                                : ""
+                            }`}
+                          >
                             {formatMoney(row.amount)}
                           </div>
 
@@ -759,9 +839,14 @@ export default function TransactionHistory() {
 
                           <div className="transaction-history-status-cell">
                             <span
-                              className={getTransactionStatusBadgeClass(row, row)}
+                              className={getTransactionStatusBadgeClass(
+                                row,
+                                row,
+                              )}
                             >
-                              {translateStatus(getTransactionStatusDetails(row, row).label)}
+                              {translateStatus(
+                                getTransactionStatusDetails(row, row).label,
+                              )}
                             </span>
                           </div>
 
@@ -797,15 +882,17 @@ export default function TransactionHistory() {
                 </div>
               ))
             ) : (
-              <p className="empty">{t("no_transactions_found", "No transactions found.")}</p>
+              <p className="empty">
+                {t("no_transactions_found", "No transactions found.")}
+              </p>
             )}
           </div>
         </div>
         {pageCount > 1 && (
           <div className="transaction-pagination">
             <div className="pagination-info">
-              Showing {formatNumber(showingFrom)}–{formatNumber(showingTo)} of {formatNumber(transactionRows.length)}{" "}
-              transactions
+              Showing {formatNumber(showingFrom)}–{formatNumber(showingTo)} of{" "}
+              {formatNumber(transactionRows.length)} transactions
             </div>
 
             <div className="pagination-page">

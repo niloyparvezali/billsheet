@@ -605,7 +605,10 @@
     background: rgba(255, 255, 255, 0.04);
     color: var(--text-primary);
     text-align: left;
-    transition: transform 180ms ease, border-color 180ms ease, background 180ms ease;
+    transition:
+      transform 180ms ease,
+      border-color 180ms ease,
+      background 180ms ease;
   }
 
   .users-mobile-detail-screen {
@@ -629,7 +632,11 @@
     padding: 10px 16px;
     border-radius: 999px;
     border: 1px solid rgba(45, 212, 191, 0.28);
-    background: linear-gradient(135deg, rgba(45, 212, 191, 0.2), rgba(56, 189, 248, 0.16));
+    background: linear-gradient(
+      135deg,
+      rgba(45, 212, 191, 0.2),
+      rgba(56, 189, 248, 0.16)
+    );
     color: #f7fbf8;
     font-weight: 800;
     box-shadow: 0 10px 24px rgba(0, 0, 0, 0.16);
@@ -640,7 +647,11 @@
   .users-mobile-back-btn:active {
     transform: translateY(-1px);
     border-color: rgba(45, 212, 191, 0.4);
-    background: linear-gradient(135deg, rgba(45, 212, 191, 0.28), rgba(56, 189, 248, 0.22));
+    background: linear-gradient(
+      135deg,
+      rgba(45, 212, 191, 0.28),
+      rgba(56, 189, 248, 0.22)
+    );
   }
 
   .users-mobile-item:hover,
@@ -652,7 +663,11 @@
 
   .users-mobile-item--active {
     border-color: rgba(45, 212, 191, 0.36);
-    background: linear-gradient(135deg, rgba(45, 212, 191, 0.18), rgba(56, 189, 248, 0.16));
+    background: linear-gradient(
+      135deg,
+      rgba(45, 212, 191, 0.18),
+      rgba(56, 189, 248, 0.16)
+    );
     box-shadow: 0 10px 24px rgba(0, 0, 0, 0.16);
   }
 
@@ -662,7 +677,11 @@
     border-radius: 14px;
     display: grid;
     place-items: center;
-    background: linear-gradient(135deg, rgba(45, 212, 191, 0.24), rgba(56, 189, 248, 0.24));
+    background: linear-gradient(
+      135deg,
+      rgba(45, 212, 191, 0.24),
+      rgba(56, 189, 248, 0.24)
+    );
     color: #f7fbf8;
     font-weight: 800;
     font-size: 14px;
@@ -912,7 +931,11 @@
   }
 
   .users-mobile-action--primary {
-    background: linear-gradient(135deg, rgba(45, 212, 191, 0.24), rgba(56, 189, 248, 0.2));
+    background: linear-gradient(
+      135deg,
+      rgba(45, 212, 191, 0.24),
+      rgba(56, 189, 248, 0.2)
+    );
     border-color: rgba(45, 212, 191, 0.24);
   }
 
@@ -1039,3 +1062,4 @@
   color: #111827;
   font-weight: 700;
 }
+
