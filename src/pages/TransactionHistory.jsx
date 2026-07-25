@@ -1,6 +1,7 @@
 import { FiCalendar, FiFileText, FiSearch } from "react-icons/fi";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import FloatingSearch from "../components/FloatingSearch";
 import useOwnedCollection from "../hooks/useOwnedCollection";
 import { useLanguage } from "../context/LanguageContext";
 import { money, monthNames } from "../utils/date";
@@ -280,6 +281,7 @@ export default function TransactionHistory() {
   const currentMonth = `${currentYear}-${String(new Date().getMonth() + 1).padStart(2, "0")}`;
   const [selectedMonth, setSelectedMonth] = useState(currentMonth);
   const [search, setSearch] = useState("");
+  const searchRef = useRef(null);
   const [filterMode, setFilterMode] = useState("date");
   const [fromDate, setFromDate] = useState("");
   const [toDate, setToDate] = useState("");
@@ -704,6 +706,7 @@ export default function TransactionHistory() {
                         "search_customer_placeholder",
                         "Search customer by name or phone",
                       )}
+                      ref={searchRef}
                       value={search}
                       onChange={(e) => setSearch(e.target.value)}
                     />
@@ -964,6 +967,7 @@ export default function TransactionHistory() {
           </div>
         </div>
       </section>
+      <FloatingSearch targetRef={searchRef} />
     </div>
   );
 }

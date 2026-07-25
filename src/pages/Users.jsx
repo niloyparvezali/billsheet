@@ -4,6 +4,7 @@ import UsersTable from "../components/UsersTable";
 import CategoryModal from "../components/CategoryModal";
 import UserForm from "../components/UserForm";
 import PaymentModal from "../components/PaymentModal";
+import FloatingSearch from "../components/FloatingSearch";
 import { useMemo, useState, useRef, useEffect } from "react";
 import {
   addDoc,
@@ -426,6 +427,8 @@ export default function Users() {
           onCancel={() => setCategoryToRemove(null)}
         />
       )}
+
+     <FloatingSearch targetRef={searchRef} />
     </div>
   );
 }

@@ -71,27 +71,47 @@ export default function useMonthlySheet({
       ),
     [month, users, year],
   );
-  //chnaged
+  //old code change for pdf
+  // const payments = useMemo(() => {
+  //   const targetMonth = Number(month);
+  //   const targetYear = Number(year);
+
+  //   const filtered = (allPayments || []).filter((payment) => {
+  //     const isRemoved = Boolean(
+  //       payment?.isDeleted ||
+  //       payment?.deletedAt ||
+  //       payment?.status === "removed",
+  //     );
+
+  //     return (
+  //       !isRemoved &&
+  //       Number(payment.month) === targetMonth &&
+  //       Number(payment.year) === targetYear
+  //     );
+  //   });
+
+  //   return filtered;
+  // }, [allPayments, month, year]);
   const payments = useMemo(() => {
     const targetMonth = Number(month);
     const targetYear = Number(year);
 
-    const filtered = (allPayments || []).filter((payment) => {
+    return (allPayments || []).filter((payment) => {
       const isRemoved = Boolean(
         payment?.isDeleted ||
         payment?.deletedAt ||
         payment?.status === "removed",
       );
 
+      if (isRemoved) return false;
+
+      const period = getPaymentMonthYear(payment);
+
       return (
-        !isRemoved &&
-        Number(payment.month) === targetMonth &&
-        Number(payment.year) === targetYear
+        Number(period.month) === targetMonth &&
+        Number(period.year) === targetYear
       );
     });
-
-
-    return filtered;
   }, [allPayments, month, year]);
   const paymentsByUser = useMemo(() => {
     const map = new Map();
@@ -139,7 +159,6 @@ export default function useMonthlySheet({
           month,
           year,
         });
-
 
         const history = (
           paymentsByUser.get(user.customerId || user.id) || []

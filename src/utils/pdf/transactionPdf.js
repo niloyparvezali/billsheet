@@ -1,11 +1,5 @@
 import { createPdfLayout } from "./pdfLayout";
-import {
-  buildSummary,
-  getStatusColor,
-  pdfMoney,
-  pdfBalance,
-} from "./pdfHelpers";
-import { money } from "../date";
+import { getStatusColor, pdfMoney, pdfBalance } from "./pdfHelpers";
 import { getDisplayBalanceValues, getDisplayPaymentStatus } from "../payments";
 
 export function exportTransactionPdf({
@@ -25,27 +19,19 @@ export function exportTransactionPdf({
           label: "Year",
           value: reportYear,
         },
-        {
-          label: "Total Transactions",
-          value: rows.length,
-        },
       ],
     });
 
   const totalCollection = rows.reduce(
-    (sum, row) => sum + Number(row.Amount || 0),
+    (sum, row) => sum + Number(String(row.Amount || 0).replace(/[^\d.-]/g, "")),
     0,
   );
 
   const currentY = drawSummary(
-    buildSummary({
-      totalUsers: rows.length,
-      paidUsers: "-",
-      pendingUsers: "-",
-      totalBill: "-",
-      totalCollection: money(totalCollection),
-      totalDue: "-",
-    }),
+    [
+      ["Total Transactions", rows.length],
+      ["Collection", pdfMoney(totalCollection)],
+    ],
     startY,
   );
 
@@ -76,16 +62,7 @@ export function exportTransactionPdf({
           due: displayBalance.due,
           carryForward: displayBalance.carryForward,
         }),
-        getDisplayPaymentStatus({
-          status: row.Status,
-          bill: Number(row.Bill || 0),
-          paid: Number(row.Amount || 0),
-          due: Number(displayBalance.due || 0),
-          advance: Number(displayBalance.carryForward || 0),
-          month: Number(row.Month || 0),
-          currentMonth: new Date().getMonth() + 1,
-          currentDate: new Date(),
-        }).label,
+        row.Status || "-",
         row.PaymentDate,
       ];
     }),
@@ -117,7 +94,7 @@ export function exportTransactionPdf({
 
   pdf.setPage(pdf.getNumberOfPages());
 
-drawFooter();
+  drawFooter();
 
   pdf.save(`Bill Sheet Transaction History ${reportYear}.pdf`);
 }

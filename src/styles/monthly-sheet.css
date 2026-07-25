@@ -380,7 +380,8 @@
 .monthly-sheet-mobile-item .users-mobile-item-status .status {
   min-height: 24px;
   padding: 5px 10px;
-  font-size: 11px;
+  font-size: 12px;
+  width: 78px;
 }
 
 .monthly-sheet-mobile-item .users-mobile-item-bottom {
@@ -407,7 +408,7 @@
   margin-left: 4px;
 }
 
-.monthly-sheet-mobile-sms-btn,
+.monthly-sheet-mobile-pay-btn,
 .users-mobile-item-chevron-btn {
   display: inline-flex;
   align-items: center;
@@ -424,12 +425,23 @@
     border-color 160ms ease;
 }
 
-.monthly-sheet-mobile-sms-btn {
-  min-height: 28px;
-  padding: 0 10px;
-  font-size: 11px;
+.monthly-sheet-mobile-pay-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 25px;
+  padding: 0 12px;
+  border: 1px solid var(--divider);
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--primary) 14%, var(--surface));
+  color: var(--primary);
+  font-size: 12px;
   font-weight: 700;
-  letter-spacing: 0.02em;
+  transition:
+    transform 180ms ease,
+    background 180ms ease,
+    border-color 180ms ease,
+    box-shadow 180ms ease;
 }
 
 .users-mobile-item-chevron-btn {
@@ -437,14 +449,18 @@
   height: 28px;
 }
 
-.monthly-sheet-mobile-sms-btn:hover,
+.monthly-sheet-mobile-pay-btn:hover,
 .users-mobile-item-chevron-btn:hover,
-.monthly-sheet-mobile-sms-btn:focus-visible,
+.monthly-sheet-mobile-pay-btn:focus-visible,
 .users-mobile-item-chevron-btn:focus-visible {
   transform: translateY(-1px);
   border-color: var(--primary);
-  background: color-mix(in srgb, var(--surface) 86%, var(--primary) 14%);
+  background: color-mix(in srgb, var(--primary) 22%, var(--surface));
+  box-shadow: var(--primary-shadow);
   outline: none;
+}
+.monthly-sheet-mobile-pay-btn svg {
+  flex-shrink: 0;
 }
 
 .monthly-sheet-customer-card {

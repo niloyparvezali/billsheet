@@ -611,6 +611,7 @@ export const getDisplayPaymentStatus = ({
   due = 0,
   advance = 0,
   month = null,
+  year = null, //old code change for pdf add this line
   currentMonth = null,
   currentDate = null,
   isInactiveEntry = false,
@@ -624,6 +625,7 @@ export const getDisplayPaymentStatus = ({
   const safeDue = Number(due || 0);
   const safeAdvance = Number(advance || 0);
   const normalizedMonth = Number(month || 0);
+  const normalizedYear = Number(year || 0);
   const normalizedCurrentMonth = Number(currentMonth || 0);
   const hasMonthContext =
     Number.isFinite(normalizedMonth) &&
@@ -732,6 +734,18 @@ export const getDisplayPaymentStatus = ({
     };
   }
 
+  // const {
+  //   currentBillPaid,
+  //   currentBillRemaining,
+  //   previousDuePaid,
+  //   previousDueRemaining,
+  //   carryForwardNext,
+  // } = buildBillingLedger({
+  //   bill: safeBill,
+  //   paid: safePaid,
+  //   carryForward: safeAdvance,
+  //   due: safeDue,
+  // }); old code change for pdf
   const {
     currentBillPaid,
     currentBillRemaining,
@@ -742,21 +756,34 @@ export const getDisplayPaymentStatus = ({
     bill: safeBill,
     paid: safePaid,
     carryForward: safeAdvance,
-    due: safeDue,
+    previousDue: safeDue,
   });
 
+  // const resolvedStatus = resolveBillingStatus({
+  //   bill: safeBill,
+  //   paid: safePaid,
+  //   currentBillPaid,
+  //   currentBillRemaining,
+  //   previousDueRemaining,
+  //   carryForwardNext,
+  //   month: normalizedMonth,
+  //   year:
+  //     hasCurrentDateContext && normalizedCurrentDate
+  //       ? normalizedCurrentDate.getFullYear()
+  //       : new Date().getFullYear(),
+  //   currentDate: normalizedCurrentDate || new Date(),
+  // }); old code change for pdf
   const resolvedStatus = resolveBillingStatus({
     bill: safeBill,
     paid: safePaid,
-    currentBillPaid,
-    currentBillRemaining,
-    previousDueRemaining,
-    carryForwardNext,
+    previousDue: safeDue,
+    previousAdvance: safeAdvance,
     month: normalizedMonth,
     year:
-      hasCurrentDateContext && normalizedCurrentDate
+      normalizedYear ||
+      (hasCurrentDateContext && normalizedCurrentDate
         ? normalizedCurrentDate.getFullYear()
-        : new Date().getFullYear(),
+        : new Date().getFullYear()),
     currentDate: normalizedCurrentDate || new Date(),
   });
 

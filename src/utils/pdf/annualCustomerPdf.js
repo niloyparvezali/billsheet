@@ -147,6 +147,38 @@ export function exportAnnualCustomerPdf({
         isInactiveEntry ? "-" : entry.status || "-",
       ];
     }),
+    didParseCell(data) {
+      if (data.section !== "body") return;
+
+      // Status column
+      if (data.column.index === 6) {
+        const status = String(data.cell.raw || "").toLowerCase();
+
+        data.cell.styles.fontStyle = "bold";
+        data.cell.styles.halign = "center";
+
+        switch (status) {
+          case "paid":
+            data.cell.styles.textColor = [34, 197, 94]; // Green
+            break;
+
+          case "partial":
+            data.cell.styles.textColor = [245, 158, 11]; // Orange
+            break;
+
+          case "pending":
+            data.cell.styles.textColor = [168, 85, 247]; // Purple
+            break;
+
+          case "advance":
+            data.cell.styles.textColor = [59, 130, 246]; // Blue
+            break;
+
+          default:
+            data.cell.styles.textColor = [55, 65, 81];
+        }
+      }
+    },
   });
   pdf.setPage(pdf.getNumberOfPages());
 

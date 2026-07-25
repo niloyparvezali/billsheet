@@ -486,9 +486,23 @@
 
 .reports-profile-card,
 .reports-calc-card,
-.reports-history-card,
 .reports-footer-summary,
 .reports-empty-state {
+  padding: 16px;
+
+  border-radius: 18px;
+  border: 1px solid var(--divider);
+
+  background: var(--surface);
+
+  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.14);
+
+  transition:
+    transform 220ms ease,
+    border-color 220ms ease;
+}
+
+.reports-history-card {
   padding: 16px;
 
   border-radius: 18px;
@@ -1109,10 +1123,12 @@
   ============================ */
 
   .reports-history-head {
+    width: 100%;
     display: flex;
     flex-direction: column;
     align-items: flex-start;
     gap: 12px;
+    margin-bottom: 8px; /* was much larger */
   }
 
   .reports-history-controls {
@@ -1120,17 +1136,20 @@
     justify-content: space-between;
     align-items: center;
     gap: 8px;
-    width: 100%;
   }
 
   .reports-history-buttons {
     display: flex;
-    gap: 8px;
+    gap: 6px;
+    flex-shrink: 0;
   }
 
   .reports-history-btn {
-    padding: 10px 14px;
-    font-size: 14px;
+    min-width: 82px;
+    height: 32px;
+    padding: 0 8px;
+    font-size: 12px;
+    border-radius: 8px;
   }
 
   /* ===========================
@@ -1139,13 +1158,13 @@
 
   .reports-history-table-wrap {
     width: 100%;
-    overflow-x: hidden;
+    overflow-x: auto;
   }
 
   .reports-history-table {
     width: 100%;
-    min-width: 100% !important;
     table-layout: fixed;
+    border-collapse: collapse;
   }
 
   /* Hide desktop columns */
@@ -1476,11 +1495,14 @@
   }
 
   .reports-history-table-wrap {
-    border-radius: 14px;
+    width: 100%;
+    overflow-x: auto;
   }
 
   .reports-history-table {
-    table-layout: auto;
+    width: 100%;
+    table-layout: fixed;
+    border-collapse: collapse;
   }
 
   .reports-history-row th,
@@ -1602,7 +1624,8 @@
 .reports-history-controls {
   display: flex;
   align-items: center;
-  gap: 12px;
+  justify-content: space-between;
+  margin-bottom: 10px;
 }
 
 .reports-history-buttons {
@@ -1611,12 +1634,24 @@
 }
 
 .reports-history-btn {
-  padding: 8px 14px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+
+  min-width: 92px;
+  height: 34px;
+  padding: 0 10px;
+
   border: 1px solid var(--divider);
-  border-radius: 10px;
+  border-radius: 8px;
+
   background: var(--surface);
   color: var(--text);
+
+  font-size: 13px;
   font-weight: 600;
+  white-space: nowrap;
+
   cursor: pointer;
   transition: all 0.2s ease;
 }
@@ -1665,7 +1700,45 @@
   gap: 8px;
   padding: 12px;
 }
+/* ===========================================================
+   FINAL REPORT HISTORY FIX
+   KEEP THIS AT THE VERY END OF reports.css
+   DO NOT MOVE IT.
+=========================================================== */
 
+.reports-history-card--full {
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.reports-history-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 16px;
+}
+
+.reports-history-controls {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.reports-history-table-wrap {
+  width: 100%;
+  overflow-x: auto;
+}
+
+.reports-history-table {
+  width: 100% !important;
+  min-width: 100% !important;
+  table-layout: auto !important;
+}
+
+.reports-history-table th,
+.reports-history-table td {
+  white-space: nowrap;
+}
 /* Desktop */
 
 .reports-transaction {
@@ -1722,6 +1795,10 @@
 }
 /* ---------- MOBILE ---------- */
 @media (max-width: 768px) {
+  .reports-history-head {
+    width: 100%;
+    gap: 1px;
+  }
   .reports-transaction {
     display: grid;
     grid-template-columns: 70px 1fr 72px;
@@ -1789,4 +1866,116 @@
   color: var(--danger);
   text-decoration: line-through;
   opacity: 0.7;
+}
+/* =====================================================
+   Payment History Toggle Switch
+===================================================== */
+
+.reports-history-toggle {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  user-select: none;
+}
+
+.reports-history-label {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--text-muted);
+  transition: color 0.25s ease;
+}
+
+.reports-history-label.active {
+  color: var(--primary);
+}
+
+.reports-history-switch {
+  position: relative;
+
+  width: 52px;
+  height: 28px;
+
+  border: none;
+  outline: none;
+
+  border-radius: 999px;
+
+  background: color-mix(in srgb, var(--divider) 85%, transparent);
+
+  cursor: pointer;
+
+  transition: 0.25s;
+}
+
+.reports-history-switch.active {
+  background: var(--primary);
+}
+
+.reports-history-switch-thumb {
+  position: absolute;
+
+  top: 3px;
+  left: 3px;
+
+  width: 22px;
+  height: 22px;
+
+  border-radius: 50%;
+
+  background: var(--surface);
+
+  box-shadow:
+    0 2px 8px rgba(0, 0, 0, 0.18),
+    inset 0 1px 0 rgba(255, 255, 255, 0.25);
+
+  transition: transform 0.25s ease;
+}
+
+.reports-history-switch.active .reports-history-switch-thumb {
+  transform: translateX(24px);
+}
+
+.reports-history-switch:hover {
+  transform: scale(1.04);
+}
+
+.reports-history-switch:active {
+  transform: scale(0.97);
+}
+
+@media (max-width: 768px) {
+  .reports-history-controls {
+    width: 100%;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .reports-history-chip {
+    font-size: 12px;
+    padding: 4px 10px;
+  }
+
+  .reports-history-toggle {
+    gap: 6px;
+  }
+
+  .reports-history-label {
+    font-size: 11px;
+  }
+
+  .reports-history-switch {
+    width: 46px;
+    height: 24px;
+  }
+
+  .reports-history-switch-thumb {
+    width: 18px;
+    height: 18px;
+  }
+
+  .reports-history-switch.active .reports-history-switch-thumb {
+    transform: translateX(22px);
+  }
 }

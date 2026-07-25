@@ -1,6 +1,7 @@
 import { exportMonthlySheetPdf } from "../utils/pdf";
 import { getStoredTheme } from "../utils/theme";
 import PaymentModal from "../components/PaymentModal";
+import FloatingSearch from "../components/FloatingSearch";
 import useMonthlySheet from "../hooks/useMonthlySheet";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Link, useLocation } from "react-router-dom";
@@ -1050,13 +1051,18 @@ export default function MonthlySheet() {
                               <div className="users-mobile-item-actions">
                                 <button
                                   type="button"
-                                  className="monthly-sheet-mobile-sms-btn"
+                                  className="monthly-sheet-mobile-pay-btn"
                                   onClick={(event) => {
                                     event.stopPropagation();
-                                    setSmsRecipient(user);
+
+                                    setEditing({
+                                      user,
+                                      payment,
+                                      openingDue,
+                                    });
                                   }}
                                 >
-                                  <Send size={22} />
+                                  <FiDollarSign size={18} />
                                 </button>
                                 <button
                                   type="button"
@@ -1442,6 +1448,7 @@ export default function MonthlySheet() {
           onCancel={() => setSmsRecipient(null)}
         />
       )}
+      <FloatingSearch targetRef={searchRef} />
     </div>
   );
 }

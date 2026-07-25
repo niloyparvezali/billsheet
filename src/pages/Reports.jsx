@@ -252,6 +252,9 @@ export default function Reports() {
   const collapseAllMonths = () => {
     setExpandedMonths({});
   };
+  const allExpanded =
+    monthlyHistory.length > 0 &&
+    monthlyHistory.every((_, index) => expandedMonths[index]);
   const yearOverview = useMemo(() => {
     const selectedYear = Number(year);
     const today = new Date();
@@ -648,7 +651,7 @@ export default function Reports() {
             ))}
           </section>
 
-          <section className="reports-history-card">
+          <section className="reports-history-card reports-history-card--full">
             <div className="reports-history-head">
               <div>
                 <div className="reports-history-kicker">
@@ -662,22 +665,33 @@ export default function Reports() {
                   {monthlyHistory.length} {t("months", "months")}
                 </div>
 
-                <div className="reports-history-buttons">
-                  <button
-                    type="button"
-                    className="reports-history-btn"
-                    onClick={expandAllMonths}
+                <div className="reports-history-toggle">
+                  <span
+                    className={`reports-history-label ${allExpanded ? "" : "active"}`}
                   >
-                    Expand All
-                  </button>
+                    Expand
+                  </span>
 
                   <button
                     type="button"
-                    className="reports-history-btn"
-                    onClick={collapseAllMonths}
+                    className={`reports-history-switch ${allExpanded ? "active" : ""}`}
+                    onClick={() => {
+                      if (allExpanded) {
+                        collapseAllMonths();
+                      } else {
+                        expandAllMonths();
+                      }
+                    }}
+                    aria-label={allExpanded ? "Collapse All" : "Expand All"}
                   >
-                    Collapse All
+                    <span className="reports-history-switch-thumb" />
                   </button>
+
+                  <span
+                    className={`reports-history-label ${allExpanded ? "active" : ""}`}
+                  >
+                    Collapse
+                  </span>
                 </div>
               </div>
             </div>
