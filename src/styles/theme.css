@@ -1,176 +1,4 @@
-:root {
-  --bg: #071b1d;
-  --surface: #0d2a2d;
-  --card: #12373b;
-
-  --text: #eefdfb;
-  --text-muted: #9ec7c5;
-  --text-primary: #ffffff;
-
-  --primary: #14b8a6;
-  --primary-hover: #2dd4bf;
-  --primary-shadow: rgba(20, 184, 166, 0.25);
-
-  --divider: #29575a;
-
-  --input-bg: #123235;
-  --input-border: #2b6668;
-
-  --sidebar-bg: #061214;
-  --sidebar-text: #d8f4f1;
-  --sidebar-hover: #164348;
-
-  --header-bg: #0a2326;
-
-  --overlay: rgba(0, 0, 0, 0.65);
-
-  --success: #22c55e;
-  --success-bg: rgba(34, 197, 94, 0.16);
-
-  --warning: #f59e0b;
-  --warning-bg: rgba(245, 158, 11, 0.16);
-
-  --danger: #ef4444;
-  --danger-bg: rgba(239, 68, 68, 0.16);
-
-  --info: #38bdf8;
-  --info-bg: rgba(56, 189, 248, 0.16);
-
-  --status-paid-bg: rgba(34, 197, 94, 0.16);
-  --status-paid-text: #22c55e;
-
-  --status-advance-bg: rgba(56, 189, 248, 0.16);
-  --status-advance-text: #38bdf8;
-
-  --status-partial-bg: rgba(249, 115, 22, 0.16);
-  --status-partial-text: #f97316;
-
-  --status-due-bg: rgba(239, 68, 68, 0.16);
-  --status-due-text: #ef4444;
-
-  --status-pending-bg: rgba(139, 92, 246, 0.16);
-  --status-pending-text: #8b5cf6;
-
-  --due-text: #ef4444;
-
-  --chart1: #14b8a6;
-  --chart2: #2dd4bf;
-  --chart3: #38bdf8;
-  --chart4: #22c55e;
-  --chart5: #5eead4;
-
-  --sheet-gold: #14b8a6;
-  --sheet-gold-soft: rgba(20, 184, 166, 0.14);
-
-  --accent: var(--primary);
-  --accent-hover: var(--primary-hover);
-  --accent-shadow: var(--primary-shadow);
-
-  --theme-active: #14b8a6;
-
-  --theme-card-bg: #12373b;
-  --theme-card-border: #29575a;
-  --theme-card-text: #ffffff;
-  --theme-card-subtext: #9ec7c5;
-
-  --chart-bar-active: #14b8a6;
-  --chart-bar-default: #5eead4;
-
-  --chart-grid: rgba(255, 255, 255, 0.08);
-  --chart-axis: rgba(255, 255, 255, 0.75);
-  --chart-label: #eefdfb;
-
-  --chart-tooltip-bg: rgba(7, 27, 29, 0.96);
-  --chart-tooltip-text: #ffffff;
-}
-:root[data-theme="ocean"] {
-  --bg: #031826;
-  --surface: #0a2b42;
-  --card: #123d5b;
-
-  --text: #f4fbff;
-  --text-muted: #abd4e8;
-  --text-primary: #ffffff;
-
-  --primary: #0ea5e9;
-  --primary-hover: #38bdf8;
-  --primary-shadow: rgba(14, 165, 233, 0.28);
-
-  --divider: #2a6386;
-
-  --input-bg: #11364f;
-  --input-border: #3277a3;
-
-  --sidebar-bg: #02131f;
-  --sidebar-text: #dff5ff;
-  --sidebar-hover: #184a6b;
-
-  --header-bg: #082235;
-
-  --overlay: rgba(3, 24, 38, 0.75);
-
-  --success: #22c55e;
-  --success-bg: rgba(34, 197, 94, 0.16);
-
-  --warning: #f59e0b;
-  --warning-bg: rgba(245, 158, 11, 0.16);
-
-  --danger: #ef4444;
-  --danger-bg: rgba(239, 68, 68, 0.16);
-
-  --info: #38bdf8;
-  --info-bg: rgba(56, 189, 248, 0.16);
-
-  --status-paid-bg: rgba(34, 197, 94, 0.16);
-  --status-paid-text: #22c55e;
-
-  --status-advance-bg: rgba(14, 165, 233, 0.16);
-  --status-advance-text: #0ea5e9;
-
-  --status-partial-bg: rgba(249, 115, 22, 0.16);
-  --status-partial-text: #f97316;
-
-  --status-due-bg: rgba(239, 68, 68, 0.16);
-  --status-due-text: #ef4444;
-
-  --status-pending-bg: rgba(139, 92, 246, 0.16);
-  --status-pending-text: #8b5cf6;
-
-  --due-text: #ef4444;
-
-  --chart1: #0ea5e9;
-  --chart2: #38bdf8;
-  --chart3: #06b6d4;
-  --chart4: #67e8f9;
-  --chart5: #7dd3fc;
-
-  --sheet-gold: #0ea5e9;
-  --sheet-gold-soft: rgba(14, 165, 233, 0.16);
-
-  --accent: var(--primary);
-  --accent-hover: var(--primary-hover);
-  --accent-shadow: var(--primary-shadow);
-
-  --theme-active: #38bdf8;
-
-  --theme-card-bg: #123d5b;
-  --theme-card-border: #2a6386;
-  --theme-card-text: #f4fbff;
-  --theme-card-subtext: #abd4e8;
-
-  --chart-bar-active: #0ea5e9;
-  --chart-bar-default: #67e8f9;
-
-  --chart-grid: rgba(125, 211, 252, 0.16);
-  --chart-axis: rgba(244, 251, 255, 0.75);
-  --chart-label: #f4fbff;
-
-  --chart-tooltip-bg: rgba(3, 24, 38, 0.98);
-  --chart-tooltip-text: #ffffff;
-}
-
-:root[data-theme="sunrise"],
-:root[data-theme="light"] {
+:root[data-theme="sunrise"] {
   --bg: #fafaf9;
   --surface: #ffffff;
   --card: #ffffff;
@@ -182,7 +10,7 @@
   /* Soft Orange */
   --primary: #fb923c;
   --primary-hover: #f97316;
-  --primary-shadow: rgba(251, 146, 60, 0.20);
+  --primary-shadow: rgba(251, 146, 60, 0.2);
 
   --divider: #e7e5e4;
 
@@ -192,10 +20,13 @@
   --sidebar-bg: #ffffff;
   --sidebar-text: #374151;
   --sidebar-hover: #fff7ed;
+  --sidebar-active-bg: #fb923c;
+  --sidebar-active-text: #1f2937;
+  --sidebar-active-border: #fb923c;
 
   --header-bg: #ffffff;
 
-  --overlay: rgba(17, 24, 39, 0.30);
+  --overlay: rgba(17, 24, 39, 0.3);
 
   --success: #22c55e;
   --success-bg: #dcfce7;
@@ -212,14 +43,14 @@
   --status-paid-bg: rgba(34, 197, 94, 0.14);
   --status-paid-text: #22c55e;
 
-  --status-advance-bg: rgba(251, 146, 60, 0.14);
-  --status-advance-text: #fb923c;
+  --status-advance-bg: rgba(59, 130, 246, 0.14);
+  --status-advance-text: #2563eb;
 
   --status-partial-bg: rgba(245, 158, 11, 0.14);
-  --status-partial-text: #f59e0b;
+  --status-partial-text: #d97706;
 
   --status-due-bg: rgba(239, 68, 68, 0.14);
-  --status-due-text: #ef4444;
+  --status-due-text: #dc2626;
 
   --status-pending-bg: rgba(139, 92, 246, 0.14);
   --status-pending-text: #8b5cf6;
@@ -250,15 +81,31 @@
   --chart-bar-default: #fdba74;
 
   --chart-grid: rgba(17, 24, 39, 0.08);
-  --chart-axis: rgba(17, 24, 39, 0.60);
+  --chart-axis: rgba(17, 24, 39, 0.6);
   --chart-label: #1f2937;
 
   --chart-tooltip-bg: rgba(17, 24, 39, 0.96);
   --chart-tooltip-text: #ffffff;
+
+  --passcode-dot-empty: #f59e0b;
+  --passcode-dot-filled: #fb923c;
+
+  /* Loading Screen */
+  --loading-bg: #fafaf9;
+  --loading-card: #ffffff;
+  --loading-title: #1f2937;
+  --loading-text: #6b7280;
+  --loading-text-muted: #6b7280;
+  --loading-accent: #fb923c;
+  --loading-glow: rgba(251, 146, 60, 0.25);
+  --loading-ring: rgba(249, 115, 22, 0.18);
+  --loading-particle: #fdba74;
+  --loading-shadow: rgba(251, 146, 60, 0.16);
+  --loading-eyebrow-bg: rgba(251, 146, 60, 0.14);
+  --loading-eyebrow-text: #fb923c;
 }
 
-:root[data-theme="midnight"],
-:root[data-theme="dark"] {
+:root[data-theme="midnight"] {
   --bg: #0a0a0a;
   --surface: #171717;
   --card: #202020;
@@ -279,6 +126,9 @@
   --sidebar-bg: #090909;
   --sidebar-text: #d4d4d4;
   --sidebar-hover: #242424;
+  --sidebar-active-bg: #3b82f6;
+  --sidebar-active-text: #ffffff;
+  --sidebar-active-border: #3b82f6;
 
   --header-bg: #141414;
 
@@ -296,17 +146,17 @@
   --info: #06b6d4;
   --info-bg: rgba(6, 182, 212, 0.16);
 
-  --status-paid-bg: rgba(34, 197, 94, 0.16);
+  --status-paid-bg: rgba(34, 197, 94, 0.14);
   --status-paid-text: #22c55e;
 
-  --status-advance-bg: rgba(59, 130, 246, 0.16);
-  --status-advance-text: #3b82f6;
+  --status-advance-bg: rgba(59, 130, 246, 0.14);
+  --status-advance-text: #2563eb;
 
-  --status-partial-bg: rgba(249, 115, 22, 0.16);
-  --status-partial-text: #f97316;
+  --status-partial-bg: rgba(245, 158, 11, 0.14);
+  --status-partial-text: #d97706;
 
-  --status-due-bg: rgba(239, 68, 68, 0.16);
-  --status-due-text: #ef4444;
+  --status-due-bg: rgba(239, 68, 68, 0.14);
+  --status-due-text: #dc2626;
 
   --status-pending-bg: rgba(139, 92, 246, 0.16);
   --status-pending-text: #8b5cf6;
@@ -342,6 +192,23 @@
 
   --chart-tooltip-bg: rgba(20, 20, 20, 0.98);
   --chart-tooltip-text: #ffffff;
+
+  --passcode-dot-empty: #f59e0b;
+  --passcode-dot-filled: #3b82f6;
+
+  /* Loading Screen */
+  --loading-bg: #0a0a0a;
+  --loading-card: #202020;
+  --loading-title: #fafafa;
+  --loading-text: #d1d5db;
+  --loading-text-muted: #a3a3a3;
+  --loading-accent: #3b82f6;
+  --loading-glow: rgba(59, 130, 246, 0.28);
+  --loading-ring: rgba(59, 130, 246, 0.28);
+  --loading-particle: #60a5fa;
+  --loading-shadow: rgba(15, 23, 42, 0.42);
+  --loading-eyebrow-bg: rgba(59, 130, 246, 0.14);
+  --loading-eyebrow-text: #3b82f6;
 }
 
 html,
@@ -374,7 +241,14 @@ body {
   transition: all 0.25s ease;
 }
 
-.sidebar a:hover,
+.sidebar a:hover {
+  background: linear-gradient(
+    135deg,
+    color-mix(in srgb, var(--primary) 18%, var(--sidebar-hover) 82%),
+    var(--sidebar-hover)
+  );
+}
+
 .sidebar a.active,
 nav a:hover,
 nav a.active {
@@ -383,8 +257,8 @@ nav a.active {
     color-mix(in srgb, var(--primary) 18%, var(--sidebar-hover) 82%),
     var(--sidebar-hover)
   );
-  color: var(--text-primary);
-  box-shadow: inset 3px 0 0 var(--primary);
+  color: var(--sidebar-active-text);
+  box-shadow: inset 3px 0 0 var(--sidebar-active-border);
 }
 
 .sidebar-bottom {

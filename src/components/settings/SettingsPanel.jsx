@@ -23,17 +23,16 @@ import {
   Globe,
   LayoutGrid,
   Lock,
-  Moon,
   Palette,
   Save,
   Search,
   ShieldCheck,
   Sparkles,
-  Sun,
   Upload,
   UserRound,
   Users,
-  Waves,
+  Moon,
+  Sun,
 } from "lucide-react";
 import { useAuth } from "../../context/AuthContext";
 import { useLanguage } from "../../context/LanguageContext";
@@ -44,10 +43,16 @@ import SettingsSectionCard from "./SettingsSectionCard";
 import SettingsTile from "./SettingsTile";
 
 const themeOptions = [
-  { id: "sunrise", label: "☀️ Sunrise", icon: Sun },
-  { id: "midnight", label: "🌙 Midnight", icon: Moon },
-  { id: "forest", label: "🌲 Forest", icon: Waves },
-  { id: "ocean", label: "🌊 Ocean", icon: Sparkles },
+  {
+    id: "midnight",
+    label: "🌙 Midnight",
+    icon: Moon,
+  },
+  {
+    id: "sunrise",
+    label: "☀️ Sunrise",
+    icon: Sun,
+  },
 ];
 
 const defaultSmsTemplate = `Hello {{customerName}},
@@ -156,7 +161,8 @@ export default function SettingsPanel({ user, onSave, onExportBackup }) {
       overview: "The dashboard gives a quick snapshot of your workspace.",
       fields: ["Summary cards", "Collection chart", "Recent payments"],
       actions: ["Open the billing sheet", "Review recent activity"],
-      example: "Use the dashboard to spot payment trends before opening the full billing sheet.",
+      example:
+        "Use the dashboard to spot payment trends before opening the full billing sheet.",
       warning: "Do not rely on it alone for detailed payment history.",
     },
     {
@@ -170,10 +176,18 @@ export default function SettingsPanel({ user, onSave, onExportBackup }) {
       mistakes: ["Leaving the monthly bill empty"],
       time: "3 min",
       keywords: ["customer", "customers", "add user", "edit user"],
-      overview: "This page is where customer accounts are created and maintained.",
-      fields: ["Name", "Package or category", "Monthly bill", "Phone", "Address"],
+      overview:
+        "This page is where customer accounts are created and maintained.",
+      fields: [
+        "Name",
+        "Package or category",
+        "Monthly bill",
+        "Phone",
+        "Address",
+      ],
       actions: ["Add a customer", "Edit a customer", "Deactivate a customer"],
-      example: "Add a new customer here before recording any payments for them.",
+      example:
+        "Add a new customer here before recording any payments for them.",
       warning: "Phone numbers must follow the supported format.",
     },
     {
@@ -187,7 +201,8 @@ export default function SettingsPanel({ user, onSave, onExportBackup }) {
       mistakes: ["Forgetting to pick the right month"],
       time: "4 min",
       keywords: ["payment", "monthly", "bill", "collection"],
-      overview: "This page manages the current month’s customer billing activity.",
+      overview:
+        "This page manages the current month’s customer billing activity.",
       fields: ["Month", "Year", "Search", "Payment amount", "Additional due"],
       actions: ["Record a payment", "View balances", "Send an SMS reminder"],
       example: "Save a payment here to update the customer’s current balance.",
@@ -207,7 +222,8 @@ export default function SettingsPanel({ user, onSave, onExportBackup }) {
       overview: "Reports show a yearly view of a customer’s billing history.",
       fields: ["Customer search", "Year", "Monthly history"],
       actions: ["Open a customer report", "Export a PDF"],
-      example: "Choose a customer and year to review their full annual billing story.",
+      example:
+        "Choose a customer and year to review their full annual billing story.",
       warning: "If no customer is selected, the page shows a general overview.",
     },
     {
@@ -217,14 +233,23 @@ export default function SettingsPanel({ user, onSave, onExportBackup }) {
       purpose: "Browse past payments",
       why: "Use it when you need to review older transactions by month, filter, or customer.",
       buttons: ["Choose month", "Apply filters", "Export PDF"],
-      tips: ["Use the date range for a specific period", "Search by customer name"],
+      tips: [
+        "Use the date range for a specific period",
+        "Search by customer name",
+      ],
       mistakes: ["Forgetting the filter mode"],
       time: "3 min",
       keywords: ["history", "transactions", "date", "filter"],
-      overview: "This page lists past transaction activity in a clear timeline.",
+      overview:
+        "This page lists past transaction activity in a clear timeline.",
       fields: ["Month", "Search", "Date range"],
-      actions: ["Filter transactions", "Review payment details", "Export history"],
-      example: "Open this page when you want to confirm an earlier payment entry.",
+      actions: [
+        "Filter transactions",
+        "Review payment details",
+        "Export history",
+      ],
+      example:
+        "Open this page when you want to confirm an earlier payment entry.",
       warning: "The date filter changes the visible transaction set instantly.",
     },
     {
@@ -240,9 +265,15 @@ export default function SettingsPanel({ user, onSave, onExportBackup }) {
       keywords: ["settings", "language", "theme", "backup", "security"],
       overview: "This page manages account and app preferences.",
       fields: ["Language", "Profile", "Theme", "Passcode", "SMS template"],
-      actions: ["Switch language", "Update passcode", "Import or export backup"],
-      example: "Use Settings if you want to change the app’s theme or save a backup copy.",
-      warning: "Reset and delete actions are permanent and should be used carefully.",
+      actions: [
+        "Switch language",
+        "Update passcode",
+        "Import or export backup",
+      ],
+      example:
+        "Use Settings if you want to change the app’s theme or save a backup copy.",
+      warning:
+        "Reset and delete actions are permanent and should be used carefully.",
     },
   ];
 
@@ -291,12 +322,14 @@ export default function SettingsPanel({ user, onSave, onExportBackup }) {
     {
       id: "password",
       question: "How do I change my passcode?",
-      answer: "Open Settings, go to Security, and update your passcode using the form. Keep the new passcode between 4 and 6 digits.",
+      answer:
+        "Open Settings, go to Security, and update your passcode using the form. Keep the new passcode between 4 and 6 digits.",
     },
     {
       id: "export",
       question: "How do I export reports?",
-      answer: "Open Reports and click the Export PDF button. You can also export transactions from the Transactions page.",
+      answer:
+        "Open Reports and click the Export PDF button. You can also export transactions from the Transactions page.",
     },
     {
       id: "customer",
@@ -306,7 +339,8 @@ export default function SettingsPanel({ user, onSave, onExportBackup }) {
     {
       id: "backup",
       question: "How do I recover data?",
-      answer: "Use Settings → Backup & Restore to import a previously exported backup file.",
+      answer:
+        "Use Settings → Backup & Restore to import a previously exported backup file.",
     },
   ];
 
@@ -318,7 +352,9 @@ export default function SettingsPanel({ user, onSave, onExportBackup }) {
 
       try {
         const snapshot = await getDoc(doc(db, "settings", user.uid));
-        const savedTemplate = snapshot?.exists ? snapshot.data()?.smsTemplate : "";
+        const savedTemplate = snapshot?.exists
+          ? snapshot.data()?.smsTemplate
+          : "";
 
         if (cancelled) return;
 
@@ -348,20 +384,33 @@ export default function SettingsPanel({ user, onSave, onExportBackup }) {
     const query = helpSearch.trim().toLowerCase();
     if (!query) return guideItems;
     return guideItems.filter((guide) => {
-      const haystack = [guide.title, guide.purpose, guide.why, guide.overview, ...(guide.keywords || [])]
+      const haystack = [
+        guide.title,
+        guide.purpose,
+        guide.why,
+        guide.overview,
+        ...(guide.keywords || []),
+      ]
         .join(" ")
         .toLowerCase();
       return haystack.includes(query);
     });
   }, [helpSearch]);
 
-  const selectedGuide = guideItems.find((guide) => guide.id === activeGuide) || guideItems[0];
-  const progressValue = Math.round(((guideItems.findIndex((guide) => guide.id === activeGuide) + 1) / guideItems.length) * 100);
+  const selectedGuide =
+    guideItems.find((guide) => guide.id === activeGuide) || guideItems[0];
+  const progressValue = Math.round(
+    ((guideItems.findIndex((guide) => guide.id === activeGuide) + 1) /
+      guideItems.length) *
+      100,
+  );
 
   const handleGuideOpen = (guideId) => {
     setActiveGuide(guideId);
     setExpandedGuide(guideId);
-    setRecentGuides((current) => [guideId, ...current.filter((item) => item !== guideId)].slice(0, 4));
+    setRecentGuides((current) =>
+      [guideId, ...current.filter((item) => item !== guideId)].slice(0, 4),
+    );
   };
 
   const handlePrintGuide = () => {
@@ -430,8 +479,7 @@ export default function SettingsPanel({ user, onSave, onExportBackup }) {
   const getThemePreview = (themeId) => {
     if (themeId === "sunrise") {
       return {
-        shell:
-          "linear-gradient(135deg, #FAF7F2 0%, #E8E2D8 58%, #2563EB 100%)",
+        shell: "linear-gradient(135deg, #FAF7F2 0%, #E8E2D8 58%, #2563EB 100%)",
         accent: "#2563EB",
         secondary: "#0EA5E9",
         glow: "rgba(37, 99, 235, 0.28)",
@@ -439,28 +487,17 @@ export default function SettingsPanel({ user, onSave, onExportBackup }) {
     }
     if (themeId === "midnight") {
       return {
-        shell:
-          "linear-gradient(135deg, #0B0F19 0%, #111827 58%, #3B82F6 100%)",
+        shell: "linear-gradient(135deg, #0B0F19 0%, #111827 58%, #3B82F6 100%)",
         accent: "#3B82F6",
         secondary: "#06B6D4",
         glow: "rgba(59, 130, 246, 0.28)",
       };
     }
-    if (themeId === "ocean") {
-      return {
-        shell:
-          "linear-gradient(135deg, rgba(5, 19, 34, 0.96) 0%, rgba(14, 116, 144, 0.9) 58%, rgba(6, 182, 212, 0.76) 100%)",
-        accent: "#22d3ee",
-        secondary: "#06b6d4",
-        glow: "rgba(34, 211, 238, 0.28)",
-      };
-    }
     return {
-      shell:
-        "linear-gradient(135deg, rgba(11, 34, 31, 0.96) 0%, rgba(15, 118, 110, 0.84) 58%, rgba(244, 197, 66, 0.76) 100%)",
-      accent: "#f4c542",
-      secondary: "#14b8a6",
-      glow: "rgba(244, 197, 66, 0.28)",
+      shell: "linear-gradient(135deg, #0B0F19 0%, #111827 58%, #3B82F6 100%)",
+      accent: "#3B82F6",
+      secondary: "#06B6D4",
+      glow: "rgba(59,130,246,.28)",
     };
   };
 
@@ -571,7 +608,11 @@ export default function SettingsPanel({ user, onSave, onExportBackup }) {
     }
 
     try {
-      await setDoc(doc(db, "settings", user.uid), { smsTemplate }, { merge: true });
+      await setDoc(
+        doc(db, "settings", user.uid),
+        { smsTemplate },
+        { merge: true },
+      );
       setSmsHasChanges(false);
       onSave?.();
       toast.success("SMS template updated successfully.");
@@ -701,7 +742,15 @@ export default function SettingsPanel({ user, onSave, onExportBackup }) {
       title={t("language")}
       description={t("select_language")}
     >
-      <div style={{ display: "flex", gap: "16px", flexWrap: "wrap", marginTop: "12px", marginBottom: "12px" }}>
+      <div
+        style={{
+          display: "flex",
+          gap: "16px",
+          flexWrap: "wrap",
+          marginTop: "12px",
+          marginBottom: "12px",
+        }}
+      >
         <button
           type="button"
           className={`settings-inline-btn ${language === "en" ? "primary" : ""}`}
@@ -709,11 +758,21 @@ export default function SettingsPanel({ user, onSave, onExportBackup }) {
             void changeLanguage("en");
             toast.success("Language set to English");
           }}
-          style={{ padding: "14px 28px", fontSize: "15px", fontWeight: 600, display: "flex", alignItems: "center", gap: "10px", borderRadius: "10px" }}
+          style={{
+            padding: "14px 28px",
+            fontSize: "15px",
+            fontWeight: 600,
+            display: "flex",
+            alignItems: "center",
+            gap: "10px",
+            borderRadius: "10px",
+          }}
         >
           <span style={{ fontSize: "18px" }}>🇺🇸</span>
           <span>English</span>
-          {language === "en" && <span style={{ marginLeft: "auto", fontWeight: 700 }}>✓</span>}
+          {language === "en" && (
+            <span style={{ marginLeft: "auto", fontWeight: 700 }}>✓</span>
+          )}
         </button>
 
         <button
@@ -723,11 +782,21 @@ export default function SettingsPanel({ user, onSave, onExportBackup }) {
             void changeLanguage("bn");
             toast.success("ভাষা বাংলা নির্বাচন করা হয়েছে");
           }}
-          style={{ padding: "14px 28px", fontSize: "15px", fontWeight: 600, display: "flex", alignItems: "center", gap: "10px", borderRadius: "10px" }}
+          style={{
+            padding: "14px 28px",
+            fontSize: "15px",
+            fontWeight: 600,
+            display: "flex",
+            alignItems: "center",
+            gap: "10px",
+            borderRadius: "10px",
+          }}
         >
           <span style={{ fontSize: "18px" }}>🇧🇩</span>
           <span>বাংলা</span>
-          {language === "bn" && <span style={{ marginLeft: "auto", fontWeight: 700 }}>✓</span>}
+          {language === "bn" && (
+            <span style={{ marginLeft: "auto", fontWeight: 700 }}>✓</span>
+          )}
         </button>
       </div>
     </SettingsSectionCard>
@@ -1157,29 +1226,89 @@ export default function SettingsPanel({ user, onSave, onExportBackup }) {
       description="A beginner-friendly guide for using this website easily."
     >
       <div style={{ display: "grid", gap: "16px" }}>
-        <div style={{ borderRadius: "20px", padding: "18px", background: "linear-gradient(135deg, var(--primary) 0%, var(--accent-hover) 100%)", color: "var(--text-primary)" }}>
-          <div style={{ fontSize: "12px", fontWeight: 700, letterSpacing: "0.16em", textTransform: "uppercase", opacity: 0.9 }}>Start here</div>
-          <h3 style={{ margin: "6px 0 8px", fontSize: "22px" }}>Use this website in 4 simple steps</h3>
-          <p style={{ margin: 0, opacity: 0.95 }}>Follow these steps and you can manage customers, payments, and reports without confusion.</p>
+        <div
+          style={{
+            borderRadius: "20px",
+            padding: "18px",
+            background:
+              "linear-gradient(135deg, var(--primary) 0%, var(--accent-hover) 100%)",
+            color: "var(--text-primary)",
+          }}
+        >
+          <div
+            style={{
+              fontSize: "12px",
+              fontWeight: 700,
+              letterSpacing: "0.16em",
+              textTransform: "uppercase",
+              opacity: 0.9,
+            }}
+          >
+            Start here
+          </div>
+          <h3 style={{ margin: "6px 0 8px", fontSize: "22px" }}>
+            Use this website in 4 simple steps
+          </h3>
+          <p style={{ margin: 0, opacity: 0.95 }}>
+            Follow these steps and you can manage customers, payments, and
+            reports without confusion.
+          </p>
 
           <div style={{ display: "grid", gap: "8px", marginTop: "12px" }}>
             {[
-              { title: "1. Login", text: "Enter your phone number and passcode to open your account." },
-              { title: "2. Add or view customers", text: "Go to Users to create a customer or update their details." },
-              { title: "3. Record payments", text: "Open Billing Sheet and save payments for the selected month." },
-              { title: "4. Check reports", text: "Use Reports to review yearly billing and payment status." },
+              {
+                title: "1. Login",
+                text: "Enter your phone number and passcode to open your account.",
+              },
+              {
+                title: "2. Add or view customers",
+                text: "Go to Users to create a customer or update their details.",
+              },
+              {
+                title: "3. Record payments",
+                text: "Open Billing Sheet and save payments for the selected month.",
+              },
+              {
+                title: "4. Check reports",
+                text: "Use Reports to review yearly billing and payment status.",
+              },
             ].map((step) => (
-              <div key={step.title} style={{ borderRadius: "12px", padding: "10px 12px", background: "rgba(255,255,255,0.16)" }}>
+              <div
+                key={step.title}
+                style={{
+                  borderRadius: "12px",
+                  padding: "10px 12px",
+                  background: "rgba(255,255,255,0.16)",
+                }}
+              >
                 <div style={{ fontWeight: 700 }}>{step.title}</div>
-                <div style={{ fontSize: "13px", marginTop: "2px", opacity: 0.95 }}>{step.text}</div>
+                <div
+                  style={{ fontSize: "13px", marginTop: "2px", opacity: 0.95 }}
+                >
+                  {step.text}
+                </div>
               </div>
             ))}
           </div>
         </div>
 
-        <div style={{ background: "var(--card)", borderRadius: "20px", padding: "18px", border: "1px solid var(--divider)" }}>
+        <div
+          style={{
+            background: "var(--card)",
+            borderRadius: "20px",
+            padding: "18px",
+            border: "1px solid var(--divider)",
+          }}
+        >
           <strong>Main pages</strong>
-          <div style={{ display: "grid", gap: "10px", gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))", marginTop: "10px" }}>
+          <div
+            style={{
+              display: "grid",
+              gap: "10px",
+              gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))",
+              marginTop: "10px",
+            }}
+          >
             {guideItems.slice(0, 5).map((guide) => {
               const Icon = guide.icon;
               return (
@@ -1187,35 +1316,103 @@ export default function SettingsPanel({ user, onSave, onExportBackup }) {
                   key={guide.id}
                   type="button"
                   onClick={() => handleGuideOpen(guide.id)}
-                  style={{ textAlign: "left", border: "1px solid var(--divider)", borderRadius: "14px", padding: "12px", background: "var(--card)", cursor: "pointer", color: "var(--text)" }}
+                  style={{
+                    textAlign: "left",
+                    border: "1px solid var(--divider)",
+                    borderRadius: "14px",
+                    padding: "12px",
+                    background: "var(--card)",
+                    cursor: "pointer",
+                    color: "var(--text)",
+                  }}
                 >
-                  <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-                    <div style={{ width: "34px", height: "34px", borderRadius: "10px", display: "flex", alignItems: "center", justifyContent: "center", background: "var(--primary-shadow)", color: "var(--primary)" }}>
+                  <div
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      gap: "8px",
+                    }}
+                  >
+                    <div
+                      style={{
+                        width: "34px",
+                        height: "34px",
+                        borderRadius: "10px",
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        background: "var(--primary-shadow)",
+                        color: "var(--primary)",
+                      }}
+                    >
                       <Icon size={16} />
                     </div>
                     <div style={{ fontWeight: 700 }}>{guide.title}</div>
                   </div>
-                  <div style={{ fontSize: "13px", color: "var(--text-muted)", marginTop: "6px" }}>{guide.purpose}</div>
+                  <div
+                    style={{
+                      fontSize: "13px",
+                      color: "var(--text-muted)",
+                      marginTop: "6px",
+                    }}
+                  >
+                    {guide.purpose}
+                  </div>
                 </button>
               );
             })}
           </div>
         </div>
 
-        <div style={{ background: "var(--card)", borderRadius: "20px", padding: "18px", border: "1px solid var(--divider)" }}>
+        <div
+          style={{
+            background: "var(--card)",
+            borderRadius: "20px",
+            padding: "18px",
+            border: "1px solid var(--divider)",
+          }}
+        >
           <strong>Helpful tips</strong>
-          <ul style={{ margin: "10px 0 0 18px", padding: 0, color: "var(--text-muted)", display: "grid", gap: "6px" }}>
+          <ul
+            style={{
+              margin: "10px 0 0 18px",
+              padding: 0,
+              color: "var(--text-muted)",
+              display: "grid",
+              gap: "6px",
+            }}
+          >
             <li>Use the Dashboard to see your daily and monthly summary.</li>
-            <li>Update customer details carefully so later payments are correct.</li>
+            <li>
+              Update customer details carefully so later payments are correct.
+            </li>
             <li>Save backups regularly so your data stays safe.</li>
-            <li>If you are unsure, open the related page and follow the simple steps.</li>
+            <li>
+              If you are unsure, open the related page and follow the simple
+              steps.
+            </li>
           </ul>
         </div>
 
-        <div style={{ background: "var(--card)", borderRadius: "20px", padding: "18px", border: "1px solid var(--divider)" }}>
+        <div
+          style={{
+            background: "var(--card)",
+            borderRadius: "20px",
+            padding: "18px",
+            border: "1px solid var(--divider)",
+          }}
+        >
           <strong>Need help?</strong>
-          <div style={{ marginTop: "8px", fontSize: "14px", color: "var(--text-muted)" }}>
-            Open the page you want to use, then follow the steps above. If you still need support, contact the admin or check the related section again.
+          <div
+            style={{
+              marginTop: "8px",
+              fontSize: "14px",
+              color: "var(--text-muted)",
+            }}
+          >
+            Open the page you want to use, then follow the steps above. If you
+            still need support, contact the admin or check the related section
+            again.
           </div>
         </div>
       </div>
@@ -1386,7 +1583,9 @@ export default function SettingsPanel({ user, onSave, onExportBackup }) {
         <div className="settings-modal-overlay">
           <div className="settings-modal settings-preview-popup">
             <h3>Live SMS Preview</h3>
-            <p>Open a preview of your current SMS template in a popup window.</p>
+            <p>
+              Open a preview of your current SMS template in a popup window.
+            </p>
             <div className="settings-preview">
               <div className="settings-preview-box settings-preview-text">
                 {previewSmsTemplate}

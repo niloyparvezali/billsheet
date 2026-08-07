@@ -1228,10 +1228,11 @@ export const buildMonthlyReportSummary = ({
   };
 };
 
-export const buildYearlyCustomerReportSummary = ({
+const buildYearlyCustomerReportSummaryCore = ({
   user,
   payments = [],
   year,
+  openingBalance = 0,
 }) => {
   const safeYear = Number(year);
   const activePayments = getActivePayments(payments || []);
@@ -1251,27 +1252,13 @@ export const buildYearlyCustomerReportSummary = ({
       null,
   );
 
-  const openingRow = buildMonthlySheetLedgerRow({
-    user,
-    payments: [],
-    history: activePayments.filter((payment) => {
-      const { year: paymentYear } = getPaymentMonthYear(payment);
-      return (
-        matchesPaymentToUser(payment, user) &&
-        Number(paymentYear) < safeYear &&
-        isPaymentOnOrAfterJoinDate(payment, joinDate)
-      );
-    }),
-    month: 1,
-    year: safeYear,
-    isActiveForPeriod: isUserActiveForPeriod,
-  });
+  const normalizedOpeningBalance = Number(openingBalance || 0);
+  const normalizedOpeningDue =
+    normalizedOpeningBalance < 0 ? Math.abs(normalizedOpeningBalance) : 0;
+  const normalizedOpeningAdvance =
+    normalizedOpeningBalance > 0 ? normalizedOpeningBalance : 0;
 
-  const openingDue = Number(openingRow.openingDue || 0);
-  const openingAdvance = Number(openingRow.openingAdvance || 0);
-  const openingBalance = openingAdvance - openingDue;
-
-  let runningBalance = openingBalance;
+  let runningBalance = normalizedOpeningBalance;
 
   const months = Array.from({ length: 12 }, (_, index) => {
     const month = index + 1;
@@ -1453,11 +1440,11 @@ export const buildYearlyCustomerReportSummary = ({
     user,
     year: safeYear,
     months,
-    openingBalance: Math.abs(openingBalance),
-    openingDue,
-    openingAdvance,
-    previousDue: openingDue,
-    previousAdvance: openingAdvance,
+    openingBalance: normalizedOpeningBalance,
+    openingDue: normalizedOpeningDue,
+    openingAdvance: normalizedOpeningAdvance,
+    previousDue: normalizedOpeningDue,
+    previousAdvance: normalizedOpeningAdvance,
     annualBill,
     totalPaid,
     totalDue: remainingDue,
@@ -1477,6 +1464,42 @@ export const buildYearlyCustomerReportSummary = ({
     firstPaymentDate,
     lastPaymentDate,
   };
+};
+
+export const buildYearlyCustomerReportSummary = ({
+  user,
+  payments = [],
+  year,
+}) => {
+  const safeYear = Number(year);
+
+  if (!Number.isFinite(safeYear) || safeYear < 1) {
+    return buildYearlyCustomerReportSummaryCore({
+      user,
+      payments,
+      year: 1,
+      openingBalance: 0,
+    });
+  }
+
+  const openingBalance =
+    safeYear > 1
+      ? Number(
+          buildYearlyCustomerReportSummaryCore({
+            user,
+            payments,
+            year: safeYear - 1,
+            openingBalance: 0,
+          }).closingBalance || 0,
+        )
+      : 0;
+
+  return buildYearlyCustomerReportSummaryCore({
+    user,
+    payments,
+    year: safeYear,
+    openingBalance,
+  });
 };
 
 export const reversePaymentRecord = ({

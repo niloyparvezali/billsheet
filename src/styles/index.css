@@ -1133,7 +1133,7 @@ header p {
 .dot {
   width: clamp(12px, 1.8vw, 14px);
   height: clamp(12px, 1.8vw, 14px);
-  border: 1.5px solid var(--primary);
+  border: 1.5px solid var(--passcode-dot-empty);
   border-radius: 50%;
   background: var(--input-bg);
   transition: all 0.2s ease;
@@ -1141,8 +1141,8 @@ header p {
 
 .dot.filled {
   border-color: transparent;
-  background: var(--primary);
-  box-shadow: 0 0 0 4px color-mix(in srgb, var(--primary) 22%, transparent);
+  background: var(--passcode-dot-filled);
+  box-shadow: 0 0 0 4px color-mix(in srgb, var(--passcode-dot-filled) 22%, transparent);
 }
 
 .auth-submit {

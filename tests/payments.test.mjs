@@ -518,12 +518,69 @@ test('buildYearlyCustomerReportSummary builds yearly rows from the shared ledger
 
   assert.equal(summary.annualBill, 12000);
   assert.equal(summary.totalPaid, 1000);
-  assert.equal(summary.totalDue, 11000);
+  assert.equal(summary.totalDue, 23000);
   assert.equal(summary.totalAdvance, 0);
   assert.equal(summary.months[6].month, 7);
   assert.equal(summary.months[6].paid, 600);
   assert.equal(summary.months[7].month, 8);
   assert.equal(summary.months[7].paid, 400);
+});
+
+test('buildYearlyCustomerReportSummary carries the previous year final closing balance into the next year opening balance', () => {
+  const scenarios = [
+    {
+      label: 'previous year fully paid',
+      payments: [{ userId: 'cust-1', month: 12, year: 2025, amount: 12000, status: 'Completed' }],
+      expectedOpeningBalance: 0,
+    },
+    {
+      label: 'previous year has due',
+      payments: [],
+      expectedOpeningBalance: -12000,
+    },
+    {
+      label: 'previous year has advance',
+      payments: [{ userId: 'cust-1', month: 12, year: 2025, amount: 13000, status: 'Completed' }],
+      expectedOpeningBalance: 1000,
+    },
+    {
+      label: 'previous year has partial payments',
+      payments: [{ userId: 'cust-1', month: 12, year: 2025, amount: 6000, status: 'Completed' }],
+      expectedOpeningBalance: -6000,
+    },
+    {
+      label: 'no payments in December',
+      payments: [{ userId: 'cust-1', month: 11, year: 2025, amount: 5000, status: 'Completed' }],
+      expectedOpeningBalance: -7000,
+    },
+    {
+      label: 'advance payment in December',
+      payments: [{ userId: 'cust-1', month: 12, year: 2025, amount: 14000, status: 'Completed' }],
+      expectedOpeningBalance: 2000,
+    },
+    {
+      label: 'partial payment in December',
+      payments: [{ userId: 'cust-1', month: 12, year: 2025, amount: 5000, status: 'Completed' }],
+      expectedOpeningBalance: -7000,
+    },
+    {
+      label: 'December bill unpaid',
+      payments: [{ userId: 'cust-1', month: 11, year: 2025, amount: 12000, status: 'Completed' }],
+      expectedOpeningBalance: 0,
+    },
+  ];
+
+  scenarios.forEach(({ label, payments, expectedOpeningBalance }) => {
+    const summary = buildYearlyCustomerReportSummary({
+      user: { id: 'cust-1', name: 'Alice', monthlyBill: 1000, active: true },
+      payments,
+      year: 2026,
+    });
+
+    assert.equal(summary.openingBalance, expectedOpeningBalance, label);
+    assert.equal(summary.openingDue, expectedOpeningBalance < 0 ? Math.abs(expectedOpeningBalance) : 0, label);
+    assert.equal(summary.openingAdvance, expectedOpeningBalance > 0 ? expectedOpeningBalance : 0, label);
+  });
 });
 
 test('getEffectiveBillForPeriod resolves bill changes from the history timeline', () => {

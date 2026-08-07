@@ -64,8 +64,13 @@ vi.mock("firebase/firestore", () => {
 
 vi.mock("../../utils/theme", () => ({
   applyTheme: vi.fn(),
-  getStoredTheme: () => "ocean",
-  normalizeTheme: (value) => value,
+  getStoredTheme: () => "midnight",
+  normalizeTheme: (value) => {
+    const theme = String(value || "").trim().toLowerCase();
+    if (theme === "midnight") return "midnight";
+    if (theme === "sunrise") return "sunrise";
+    return "midnight";
+  },
 }));
 
 describe("SettingsPanel SMS template persistence", () => {

@@ -1,5 +1,6 @@
 import { Navigate, Route, Routes, useLocation } from "react-router-dom";
 import { useAuth } from "./context/AuthContext";
+import { useThemeReady } from "./context/ThemeContext";
 import Layout from "./components/Layout";
 import LoadingScreen from "./components/LoadingScreen";
 import Login from "./pages/Login";
@@ -12,8 +13,9 @@ import Settings from "./pages/Settings";
 
 function Protected({ children }) {
   const { user, loading } = useAuth();
+  const themeReady = useThemeReady();
   const location = useLocation();
-  if (loading) {
+  if (loading || !themeReady) {
     return <LoadingScreen />;
   }
   return user ? (

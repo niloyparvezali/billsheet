@@ -1,58 +1,56 @@
-import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
+import { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
 import { useLocation } from "react-router-dom";
 import { doc, getDoc, setDoc } from "firebase/firestore";
 import { useAuth } from "./AuthContext";
 import { db, firebaseReady } from "../firebase/config";
-import { applyTheme, getStoredTheme, normalizeTheme } from "../utils/theme";
+import { applyTheme, getStoredTheme, initializeTheme, normalizeTheme } from "../utils/theme";
 
-const ThemeContext = createContext(null);
+export const ThemeContext = createContext(null);
 
 export function ThemeProvider({ children }) {
   const { user, loading: authLoading } = useAuth();
   const location = useLocation();
-  const [theme, setTheme] = useState("midnight");
+  const [theme, setTheme] = useState(() => {
+    if (typeof window === "undefined") {
+      return "midnight";
+    }
+    return normalizeTheme(getStoredTheme(null));
+  });
   const [ready, setReady] = useState(false);
-  const lastResolvedUserRef = useRef(null);
 
   useEffect(() => {
-    if (location.pathname === "/login") {
-      applyTheme("midnight", null);
-      setTheme("midnight");
-      setReady(true);
-      lastResolvedUserRef.current = null;
+    const startupTheme = initializeTheme();
+    setTheme(startupTheme);
+    setReady(false);
+
+    if (authLoading) {
+      setReady(false);
       return;
     }
-
-    if (authLoading) return;
 
     const uid = user?.uid || null;
-    if (lastResolvedUserRef.current === uid) {
-      if (!uid && !ready) {
-        setTheme("midnight");
-        applyTheme("midnight", null);
-        setReady(true);
-      }
-      return;
-    }
-
-    lastResolvedUserRef.current = uid;
     let cancelled = false;
 
     const resolveTheme = async () => {
-      const fallbackTheme = uid ? getStoredTheme(uid) : "midnight";
-      const initialTheme = normalizeTheme(fallbackTheme);
-
-      if (!cancelled) {
-        setTheme(initialTheme);
-        applyTheme(initialTheme, uid);
-        setReady(true);
-      }
+      setReady(false);
 
       if (!uid) {
+        const fallbackTheme = normalizeTheme(getStoredTheme(null));
+        if (!cancelled) {
+          setTheme(fallbackTheme);
+          applyTheme(fallbackTheme, null);
+          setReady(true);
+        }
         return;
       }
 
       if (!firebaseReady || !db) {
+        const fallbackTheme = normalizeTheme(getStoredTheme(uid));
+        if (!cancelled) {
+          setTheme(fallbackTheme);
+          applyTheme(fallbackTheme, uid);
+          setReady(true);
+        }
         return;
       }
 
@@ -61,23 +59,31 @@ export function ThemeProvider({ children }) {
         const snapshot = await getDoc(settingsRef);
         if (cancelled) return;
 
-        const savedTheme = snapshot.exists() ? normalizeTheme(snapshot.data()?.theme) : "";
-        if (savedTheme) {
-          if (!cancelled) {
-            setTheme(savedTheme);
-            applyTheme(savedTheme, uid);
-          }
-          return;
+        const savedTheme = snapshot.exists() && snapshot.data()?.theme
+          ? normalizeTheme(snapshot.data().theme)
+          : startupTheme;
+
+        if (!cancelled) {
+          setTheme(savedTheme);
+          applyTheme(savedTheme, uid);
+          setReady(true);
         }
 
-        const defaultTheme = "midnight";
-        if (!cancelled) {
-          setTheme(defaultTheme);
-          applyTheme(defaultTheme, uid);
+        if (!snapshot.exists() || !snapshot.data()?.theme) {
+          try {
+            await setDoc(settingsRef, { theme: savedTheme }, { merge: true });
+          } catch (error) {
+            console.error("Unable to save default theme to Firebase", error);
+          }
         }
-        await setDoc(settingsRef, { theme: defaultTheme }, { merge: true });
       } catch (error) {
-        console.error("Unable to resolve theme preference", error);
+        console.error("Unable to resolve theme preference from Firebase", error);
+        const fallbackTheme = normalizeTheme(getStoredTheme(uid));
+        if (!cancelled) {
+          setTheme(fallbackTheme);
+          applyTheme(fallbackTheme, uid);
+          setReady(true);
+        }
       }
     };
 
@@ -86,7 +92,7 @@ export function ThemeProvider({ children }) {
     return () => {
       cancelled = true;
     };
-  }, [authLoading, ready, user?.uid]);
+  }, [authLoading, user]);
 
   const setThemePreference = useCallback(
     async (nextTheme) => {
@@ -127,4 +133,12 @@ export function useTheme() {
     throw new Error("useTheme must be used within a ThemeProvider");
   }
   return context;
+}
+
+export function useThemeReady() {
+  const context = useContext(ThemeContext);
+  if (!context) {
+    throw new Error("useThemeReady must be used within a ThemeProvider");
+  }
+  return context.ready;
 }
