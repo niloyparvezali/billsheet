@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import {
   FiAlertCircle,
   FiArrowRight,
@@ -25,8 +25,10 @@ import {
   matchesPaymentToUser,
 } from "../utils/payments";
 import { isUserActiveForPeriod } from "../utils/membership";
+import { useLocation } from "react-router-dom";
 
 export default function Reports() {
+  const location = useLocation();
   const {
     t,
     formatMoney,
@@ -113,10 +115,16 @@ export default function Reports() {
 
     return { label: "Advance", tone: "advance", className: "status-advance" };
   };
+  const routedCustomerId =
+    location?.state?.customerId || location?.state?.selectedCustomerId || null;
+  const routedCustomerName =
+    location?.state?.customerName || location?.state?.selectedCustomerName || "";
   const [yearInput, setYearInput] = useState(String(now.getFullYear()));
-  const [customerSearch, setCustomerSearch] = useState("");
-  const [selectedCustomerId, setSelectedCustomerId] = useState(null);
+  const [customerSearch, setCustomerSearch] = useState(routedCustomerName || "");
+  const [selectedCustomerId, setSelectedCustomerId] = useState(routedCustomerId || null);
+  const [isCustomerReportView, setIsCustomerReportView] = useState(Boolean(routedCustomerId));
   const [expandedMonths, setExpandedMonths] = useState({});
+  const scrollPositionRef = useRef(0);
   const {
     data: users = [],
     loading: usersLoading,
@@ -184,9 +192,29 @@ export default function Reports() {
     );
   }, [customerOptions, selectedCustomerId]);
 
+  useEffect(() => {
+    if (!routedCustomerId) return;
+    setSelectedCustomerId(routedCustomerId);
+    setIsCustomerReportView(true);
+    if (routedCustomerName) {
+      setCustomerSearch((currentValue) => currentValue || routedCustomerName);
+    }
+  }, [routedCustomerId, routedCustomerName]);
+
   const handleCustomerSelect = (customer) => {
     setSelectedCustomerId(customer.id);
-    setCustomerSearch(customer.name || "");
+    setIsCustomerReportView(true);
+    if (typeof window !== "undefined") {
+      scrollPositionRef.current = window.scrollY || 0;
+      window.scrollTo({ top: 0, behavior: "auto" });
+    }
+  };
+
+  const handleBackToList = () => {
+    setIsCustomerReportView(false);
+    if (typeof window !== "undefined") {
+      window.scrollTo({ top: scrollPositionRef.current || 0, behavior: "auto" });
+    }
   };
 
   const handleYearInputChange = (event) => {
@@ -295,8 +323,29 @@ export default function Reports() {
           if (!Number.isNaN(parsedDate.getTime())) return parsedDate;
         }
       }
+
+      const fallbackDateText =
+        payment?.paymentDateText ||
+        payment?.createdAtText ||
+        payment?.timestampText;
+      if (typeof fallbackDateText === "string" && fallbackDateText.trim()) {
+        const parsedFallbackDate = new Date(fallbackDateText);
+        if (!Number.isNaN(parsedFallbackDate.getTime())) {
+          return parsedFallbackDate;
+        }
+      }
+
       return null;
     };
+
+    const collectionAllYear = (activePayments || []).reduce((sum, payment) => {
+      const { year: paymentYear } = getPaymentMonthYear(payment);
+      if (Number(paymentYear) !== selectedYear) return sum;
+      const paymentDate = getPaymentDateValue(payment);
+      if (!paymentDate) return sum;
+      if (paymentDate < yearStart || paymentDate > yearEnd) return sum;
+      return sum + Number(payment.amount || 0);
+    }, 0);
 
     const collectionToDate = (activePayments || []).reduce((sum, payment) => {
       const { year: paymentYear } = getPaymentMonthYear(payment);
@@ -321,26 +370,10 @@ export default function Reports() {
       return sum + monthTotal;
     }, 0);
 
-    const remainingMonthsStart =
-      selectedYear === today.getFullYear() ? today.getMonth() + 1 : 1;
-    const remainingToCollect = (users || []).reduce((sum, user) => {
-      let monthTotal = 0;
-      for (let month = remainingMonthsStart; month <= 12; month += 1) {
-        if (!isUserActiveForPeriod(user, { month, year: selectedYear }))
-          continue;
-        const bill = getEffectiveBillForPeriod(user, {
-          month,
-          year: selectedYear,
-        });
-        monthTotal += Number(bill || 0);
-      }
-      return sum + monthTotal;
-    }, 0);
-
     if (!selectedCustomer) {
       return {
         collection: collectionToDate,
-        outstanding: Math.max(0, remainingToCollect - collectionToDate),
+        outstanding: Math.max(0, annualBillForAllUsers - collectionToDate),
         annualBill: annualBillForAllUsers,
       };
     }
@@ -356,59 +389,6 @@ export default function Reports() {
   const displayPrevYear =
     language === "bn" ? toBengaliNumerals(year - 1) : year - 1;
 
-  const summaryCards = useMemo(
-    () => [
-      {
-        label: `${t("from", "From")} ${displayPrevYear}`,
-        value: formatMoney(previousDue),
-        icon: <FiAlertCircle />,
-        accent: "forest",
-      },
-      {
-        label: `${t("annual_bill", "Annual Bill")} ${displayYear}`,
-        value: formatMoney(
-          selectedCustomer ? annualBill : yearOverview.annualBill || 0,
-        ),
-        icon: <FiCreditCard />,
-        accent: "ocean",
-      },
-      {
-        label: `${t("paid", "Paid")} ${displayYear}`,
-        value: formatMoney(
-          selectedCustomer ? paidThisYear : yearOverview.collection || 0,
-        ),
-        icon: <FiDollarSign />,
-        accent: "green",
-      },
-      {
-        label: t("due"),
-        value: formatMoney(
-          selectedCustomer ? outstandingBalance : yearOverview.outstanding || 0,
-        ),
-        icon: <FiAlertCircle />,
-        accent: "amber",
-      },
-      {
-        label: t("advance"),
-        value: formatMoney(creditCarryForward),
-        icon: <FiArrowRight />,
-        accent: "blue",
-      },
-    ],
-    [
-      annualBill,
-      creditCarryForward,
-      displayPrevYear,
-      displayYear,
-      formatMoney,
-      outstandingBalance,
-      paidThisYear,
-      previousDue,
-      selectedCustomer,
-      t,
-      yearOverview,
-    ],
-  );
 
   const exportReport = () => {
     if (!selectedCustomer) return;
@@ -488,17 +468,29 @@ export default function Reports() {
 
       <section className="reports-toolbar">
         <div className="reports-toolbar-row">
-          <label className="reports-search-field reports-search-field--wide">
-            <FiSearch />
-            <input
-              value={customerSearch}
-              onChange={(event) => setCustomerSearch(event.target.value)}
-              placeholder={t(
-                "search_customer_placeholder",
-                "Search customer by name or phone",
-              )}
-            />
-          </label>
+          {isCustomerReportView && selectedCustomer ? (
+            <button
+              type="button"
+              className="settings-back-btn"
+              onClick={handleBackToList}
+            >
+              <span aria-hidden="true">←</span> {t("back", "Back")}
+            </button>
+          ) : null}
+
+          {!isCustomerReportView ? (
+            <label className="reports-search-field reports-search-field--wide">
+              <FiSearch />
+              <input
+                value={customerSearch}
+                onChange={(event) => setCustomerSearch(event.target.value)}
+                placeholder={t(
+                  "search_customer_placeholder",
+                  "Search customer by name or phone",
+                )}
+              />
+            </label>
+          ) : null}
 
           <label className="reports-year-field">
             <span>{t("year", "Year")}</span>
@@ -523,52 +515,54 @@ export default function Reports() {
           </button>
         </div>
 
-        <div className="reports-customer-list-shell">
-          {visibleCustomers.length > 0 ? (
-            <div className="reports-customer-list" role="listbox">
-              {visibleCustomers.map((customer) => {
-                const isSelected = selectedCustomerId === customer.id;
-                return (
-                  <button
-                    key={customer.id}
-                    type="button"
-                    className={`reports-customer-item${
-                      isSelected ? " reports-customer-item--active" : ""
-                    }`}
-                    onClick={() => handleCustomerSelect(customer)}
-                  >
-                    <span className="reports-customer-avatar">
-                      <FiUser />
-                    </span>
-                    <span className="reports-customer-content">
-                      <span className="reports-customer-name">
-                        {customer.name}
+        {!isCustomerReportView ? (
+          <div className="reports-customer-list-shell">
+            {visibleCustomers.length > 0 ? (
+              <div className="reports-customer-list" role="listbox">
+                {visibleCustomers.map((customer) => {
+                  const isSelected = selectedCustomerId === customer.id;
+                  return (
+                    <button
+                      key={customer.id}
+                      type="button"
+                      className={`reports-customer-item${
+                        isSelected ? " reports-customer-item--active" : ""
+                      }`}
+                      onClick={() => handleCustomerSelect(customer)}
+                    >
+                      <span className="reports-customer-avatar">
+                        <FiUser />
                       </span>
-                      <span className="reports-customer-phone">
-                        {customer.phone || "No phone number"}
+                      <span className="reports-customer-content">
+                        <span className="reports-customer-name">
+                          {customer.name}
+                        </span>
+                        <span className="reports-customer-phone">
+                          {customer.phone || "No phone number"}
+                        </span>
                       </span>
-                    </span>
-                    {isSelected ? (
-                      <span
-                        className="reports-customer-check"
-                        aria-hidden="true"
-                      >
-                        ✓
-                      </span>
-                    ) : null}
-                  </button>
-                );
-              })}
-            </div>
-          ) : (
-            <div className="reports-customer-empty">
-              <span>No customer found</span>
-            </div>
-          )}
-        </div>
+                      {isSelected ? (
+                        <span
+                          className="reports-customer-check"
+                          aria-hidden="true"
+                        >
+                          ✓
+                        </span>
+                      ) : null}
+                    </button>
+                  );
+                })}
+              </div>
+            ) : (
+              <div className="reports-customer-empty">
+                <span>No customer found</span>
+              </div>
+            )}
+          </div>
+        ) : null}
       </section>
 
-      {selectedCustomer ? (
+      {isCustomerReportView && selectedCustomer ? (
         <>
           {(() => {
             const joinedDate =
@@ -636,21 +630,6 @@ export default function Reports() {
             </div>
           </section>
 
-          <section className="reports-summary-grid">
-            {summaryCards.map((card) => (
-              <div
-                key={card.label}
-                className={`reports-summary-card reports-summary-card--${card.accent}`}
-              >
-                <div className="reports-summary-icon">{card.icon}</div>
-                <div className="reports-summary-copy">
-                  <div className="reports-summary-number">{card.value}</div>
-                  <div className="reports-summary-label">{card.label}</div>
-                </div>
-              </div>
-            ))}
-          </section>
-
           <section className="reports-history-card reports-history-card--full">
             <div className="reports-history-head">
               <div>
@@ -700,7 +679,7 @@ export default function Reports() {
                 <thead>
                   <tr className="reports-history-row reports-history-row--head">
                     <th scope="col">{t("month", "Month")}</th>
-                    <th scope="col">{t("monthly_bill")}</th>
+                    <th scope="col">{t("Monthly Bill")}</th>
                     <th scope="col">{t("previous_due", "Prev Carried Bal")}</th>
                     <th scope="col">{t("total_required", "Total Required")}</th>
                     <th scope="col">{t("paid")}</th>
@@ -1039,20 +1018,7 @@ export default function Reports() {
             </p>
           </section>
         </>
-      ) : (
-        <section className="reports-empty-state">
-          <div className="reports-empty-icon">
-            <FiSearch />
-          </div>
-          <h3>{t("no_customer_selected", "No customer selected")}</h3>
-          <p>
-            {t(
-              "select_customer_hint",
-              "Select a customer to view the annual statement.",
-            )}
-          </p>
-        </section>
-      )}
+      ) : null}
     </div>
   );
 }

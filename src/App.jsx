@@ -1,6 +1,7 @@
 import { Navigate, Route, Routes, useLocation } from "react-router-dom";
 import { useAuth } from "./context/AuthContext";
 import Layout from "./components/Layout";
+import LoadingScreen from "./components/LoadingScreen";
 import Login from "./pages/Login";
 import Dashboard from "./pages/Dashboard";
 import Users from "./pages/Users";
@@ -13,22 +14,7 @@ function Protected({ children }) {
   const { user, loading } = useAuth();
   const location = useLocation();
   if (loading) {
-    return (
-      <div className="loader-screen" role="status" aria-live="polite">
-        <div className="loader-card">
-          <div className="loader-orbit" aria-hidden="true">
-            <div className="loader-core" />
-            <div className="loader-ring ring-one" />
-            <div className="loader-ring ring-two" />
-          </div>
-          <div className="loader-copy">
-            <span className="loader-eyebrow">Opening your workspace</span>
-            <h1>Loading workspace</h1>
-            <p>Preparing your billing dashboard and syncing the latest updates.</p>
-          </div>
-        </div>
-      </div>
-    );
+    return <LoadingScreen />;
   }
   return user ? (
     children

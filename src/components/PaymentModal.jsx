@@ -209,7 +209,7 @@ export default function PaymentModal({ data, month, year, ownerId, close }) {
     >
       <form className="form" onSubmit={attemptSave}>
         <p className="payment-note">
-          {t("monthly_bill")}: <b>{formatMoney(bill)}</b> · {t("paid")}:{" "}
+          {t("Monthly Bill")}: <b>{formatMoney(bill)}</b> · {t("paid")}:{" "}
           <b>{formatMoney(alreadyPaid)}</b>
           <br />
           {t("due")}:{" "}
@@ -230,7 +230,6 @@ export default function PaymentModal({ data, month, year, ownerId, close }) {
             type="number"
             min="0"
             step="0.01"
-            autoFocus
             value={amount}
             onChange={(e) => setAmount(e.target.value)}
           />
@@ -245,7 +244,7 @@ export default function PaymentModal({ data, month, year, ownerId, close }) {
             onChange={(e) => setExtraDue(e.target.value)}
           />
         </label>
-        <button className="btn btn-primary" disabled={saving}>
+        <button className="btn btn-primary" type="submit" disabled={saving}>
           {saving
             ? t("saving", "Saving...")
             : t("save_payment", "Save Payment")}

@@ -18,6 +18,59 @@ body {
   color: var(--text);
 }
 
+#root,
+main {
+  min-width: 0;
+}
+
+img,
+svg,
+video,
+canvas,
+iframe,
+embed,
+object {
+  max-width: 100%;
+}
+
+button,
+input,
+select,
+textarea {
+  max-width: 100%;
+  font: inherit;
+}
+
+input[type="date"],
+input[type="datetime-local"],
+input[type="time"],
+select {
+  min-height: 44px;
+}
+
+.page,
+.panel,
+.card,
+.modal,
+.settings-page {
+  max-width: 100%;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+
+.page-title,
+.page-header,
+.panel-header,
+.toolbar,
+.header-actions,
+.button-row,
+.transaction-actions,
+.modal-actions,
+.danger-actions,
+.monthly-sheet-header-actions {
+  min-width: 0;
+}
+
 .page {
   width: 100%;
   max-width: 1600px;
@@ -237,6 +290,83 @@ body {
    BREAKPOINT 5: Large Mobile / Small Tablet (480px – 767px)
    ========================================================================== */
 @media (min-width: 480px) and (max-width: 767px) {
+  .page-title,
+  .page-header,
+  .panel-header,
+  .toolbar,
+  .header-actions,
+  .button-row,
+  .transaction-actions,
+  .modal-actions,
+  .danger-actions,
+  .monthly-sheet-header-actions {
+    flex-wrap: wrap;
+    gap: 10px;
+  }
+
+  .btn:not(.btn-icon) {
+    width: 100%;
+    max-width: 100%;
+  }
+
+  .button-row button,
+  .transaction-actions button,
+  .modal-actions button,
+  .danger-actions button {
+    width: 100%;
+    max-width: 100%;
+  }
+
+  .profile-form,
+  .preference-form,
+  .profile-meta,
+  .settings-stat-grid,
+  .report-stats,
+  .transaction-history-page .transaction-history-toolbar-group,
+  .transaction-history-page .transaction-history-filter-toolbar {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 10px;
+  }
+
+  .table-wrap,
+  .monthly-sheet-panel .table-wrap,
+  .reports-history-table-wrap {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .table-wrap table,
+  .table-wrap th,
+  .table-wrap td,
+  .monthly-table th,
+  .monthly-table td {
+    min-width: 0;
+    white-space: normal;
+    overflow-wrap: anywhere;
+  }
+
+  .monthly-sheet-header-actions {
+    align-items: stretch;
+  }
+
+  .monthly-sheet-mini-select,
+  .monthly-sheet-mini-input,
+  .monthly-sheet-export-btn {
+    width: 100%;
+    flex: 1 1 100%;
+    min-width: 0;
+  }
+
+  .settings-card,
+  .summary-card,
+  .panel {
+    padding: 14px;
+  }
+
+  .summary-card-number {
+    font-size: 24px;
+  }
   .sidebar {
     position: fixed;
     inset: 0 auto 0 0;
@@ -309,11 +439,6 @@ body {
     padding: 16px;
     background: var(--surface);
     border: 1px solid var(--divider);
-  }
-
-  .reports-export-btn {
-    width: 100%;
-    min-width: 0;
   }
 
   .page-title {
@@ -447,6 +572,7 @@ body {
   }
 
   .monthly-sheet-header-actions {
+    display: flex;
     flex-direction: row;
     flex-wrap: wrap;
     width: 100%;

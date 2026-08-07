@@ -156,6 +156,7 @@ export default function MonthlySheet() {
   const [mobileView, setMobileView] = useState("list");
   const routedCustomerId =
     location?.state?.selectedCustomerId || location?.state?.customerId || null;
+  const shouldOpenPaymentModal = Boolean(location?.state?.openPaymentModal);
   const [savedScrollTop, setSavedScrollTop] = useState(0);
   const [isMobile, setIsMobile] = useState(false);
 
@@ -273,11 +274,18 @@ export default function MonthlySheet() {
       setSelectedCustomerId(routedCustomerId);
       setMobileView("detail");
       setCurrentPage(1);
+      if (shouldOpenPaymentModal) {
+        setEditing({
+          user: targetUser.user,
+          payment: targetUser.payment,
+          openingDue: targetUser.openingDue,
+        });
+      }
       window.requestAnimationFrame(() => {
         window.scrollTo({ top: 0, left: 0, behavior: "auto" });
       });
     }
-  }, [filteredRows, routedCustomerId]);
+  }, [filteredRows, routedCustomerId, shouldOpenPaymentModal]);
 
   const showStandaloneMobileDetail =
     isMobile && mobileView === "detail" && Boolean(selectedCustomer);
@@ -650,7 +658,7 @@ export default function MonthlySheet() {
                       >
                         {t("name")} {nameOrder === "asc" ? "▲" : "▼"}
                       </th>
-                      <th>{t("monthly_bill")}</th>
+                      <th>{t("Monthly Bill")}</th>
                       <th>{t("paid", "Pay")}</th>
                       <th>{t("due")}</th>
                       <th
@@ -951,7 +959,7 @@ export default function MonthlySheet() {
                           })
                         }
                       >
-                        <FiEdit2 /> Edit Payment
+                        <FiEdit2 />Payment
                       </button>
                     </div>
                     <div className="users-mobile-action-row users-mobile-action-row--secondary">
@@ -1277,7 +1285,7 @@ export default function MonthlySheet() {
                 })
               }
             >
-              <FiEdit2 /> Edit Payment
+              <FiEdit2 />Payment
             </button>
           </div>
           <div className="users-mobile-action-row users-mobile-action-row--secondary">

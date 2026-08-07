@@ -2,9 +2,9 @@ export const THEME_STORAGE_KEY = "bill-sheet-theme";
 
 const getSystemThemePreference = () => {
   if (typeof window === "undefined" || typeof window.matchMedia !== "function") {
-    return "light";
+    return "midnight";
   }
-  return window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
+  return window.matchMedia("(prefers-color-scheme: dark)").matches ? "midnight" : "midnight";
 };
 
 export const themePresets = Object.freeze({
@@ -67,28 +67,32 @@ export const normalizeTheme = (value) => {
   if (normalized === "sunrise" || normalized === "light") return "sunrise";
   if (normalized === "midnight" || normalized === "dark") return "midnight";
   if (normalized === "ocean" || normalized === "cyan") return "ocean";
-  if (normalized === "forest") return "forest";
-  return "forest";
+  if (normalized === "forest" || normalized === "green" || normalized === "greenery") return "forest";
+  if (normalized === "champagne" || normalized === "gold" || normalized === "luxury") return "champagne";
+  if (normalized === "teal" || normalized === "ledger" || normalized === "teal-ledger" || normalized === "teal ledger") return "teal";
+  return "midnight";
 };
 
-export const getStoredTheme = () => {
-  if (typeof window === "undefined") return "light";
-  const saved = window.localStorage.getItem(THEME_STORAGE_KEY);
+export const getStoredTheme = (userId = null) => {
+  if (typeof window === "undefined") return "midnight";
+  const storageKey = userId ? `${THEME_STORAGE_KEY}:${userId}` : THEME_STORAGE_KEY;
+  const saved = window.localStorage.getItem(storageKey);
   if (saved) return normalizeTheme(saved);
   return getSystemThemePreference();
 };
 
-export const applyTheme = (value) => {
+export const applyTheme = (value, userId = null) => {
   const theme = normalizeTheme(value);
   if (typeof window !== "undefined") {
     document.documentElement.setAttribute("data-theme", theme);
-    window.localStorage.setItem(THEME_STORAGE_KEY, theme);
+    const storageKey = userId ? `${THEME_STORAGE_KEY}:${userId}` : THEME_STORAGE_KEY;
+    window.localStorage.setItem(storageKey, theme);
     window.dispatchEvent(new CustomEvent("themechange", { detail: { theme } }));
   }
   return theme;
 };
 
-export const initializeTheme = () => applyTheme(getStoredTheme());
+export const initializeTheme = () => applyTheme("midnight");
 
 export const getThemeConfig = (value) => themePresets[normalizeTheme(value)] || themePresets.forest;
 

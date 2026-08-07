@@ -645,11 +645,37 @@ header p {
 .form input,
 .form textarea,
 .form select {
+  width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
   padding: 10px;
   border: 1px solid var(--input-border);
   border-radius: var(--radius-sm);
   background: var(--input-bg);
   color: var(--text);
+}
+
+.form label {
+  width: 100%;
+  min-width: 0;
+}
+
+.form select {
+  text-overflow: ellipsis;
+}
+
+.user-status-select {
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
+  display: block;
+}
+
+.form select option {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .form textarea {
@@ -2144,34 +2170,35 @@ header p {
     grid-template-columns: 1fr;
   }
 
-  .payment-row {
-    grid-template-columns: 1.5fr 0.9fr 0.8fr;
+  .recent-payments-panel .payment-row {
+    grid-template-columns: minmax(0, 1.8fr) minmax(0, 0.95fr) minmax(0, 0.95fr);
   }
 
-  .payment-row-head {
+  .recent-payments-panel .payment-row-head {
+    grid-template-columns: minmax(0, 1.8fr) minmax(0, 0.95fr) minmax(0, 0.95fr);
     padding: 0 12px 8px;
   }
 
-  .payment-row-item {
+  .recent-payments-panel .payment-row-item {
     padding: 12px;
   }
 
-  .payment-name b {
+  .recent-payments-panel .payment-name b {
     color: var(--text);
     font-size: 15px;
   }
 
-  .payment-amount {
+  .recent-payments-panel .payment-amount {
     color: var(--text);
     font-size: 15px;
   }
 
-  .payment-date {
+  .recent-payments-panel .payment-date {
     color: var(--text-muted);
     font-size: 12px;
   }
 
-  .payment-label {
+  .recent-payments-panel .payment-label {
     display: none;
   }
 
@@ -3885,6 +3912,96 @@ main.login-minimal {
   border-radius: var(--radius-lg);
   background: var(--card);
   box-shadow: var(--shadow);
+}
+
+.recent-payments-panel .payment-table {
+  display: grid;
+  gap: 0;
+}
+
+.recent-payments-panel .payment-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1.8fr) minmax(0, 0.95fr) minmax(0, 0.95fr);
+  align-items: center;
+  gap: 10px;
+}
+
+.recent-payments-panel .payment-row-head {
+  display: grid;
+  grid-template-columns: inherit;
+  align-items: center;
+  padding: 12px 0 10px;
+  border-bottom: 1px solid var(--divider);
+  background: var(--card);
+  position: sticky;
+  top: 0;
+  z-index: 1;
+}
+
+.recent-payments-panel .payment-row-head div {
+  color: var(--text-muted);
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.recent-payments-panel .payment-row-head div:first-child {
+  text-align: left;
+}
+
+.recent-payments-panel .payment-row-head div:nth-child(2),
+.recent-payments-panel .payment-row-head div:nth-child(3) {
+  text-align: right;
+}
+
+.recent-payments-panel .payment-row-item {
+  padding: 14px 0;
+  border-bottom: 1px solid var(--divider);
+  transition:
+    background 0.2s,
+    border-color 0.2s;
+}
+
+.recent-payments-panel .payment-row-item:last-child {
+  border-bottom: none;
+}
+
+.recent-payments-panel .payment-row-item:hover {
+  background: color-mix(in srgb, var(--surface) 90%, var(--primary) 10%);
+}
+
+.recent-payments-panel .payment-name {
+  min-width: 0;
+  overflow: hidden;
+}
+
+.recent-payments-panel .payment-name b {
+  display: block;
+  max-width: 100%;
+  overflow: hidden;
+  color: var(--text);
+  font-size: 15px;
+  font-weight: 700;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.recent-payments-panel .payment-amount {
+  color: var(--text);
+  text-align: right;
+  font-size: 15px;
+  font-weight: 700;
+}
+
+.recent-payments-panel .payment-date {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 3px;
+  text-align: right;
+  color: var(--text-muted);
+  font-size: 13px;
 }
 
 .text-button,

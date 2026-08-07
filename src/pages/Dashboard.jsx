@@ -28,6 +28,7 @@ import {
 } from "recharts";
 import useOwnedCollection from "../hooks/useOwnedCollection";
 import StatCard from "../components/StatCard";
+import LoadingScreen from "../components/LoadingScreen";
 import { monthNames } from "../utils/date";
 import { buildDashboardLedgerSummary, getActivePayments } from "../utils/payments";
 
@@ -151,7 +152,7 @@ export default function Dashboard() {
     [payments],
   );
   if (loadingChartPage) {
-    return <div className="page">Loading...</div>;
+    return <LoadingScreen title="Loading dashboard" message="Preparing your latest figures and account insights." eyebrow="Dashboard" compact />;
   }
 
   const displayMonth = translateMonth(monthNames[month - 1]);

@@ -1,6 +1,7 @@
 import { FiCalendar, FiFileText, FiSearch } from "react-icons/fi";
 
 import { useEffect, useMemo, useRef, useState } from "react";
+import { useLocation } from "react-router-dom";
 import FloatingSearch from "../components/FloatingSearch";
 import useOwnedCollection from "../hooks/useOwnedCollection";
 import { useLanguage } from "../context/LanguageContext";
@@ -179,7 +180,7 @@ const normalizeStatusValue = (value) =>
     .trim()
     .toLowerCase();
 
-const getPermanentBalanceSnapshot = (payment = {}, row = {}) => ({
+export const getPermanentBalanceSnapshot = (payment = {}, row = {}) => ({
   bill: Number(
     payment?.billAmount ??
       payment?.monthlyBill ??
@@ -189,10 +190,10 @@ const getPermanentBalanceSnapshot = (payment = {}, row = {}) => ({
       0,
   ),
   amount: Number(
-    payment?.currentPaid ??
-      payment?.amount ??
-      row?.currentPaid ??
+    payment?.amount ??
       row?.amount ??
+      payment?.currentPaid ??
+      row?.currentPaid ??
       0,
   ),
   due: Number(
@@ -218,6 +219,37 @@ const getPermanentBalanceSnapshot = (payment = {}, row = {}) => ({
       0,
   ),
 });
+
+export const getTransactionHistoryStatus = ({
+  bill = 0,
+  paid = 0,
+  previousDue = 0,
+  savedStatus = "",
+} = {}) => {
+  const normalizedSavedStatus = normalizeStatusValue(savedStatus);
+
+  if (["voided", "reversed", "removed"].includes(normalizedSavedStatus)) {
+    return normalizedSavedStatus;
+  }
+
+  const safeBill = Number(bill || 0);
+  const safePaid = Number(paid || 0);
+  const safePreviousDue = Number(previousDue || 0);
+
+  if (safePaid <= 0) {
+    return null;
+  }
+
+  if (safePaid > safePreviousDue + safeBill) {
+    return "Advance";
+  }
+
+  if (safePaid >= safeBill) {
+    return "Paid";
+  }
+
+  return "Partial";
+};
 
 const getPermanentTransactionStatus = (row, payment = null) => {
   const explicitStatus = normalizeStatusValue(
@@ -268,6 +300,7 @@ const getTransactionStatusBadgeClass = (row, payment = null) =>
   getTransactionStatusDetails(row, payment).className;
 
 export default function TransactionHistory() {
+  const location = useLocation();
   const {
     t,
     formatMoney,
@@ -279,6 +312,10 @@ export default function TransactionHistory() {
   } = useLanguage();
   const currentYear = new Date().getFullYear();
   const currentMonth = `${currentYear}-${String(new Date().getMonth() + 1).padStart(2, "0")}`;
+  const routedCustomerId =
+    location?.state?.selectedCustomerId || location?.state?.customerId || null;
+  const routedCustomerName =
+    location?.state?.selectedCustomerName || location?.state?.customerName || "";
   const [selectedMonth, setSelectedMonth] = useState(currentMonth);
   const [search, setSearch] = useState("");
   const searchRef = useRef(null);
@@ -305,7 +342,7 @@ export default function TransactionHistory() {
     let data = [...allPayments];
 
     const hasExplicitRange = Boolean(fromDate || toDate);
-    const shouldUseMonthFilter = !(searchTerm || hasExplicitRange);
+    const shouldUseMonthFilter = !(searchTerm || hasExplicitRange || routedCustomerId);
 
     if (shouldUseMonthFilter && selectedMonthValue) {
       data = allPayments.filter((payment) => {
@@ -315,6 +352,34 @@ export default function TransactionHistory() {
           Number(paymentYear) === Number(selectedMonthValue.year) &&
           Number(paymentMonth) === Number(selectedMonthValue.month)
         );
+      });
+    }
+
+    if (routedCustomerId || routedCustomerName) {
+      const normalizedRouteName = String(routedCustomerName || "")
+        .trim()
+        .toLowerCase();
+      data = data.filter((payment) => {
+        const matchingUser = (users || []).find((candidate) =>
+          matchesPaymentToUser(payment, candidate),
+        );
+        const userIdMatches =
+          Boolean(routedCustomerId) &&
+          [payment?.userId, payment?.customerId, matchingUser?.id].some(
+            (value) => String(value || "") === String(routedCustomerId),
+          );
+        const userNameMatches =
+          Boolean(normalizedRouteName) &&
+          [
+            payment?.userName,
+            payment?.customerName,
+            matchingUser?.name,
+          ].some((value) =>
+            String(value || "")
+              .toLowerCase()
+              .includes(normalizedRouteName),
+          );
+        return userIdMatches || userNameMatches;
       });
     }
 
@@ -357,7 +422,7 @@ export default function TransactionHistory() {
     data.sort((a, b) => getPaymentTime(b) - getPaymentTime(a));
 
     return data;
-  }, [filterMode, payments, searchTerm, fromDate, toDate, selectedMonthValue]);
+  }, [filterMode, payments, searchTerm, fromDate, toDate, selectedMonthValue, routedCustomerId, routedCustomerName, users]);
 
   useEffect(() => {
     setCurrentPage(1);
@@ -414,41 +479,12 @@ export default function TransactionHistory() {
           const row = createTransactionRow(payment, index, ledgerRow);
 
           const permanentSnapshot = getPermanentBalanceSnapshot(payment, row);
-          const displayStatus = (() => {
-            const due = Number(
-              payment?.currentDue ?? row.currentDue ?? row.due ?? 0,
-            );
-
-            const advance = Number(
-              payment?.currentAdvance ??
-                row.currentAdvance ??
-                row.carryForward ??
-                0,
-            );
-
-            const bill = Number(
-              payment?.billAmount ?? payment?.monthlyBill ?? row.bill ?? 0,
-            );
-
-            const paid = Number(payment?.amount ?? row.amount ?? 0);
-
-            const savedStatus = String(payment?.status || "")
-              .trim()
-              .toLowerCase();
-
-            // Preserve special statuses
-            if (["voided", "reversed", "removed"].includes(savedStatus)) {
-              return savedStatus;
-            }
-
-            if (advance > 0) return "Advance";
-
-            if (due === 0) return "Paid";
-
-            if (paid > 0 && paid < bill) return "Partial";
-
-            return "Due";
-          })();
+          const displayStatus = getTransactionHistoryStatus({
+            bill: permanentSnapshot.bill,
+            paid: permanentSnapshot.amount,
+            previousDue: permanentSnapshot.previousDue,
+            savedStatus: payment?.status || row?.status,
+          });
 
           row.bill = permanentSnapshot.bill;
           row.amount = permanentSnapshot.amount;
@@ -460,6 +496,13 @@ export default function TransactionHistory() {
           row.previousAdvance = permanentSnapshot.previousAdvance;
           row.previousPaid = permanentSnapshot.previousPaid;
           row.additionalDue = permanentSnapshot.additionalDue;
+          row.customerId =
+            user?.id || user?.customerId || payment?.customerId || row.customerId;
+          row.customerName =
+            user?.name || user?.userName || user?.customerName || row.customerName || "Customer";
+          row.userId = user?.id || user?.userId || payment?.userId || row.userId;
+          row.userName =
+            user?.name || user?.userName || user?.customerName || row.userName || "Customer";
 
           row.status = displayStatus;
           row.ledgerStatus = displayStatus;
@@ -563,6 +606,11 @@ export default function TransactionHistory() {
   }, [transactionRows]);
 
   const historyHeaderLabel = useMemo(() => {
+    if (routedCustomerId) {
+      const customerLabel = routedCustomerName || "the selected customer";
+      return `Displaying all transactions for ${customerLabel}.`;
+    }
+
     if (filterMode === "date" && (fromDate || toDate)) {
       const startLabel = fromDate
         ? new Date(fromDate).toLocaleDateString("en-GB", {
@@ -587,7 +635,7 @@ export default function TransactionHistory() {
     }
 
     return "Showing transactions across all months.";
-  }, [filterMode, fromDate, toDate, selectedMonthValue]);
+  }, [filterMode, fromDate, toDate, selectedMonthValue, routedCustomerId, routedCustomerName]);
 
   const exportRows = useMemo(
     () =>
@@ -740,7 +788,7 @@ export default function TransactionHistory() {
           <div className="transaction-head">
             <div>{t("date")}</div>
             <div>{t("name")}</div>
-            <div>{t("monthly_bill")}</div>
+            <div>{t("Monthly Bill")}</div>
             <div>{t("paid")}</div>
             <div>{t("Balance")}</div>
             <div>{t("status")}</div>

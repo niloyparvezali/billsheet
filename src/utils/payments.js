@@ -4,6 +4,7 @@ import {
   derivePaymentLedgerMetrics,
   resolveTransactionType,
 } from "./transactions.js";
+import { isUserActiveForPeriod } from "./membership.js";
 
 export const normalizePaymentStatus = (value) =>
   String(value || "")
@@ -130,131 +131,39 @@ const parseDateValue = (value) => {
   return Number.isNaN(date.getTime()) ? null : date;
 };
 
-const normalizeLifecycleState = (value) => {
-  const normalized = String(value || "")
-    .trim()
-    .toLowerCase();
-  if (["active", "enabled", "open", "alive"].includes(normalized))
-    return "active";
-  if (
-    [
-      "inactive",
-      "disabled",
-      "closed",
-      "deactivated",
-      "deactive",
-      "archived",
-    ].includes(normalized)
-  )
-    return "inactive";
-  return null;
+const getPaymentDateValue = (payment) => {
+  if (!payment) return null;
+  const candidate =
+    payment?.paymentDate ??
+    payment?.createdAt ??
+    payment?.timestamp ??
+    payment?.paymentDateText ??
+    payment?.createdAtText ??
+    payment?.timestampText ??
+    null;
+  return parseDateValue(candidate);
 };
 
-const getLifecycleEvents = (user) => {
-  const events = [];
-  const addEvent = (date, state) => {
-    const parsedDate = parseDateValue(date);
-    if (!parsedDate || !state) return;
-    const duplicate = events.some(
-      (entry) =>
-        entry.status === state && entry.date.getTime() === parsedDate.getTime(),
-    );
-    if (!duplicate) events.push({ date: parsedDate, status: state });
-  };
+const isPaymentOnOrAfterJoinDate = (payment, joinDate) => {
+  const normalizedJoinDate = parseDateValue(joinDate);
+  if (!(normalizedJoinDate instanceof Date)) return true;
 
-  const history = Array.isArray(user?.statusHistory) ? user.statusHistory : [];
-  history.forEach((entry) => {
-    const status = normalizeLifecycleState(
-      entry?.status || entry?.value || entry?.type || "",
-    );
-    addEvent(
-      entry?.date ||
-        entry?.timestamp ||
-        entry?.changedAt ||
-        entry?.createdAt ||
-        null,
-      status,
-    );
-  });
-
-  const joinDate = parseDateValue(
-    user?.joinDate ||
-      user?.joinedAt ||
-      user?.memberSince ||
-      user?.createdAt ||
-      null,
-  );
-  if (joinDate) addEvent(joinDate, "active");
-
-  const inactiveDate = parseDateValue(
-    user?.inactiveDate ||
-      user?.leaveDate ||
-      user?.archivedAt ||
-      user?.deactivatedAt ||
-      user?.inactiveAt ||
-      null,
-  );
-  if (inactiveDate) addEvent(inactiveDate, "inactive");
-
-  return events.sort(
-    (left, right) => left.date.getTime() - right.date.getTime(),
-  );
-};
-
-export const isUserActiveForPeriod = (user, period) => {
-  if (!user) return false;
-  const month = Number(period?.month || 0);
-  const year = Number(period?.year || 0);
-  const status = String(user?.status || user?.accountStatus || "")
-    .trim()
-    .toLowerCase();
-  const explicitActive = typeof user?.active === "boolean" ? user.active : null;
-  if (Number.isFinite(month) && Number.isFinite(year)) {
-    const targetStart = new Date(year, month - 1, 1);
-    const targetEnd = new Date(year, month, 0, 23, 59, 59);
-    const joinDate = parseDateValue(
-      user?.joinDate ||
-        user?.joinedAt ||
-        user?.memberSince ||
-        user?.createdAt ||
-        null,
-    );
-    const leaveDate = parseDateValue(
-      user?.inactiveDate ||
-        user?.leaveDate ||
-        user?.archivedAt ||
-        user?.deactivatedAt ||
-        user?.inactiveAt ||
-        null,
-    );
-
-    if (joinDate && joinDate > targetEnd) return false;
-    if (leaveDate && leaveDate < targetStart) return false;
-    if (leaveDate && leaveDate <= targetEnd) return false;
-
-    const events = getLifecycleEvents(user)
-      .filter((event) => event.date <= targetEnd)
-      .filter((event) => event.date >= targetStart || event.date <= targetEnd);
-    const activeState =
-      events.length > 0 ? events[events.length - 1].status : null;
-    if (activeState) return activeState === "active";
-
-    if (joinDate && joinDate <= targetEnd) return true;
-    if (leaveDate && leaveDate >= targetStart) return false;
-    if (explicitActive === false && !joinDate && !leaveDate) return false;
-    if (status === "active") return true;
-    return explicitActive !== false;
+  const paymentDate = getPaymentDateValue(payment);
+  if (paymentDate instanceof Date) {
+    return paymentDate >= normalizedJoinDate;
   }
-  if (
-    explicitActive === false &&
-    !user?.inactiveDate &&
-    !user?.leaveDate &&
-    !user?.joinDate
-  )
-    return false;
-  if (status === "active") return true;
-  return explicitActive !== false;
+
+  const { month, year } = getPaymentMonthYear(payment);
+  if (!Number.isFinite(month) || !Number.isFinite(year)) return true;
+
+  const paymentPeriod = Number(year) * 100 + Number(month);
+  const joinPeriod =
+    Number(normalizedJoinDate.getFullYear()) * 100 + Number(normalizedJoinDate.getMonth() + 1);
+
+  return paymentPeriod >= joinPeriod;
 };
+
+export { isUserActiveForPeriod } from "./membership.js";
 
 export const partitionUsersByLifecycle = (users = [], period = {}) => {
   const activeUsers = [];
@@ -292,12 +201,45 @@ export const formatBalanceDisplayValue = ({
   return "৳0";
 };
 
-export const getDisplayBalanceValues = ({
-  due = 0,
-  carryForward = 0,
-  currentDue = null,
-  currentAdvance = null,
-} = {}) => {
+export const getDisplayBalanceValues = (opts = {}) => {
+  const {
+    due = 0,
+    carryForward = 0,
+    currentDue = null,
+    currentAdvance = null,
+    bill = 0,
+    amount = null,
+    previousDue = 0,
+    previousAdvance = 0,
+    additionalDue = 0,
+  } = opts;
+
+  const hasBillingContext =
+    Object.prototype.hasOwnProperty.call(opts, "bill") ||
+    Object.prototype.hasOwnProperty.call(opts, "amount") ||
+    Object.prototype.hasOwnProperty.call(opts, "previousDue") ||
+    Object.prototype.hasOwnProperty.call(opts, "previousAdvance") ||
+    Object.prototype.hasOwnProperty.call(opts, "additionalDue");
+
+  if (hasBillingContext) {
+    const safeBill = Number(bill || 0);
+    const safeAmount = Number(amount || 0);
+    const safePreviousDue = Number(previousDue || 0) + Number(additionalDue || 0);
+    const safePreviousAdvance = Number(previousAdvance || 0);
+
+    const ledger = buildBillingLedger({
+      bill: safeBill,
+      previousDue: safePreviousDue,
+      carryForward: safePreviousAdvance,
+      paid: safeAmount,
+    });
+
+    return {
+      due: Math.max(0, ledger.previousDueRemaining + ledger.currentBillRemaining),
+      carryForward: Math.max(0, ledger.carryForwardNext),
+    };
+  }
+
   const finalDue =
     currentDue != null ? Number(currentDue || 0) : Number(due || 0);
 
@@ -313,6 +255,7 @@ export const getDisplayBalanceValues = ({
 };
 
 export const buildBillingLedger = ({
+
   bill = 0,
   previousDue = 0,
   carryForward = 0,
@@ -870,15 +813,30 @@ export const computePaymentSummary = ({
 
   const effectivePreviousDue = safeOpeningDue + totalAdditionalDue;
 
+  const effectiveCurrentDate =
+    currentDate instanceof Date && !Number.isNaN(currentDate.getTime())
+      ? new Date(currentDate)
+      : new Date();
+
+  const effectiveMonth =
+    Number.isFinite(Number(month)) && month >= 1 && month <= 12
+      ? Number(month)
+      : effectiveCurrentDate.getMonth() + 1;
+
+  const effectiveYear =
+    Number.isFinite(Number(year)) && year > 0
+      ? Number(year)
+      : effectiveCurrentDate.getFullYear();
+
   const status = resolveBillingStatus({
     bill: safeBill,
     paid: totalPaid,
     previousDue: effectivePreviousDue,
     previousAdvance: safeOpeningAdvance,
     endingBalance,
-    month,
-    year,
-    currentDate,
+    month: effectiveMonth,
+    year: effectiveYear,
+    currentDate: effectiveCurrentDate,
   });
   return {
     totalPaid,
@@ -1021,17 +979,32 @@ export const getPaymentStatusLabel = ({ bill = 0, payments = [] }) => {
   return summary.status;
 };
 
-export const buildMonthlyCollectionSeries = ({ year, payments = [] }) => {
+export const buildMonthlyCollectionSeries = ({ year, payments = [], users = [] }) => {
   const monthNames = Array.from({ length: 12 }, (_, index) => ({
     name: new Date(2020, index, 1).toLocaleString("en-us", { month: "short" }),
     month: index + 1,
     collection: 0,
   }));
 
+  const userJoinDates = new Map();
+  (users || []).forEach((user) => {
+    const userId = String(user?.id || user?.userId || user?.customerId || "");
+    if (!userId) return;
+    const joinDate = parseDateValue(
+      user?.joinDate || user?.joinedAt || user?.memberSince || user?.createdAt || null,
+    );
+    if (joinDate) {
+      userJoinDates.set(userId, joinDate);
+    }
+  });
+
   const activePayments = getActivePayments(payments || []);
   activePayments.forEach((payment) => {
     const derived = getPaymentMonthYear(payment);
     if (Number(derived.year) !== Number(year)) return;
+    const userId = String(payment?.customerId || payment?.userId || "");
+    const joinDate = userId ? userJoinDates.get(userId) : null;
+    if (!isPaymentOnOrAfterJoinDate(payment, joinDate)) return;
     const monthIndex = Number(derived.month) - 1;
     if (monthIndex < 0 || monthIndex >= 12) return;
     monthNames[monthIndex].collection += Number(payment.amount || 0);
@@ -1054,20 +1027,43 @@ export const buildDashboardLedgerSummary = ({
   const yearPayments = activePayments.filter(
     (payment) => Number(getPaymentMonthYear(payment).year) === Number(year),
   );
-  const currentPayments = yearPayments.filter(
-    (payment) => Number(getPaymentMonthYear(payment).month) === Number(month),
-  );
-  const rows = activeUsers.map((user) =>
-    buildMonthlySheetLedgerRow({
+  const currentPayments = yearPayments.filter((payment) => {
+    const { month: paymentMonth, year: paymentYear } = getPaymentMonthYear(payment);
+    if (Number(paymentMonth) !== Number(month) || Number(paymentYear) !== Number(year)) {
+      return false;
+    }
+    const user = activeUsers.find((currentUser) =>
+      matchesPaymentToUser(payment, currentUser),
+    );
+    const joinDate = parseDateValue(
+      user?.joinDate || user?.joinedAt || user?.memberSince || user?.createdAt || null,
+    );
+    return user && isPaymentOnOrAfterJoinDate(payment, joinDate);
+  });
+  const rows = activeUsers.map((user) => {
+    const joinDate = parseDateValue(
+      user?.joinDate || user?.joinedAt || user?.memberSince || user?.createdAt || null,
+    );
+    const userPayments = yearPayments.filter((payment) => {
+      const { month: paymentMonth, year: paymentYear } = getPaymentMonthYear(payment);
+      return (
+        matchesPaymentToUser(payment, user) &&
+        Number(paymentMonth) === Number(month) &&
+        Number(paymentYear) === Number(year) &&
+        isPaymentOnOrAfterJoinDate(payment, joinDate)
+      );
+    });
+
+    return buildMonthlySheetLedgerRow({
       user,
-      payments: currentPayments,
+      payments: userPayments,
       history: (payments || []).filter((payment) =>
         matchesPaymentToUser(payment, user),
       ),
       month,
       year,
-    }),
-  );
+    });
+  });
 
   const statusCounts = countRowsByStatus(rows);
   const paidCustomers = statusCounts.paid;
@@ -1116,7 +1112,7 @@ export const buildDashboardLedgerSummary = ({
     customerStatus,
     rows,
     currentPayments,
-    chart: buildMonthlyCollectionSeries({ year, payments: activePayments }),
+    chart: buildMonthlyCollectionSeries({ year, payments: activePayments, users }),
   };
 };
 
@@ -1134,13 +1130,18 @@ export const buildMonthlyReportSummary = ({
   const currentPeriodKey = getPeriodKey(month, year);
 
   const rows = activeUsers.map((user) => {
+    const joinDate = parseDateValue(
+      user?.joinDate || user?.joinedAt || user?.memberSince || user?.createdAt || null,
+    );
+
     const currentMonthPayments = (activePayments || []).filter((payment) => {
       const { month: paymentMonth, year: paymentYear } =
         getPaymentMonthYear(payment);
       return (
         matchesPaymentToUser(payment, user) &&
         Number(paymentMonth) === Number(month) &&
-        Number(paymentYear) === Number(year)
+        Number(paymentYear) === Number(year) &&
+        isPaymentOnOrAfterJoinDate(payment, joinDate)
       );
     });
 
@@ -1149,7 +1150,9 @@ export const buildMonthlyReportSummary = ({
         getPaymentMonthYear(payment);
       const paymentPeriod = getPeriodKey(paymentMonth, paymentYear);
       return (
-        matchesPaymentToUser(payment, user) && paymentPeriod < currentPeriodKey
+        matchesPaymentToUser(payment, user) &&
+        paymentPeriod < currentPeriodKey &&
+        isPaymentOnOrAfterJoinDate(payment, joinDate)
       );
     });
 
@@ -1159,6 +1162,7 @@ export const buildMonthlyReportSummary = ({
       history,
       month,
       year,
+      isActiveForPeriod: isUserActiveForPeriod,
     });
 
     return {
@@ -1193,9 +1197,16 @@ export const buildMonthlyReportSummary = ({
   const numberOfPayments = activePayments.filter((payment) => {
     const { month: paymentMonth, year: paymentYear } =
       getPaymentMonthYear(payment);
+    const user = activeUsers.find((currentUser) =>
+      matchesPaymentToUser(payment, currentUser),
+    );
+    const joinDate = parseDateValue(
+      user?.joinDate || user?.joinedAt || user?.memberSince || user?.createdAt || null,
+    );
     return (
       Number(paymentMonth) === Number(month) &&
-      Number(paymentYear) === Number(year)
+      Number(paymentYear) === Number(year) &&
+      isPaymentOnOrAfterJoinDate(payment, joinDate)
     );
   }).length;
   const averageCollectionPerCustomer =
@@ -1246,7 +1257,9 @@ export const buildYearlyCustomerReportSummary = ({
     history: activePayments.filter((payment) => {
       const { year: paymentYear } = getPaymentMonthYear(payment);
       return (
-        matchesPaymentToUser(payment, user) && Number(paymentYear) < safeYear
+        matchesPaymentToUser(payment, user) &&
+        Number(paymentYear) < safeYear &&
+        isPaymentOnOrAfterJoinDate(payment, joinDate)
       );
     }),
     month: 1,
@@ -1278,7 +1291,8 @@ export const buildYearlyCustomerReportSummary = ({
       return (
         matchesPaymentToUser(payment, user) &&
         Number(paymentMonth) === Number(month) &&
-        Number(paymentYear) === safeYear
+        Number(paymentYear) === safeYear &&
+        isPaymentOnOrAfterJoinDate(payment, joinDate)
       );
     });
 
@@ -1289,7 +1303,8 @@ export const buildYearlyCustomerReportSummary = ({
         return (
           matchesPaymentToUser(payment, user) &&
           Number(paymentMonth) === Number(month) &&
-          Number(paymentYear) === safeYear
+          Number(paymentYear) === safeYear &&
+          isPaymentOnOrAfterJoinDate(payment, joinDate)
         );
       })
       .sort((a, b) => {

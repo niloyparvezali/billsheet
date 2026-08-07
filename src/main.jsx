@@ -6,6 +6,7 @@ import { Toaster } from "react-hot-toast";
 import "./i18n";
 import { AuthProvider } from "./context/AuthContext";
 import { LanguageProvider } from "./context/LanguageContext";
+import { ThemeProvider } from "./context/ThemeContext";
 import ErrorBoundary from "./components/ErrorBoundary";
 import App from "./App";
 import { initializeTheme } from "./utils/theme";
@@ -19,12 +20,14 @@ createRoot(document.getElementById("root")).render(
     <ErrorBoundary>
       <BrowserRouter>
         <AuthProvider>
-          <LanguageProvider>
-            <UnsavedChangesProvider>
-              <App />
-              <Toaster position="top-right" />
-            </UnsavedChangesProvider>
-          </LanguageProvider>
+          <ThemeProvider>
+            <LanguageProvider>
+              <UnsavedChangesProvider>
+                <App />
+                <Toaster position="top-right" />
+              </UnsavedChangesProvider>
+            </LanguageProvider>
+          </ThemeProvider>
         </AuthProvider>
       </BrowserRouter>
     </ErrorBoundary>

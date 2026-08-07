@@ -40,14 +40,15 @@ export default function RecentPayments({ recentPayments }) {
         </Link>
       </div>
 
-      <div className="payment-row payment-row-head">
-        <div>{t("name")}</div>
-        <div>{t("amount")}</div>
-        <div>{t("date")}</div>
-      </div>
+      <div className="payment-table">
+        <div className="payment-row payment-row-head">
+          <div>{t("name")}</div>
+          <div>{t("amount")}</div>
+          <div>{t("date")}</div>
+        </div>
 
-      {recentPayments.length > 0 ? (
-        recentPayments.map((payment, index) => {
+        {recentPayments.length > 0 ? (
+          recentPayments.map((payment, index) => {
           const paymentDate = getPaymentDate(payment.paymentDate);
           let dateStr = "--";
           if (paymentDate) {
@@ -85,6 +86,7 @@ export default function RecentPayments({ recentPayments }) {
       ) : (
         <p className="empty">{t("no_recent_payments")}</p>
       )}
+      </div>
     </section>
   );
 }

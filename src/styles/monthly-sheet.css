@@ -37,6 +37,8 @@
   display: flex;
   align-items: center;
   gap: 12px;
+  flex-wrap: wrap;
+  min-width: 0;
   padding-bottom: 18px;
 }
 
@@ -45,6 +47,7 @@
 .monthly-sheet-export-btn {
   height: 42px;
   box-sizing: border-box;
+  min-width: 0;
   border: 1px solid var(--divider);
   border-radius: 999px;
   background: var(--surface);

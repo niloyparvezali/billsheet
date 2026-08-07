@@ -30,7 +30,7 @@ export default function AppGuide({ onClose }) {
           <div>
             <b>2. Record monthly payments</b>
             <span>
-              Open Monthly Sheet, choose a month and year, then edit a customer
+              Open Billing Sheet, choose a month and year, then edit a customer
               row to enter an amount, due, and note.
             </span>
           </div>

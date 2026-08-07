@@ -20,6 +20,7 @@ header {
   align-items: center;
   justify-content: space-between;
   gap: 16px;
+  min-width: 0;
   height: 82px;
   padding: 0 clamp(20px, 3vw, 38px);
   background: var(--surface);
@@ -130,6 +131,7 @@ nav a.active {
   justify-content: space-between;
   gap: 18px;
   flex-wrap: wrap;
+  min-width: 0;
   margin-bottom: 18px;
 }
 
@@ -196,6 +198,8 @@ nav a.active {
   background: var(--card);
   box-shadow: 0 12px 32px rgba(0, 0, 0, 0.1);
   color: var(--text);
+  max-width: 100%;
+  overflow-wrap: anywhere;
 }
 
 .panel h3 {
@@ -230,55 +234,72 @@ nav a.active {
   font-size: 14px;
 }
 
-.loader-screen {
+.loading-screen {
+  position: relative;
   display: grid;
   place-items: center;
   min-height: 100vh;
   padding: 24px;
-  background:
-    radial-gradient(
-      circle at top left,
-      color-mix(in srgb, var(--primary) 18%, transparent),
-      transparent 38%
-    ),
-    linear-gradient(
-      135deg,
-      color-mix(in srgb, var(--surface) 92%, var(--bg) 8%),
-      var(--bg)
-    );
+  overflow: hidden;
+  background: var(--bg);
   color: var(--text);
+  isolation: isolate;
+  transition:
+    background 0.3s ease,
+    color 0.3s ease;
 }
 
-.loader-card {
+.loading-screen--compact {
+  min-height: min(70vh, 480px);
+}
+
+.loading-backdrop {
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(circle at 15% 20%, color-mix(in srgb, var(--primary) 18%, transparent), transparent 28%),
+    radial-gradient(circle at 85% 20%, color-mix(in srgb, var(--accent, var(--primary)) 14%, transparent), transparent 30%),
+    linear-gradient(135deg, color-mix(in srgb, var(--surface) 88%, transparent), color-mix(in srgb, var(--bg) 86%, var(--surface) 14%));
+  opacity: 0.95;
+  animation: loading-fade 2.4s ease-in-out infinite alternate;
+}
+
+.loading-card {
+  position: relative;
   display: grid;
   justify-items: center;
   gap: 20px;
-  width: min(100%, 440px);
+  width: min(100%, 460px);
   padding: 32px;
   border: 1px solid var(--divider);
   border-radius: 28px;
-  background: color-mix(in srgb, var(--surface) 82%, transparent);
+  background: color-mix(in srgb, var(--surface) 84%, transparent);
   box-shadow: 0 24px 70px rgba(0, 0, 0, 0.18);
   backdrop-filter: blur(22px);
   text-align: center;
+  z-index: 1;
+  animation: loading-card-enter 0.4s ease both;
 }
-.loader-orbit {
+
+.loading-orbit {
   position: relative;
   display: grid;
   place-items: center;
-  width: 96px;
-  height: 96px;
+  width: 112px;
+  height: 112px;
 }
 
-.loader-core {
-  width: 24px;
-  height: 24px;
+.loading-core {
+  width: 26px;
+  height: 26px;
   border-radius: 999px;
-  background: linear-gradient(135deg, var(--primary), var(--primary-hover));
+  background: linear-gradient(135deg, var(--primary), var(--accent, var(--primary-hover)));
   box-shadow: 0 0 26px color-mix(in srgb, var(--primary) 45%, transparent);
+  transform: scale(0.95);
+  animation: loading-pulse 1.4s ease-in-out infinite;
 }
 
-.loader-ring {
+.loading-ring {
   position: absolute;
   inset: 0;
   border: 2px solid transparent;
@@ -288,20 +309,61 @@ nav a.active {
   animation: loader-spin 1.2s linear infinite;
 }
 
-.loader-ring.ring-two {
+.loading-ring--two {
   inset: 10px;
-  border-top-color: var(--primary-hover);
+  border-top-color: var(--accent, var(--primary-hover));
   border-right-color: transparent;
   animation-duration: 1.6s;
   animation-direction: reverse;
 }
 
-.loader-copy {
+.loading-particle {
+  position: absolute;
+  width: 8px;
+  height: 8px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--primary) 70%, white 30%);
+  opacity: 0.7;
+  animation: loading-float 2.2s ease-in-out infinite;
+}
+
+.loading-particle--one {
+  top: 6px;
+  right: 14px;
+}
+
+.loading-particle--two {
+  bottom: 16px;
+  left: 14px;
+  animation-delay: 0.45s;
+}
+
+.loading-particle--three {
+  top: 36px;
+  left: 8px;
+  animation-delay: 0.9s;
+}
+
+.loading-wave {
+  position: absolute;
+  inset: 18px;
+  border-radius: 50%;
+  border: 1px solid color-mix(in srgb, var(--primary) 20%, transparent);
+  opacity: 0;
+  animation: loading-wave 2.3s ease-out infinite;
+}
+
+.loading-wave--two {
+  inset: 32px;
+  animation-delay: 0.9s;
+}
+
+.loading-copy {
   display: grid;
   gap: 8px;
 }
 
-.loader-eyebrow {
+.loading-eyebrow {
   display: inline-flex;
   align-self: center;
   padding: 7px 10px;
@@ -314,7 +376,7 @@ nav a.active {
   text-transform: uppercase;
 }
 
-.loader-copy h1 {
+.loading-copy h1 {
   margin: 0;
   color: var(--text);
   font-size: clamp(1.2rem, 2.6vw, 1.5rem);
@@ -322,11 +384,105 @@ nav a.active {
   letter-spacing: -0.02em;
 }
 
-.loader-copy p {
+.loading-copy p {
   margin: 0;
   color: var(--text-muted);
   font-size: 0.95rem;
   line-height: 1.6;
+}
+
+.loading-screen--sunrise .loading-card {
+  background: color-mix(in srgb, #ffffff 92%, transparent);
+}
+
+.loading-screen--sunrise .loading-eyebrow {
+  background: color-mix(in srgb, var(--primary) 14%, transparent);
+  color: var(--primary);
+}
+
+.loading-screen--midnight {
+  background: linear-gradient(135deg, #0d0d0d, #171717);
+}
+
+.loading-screen--midnight .loading-card {
+  background: color-mix(in srgb, #121212 86%, var(--surface) 14%);
+  border-color: color-mix(in srgb, var(--primary) 28%, var(--divider));
+  box-shadow: 0 24px 70px rgba(0, 0, 0, 0.35);
+}
+
+.loading-screen--midnight .loading-eyebrow {
+  background: color-mix(in srgb, var(--primary) 20%, transparent);
+  color: var(--primary);
+}
+
+.loading-screen--ocean {
+  background: linear-gradient(135deg, #031826, #0f4a6a 55%, #14749b);
+}
+
+.loading-screen--ocean .loading-card {
+  background: color-mix(in srgb, rgba(6, 34, 56, 0.88) 80%, transparent);
+  border-color: color-mix(in srgb, #67e8f9 30%, var(--divider));
+}
+
+.loading-screen--ocean .loading-ring,
+.loading-screen--ocean .loading-ring--two {
+  border-top-color: #67e8f9;
+  border-right-color: rgba(255, 255, 255, 0.74);
+}
+
+.loading-screen--ocean .loading-particle {
+  background: #7dd3fc;
+}
+
+.loading-screen--forest {
+  background: linear-gradient(135deg, #071c13, #0f3f2f 60%, #1e5f43);
+}
+
+.loading-screen--forest .loading-card {
+  background: color-mix(in srgb, rgba(6, 32, 23, 0.8) 86%, transparent);
+  border-color: color-mix(in srgb, #2dd4bf 24%, var(--divider));
+}
+
+.loading-screen--forest .loading-ring,
+.loading-screen--forest .loading-ring--two {
+  border-top-color: #5eead4;
+  border-right-color: rgba(255, 255, 255, 0.75);
+}
+
+.loading-screen--forest .loading-particle {
+  background: #86efac;
+}
+
+.loading-screen--champagne {
+  background: linear-gradient(135deg, #f8efe6, #f0d8a7 60%, #e2b265);
+}
+
+.loading-screen--champagne .loading-card {
+  background: color-mix(in srgb, rgba(255, 249, 244, 0.84) 92%, transparent);
+  border-color: color-mix(in srgb, var(--primary) 24%, #d8b36a 76%);
+}
+
+.loading-screen--champagne .loading-eyebrow {
+  color: #a46f16;
+}
+
+.loading-screen--teal {
+  background: linear-gradient(135deg, #042a2e, #0f4f53 60%, #14626a);
+}
+
+.loading-screen--teal .loading-card {
+  background: color-mix(in srgb, rgba(3, 26, 30, 0.86) 88%, transparent);
+  border-color: color-mix(in srgb, #5eead4 24%, var(--divider));
+}
+
+.loading-screen--teal .loading-ring,
+.loading-screen--teal .loading-ring--two {
+  border-top-color: #5eead4;
+  border-right-color: rgba(255, 255, 255, 0.72);
+}
+
+.loading-screen--teal .loading-particle {
+  background: #2dd4bf;
 }
 
 @keyframes loader-spin {
@@ -334,6 +490,78 @@ nav a.active {
     transform: rotate(360deg);
   }
 }
+
+@keyframes loading-pulse {
+  0%,
+  100% {
+    transform: scale(0.92);
+    opacity: 0.85;
+  }
+  50% {
+    transform: scale(1.05);
+    opacity: 1;
+  }
+}
+
+@keyframes loading-float {
+  0%,
+  100% {
+    transform: translateY(0px);
+    opacity: 0.55;
+  }
+  50% {
+    transform: translateY(-6px);
+    opacity: 0.96;
+  }
+}
+
+@keyframes loading-wave {
+  0% {
+    transform: scale(0.8);
+    opacity: 0;
+  }
+  40% {
+    opacity: 0.34;
+  }
+  100% {
+    transform: scale(1.18);
+    opacity: 0;
+  }
+}
+
+@keyframes loading-fade {
+  0% {
+    opacity: 0.86;
+  }
+  100% {
+    opacity: 1;
+  }
+}
+
+@keyframes loading-card-enter {
+  from {
+    transform: translateY(8px);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .loading-backdrop,
+  .loading-card,
+  .loading-core,
+  .loading-ring,
+  .loading-ring--two,
+  .loading-particle,
+  .loading-wave {
+    animation: none !important;
+    transition: none !important;
+  }
+}
+
 
 .header-actions {
   display: flex;
@@ -372,6 +600,11 @@ nav a.active {
 
   .page-title {
     align-items: flex-start;
+  }
+
+  .header-actions {
+    width: 100%;
+    justify-content: flex-end;
   }
 }
 

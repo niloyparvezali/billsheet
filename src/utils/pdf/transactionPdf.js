@@ -11,7 +11,7 @@ export function exportTransactionPdf({
   const reportYear = Number(year) || new Date().getFullYear();
   const { pdf, colors, startY, drawSummary, drawTable, drawFooter } =
     createPdfLayout({
-      reportTitle: "Transaction History",
+      reportTitle: "Transactions",
       companyName,
       theme,
       reportInfo: [
@@ -96,5 +96,5 @@ export function exportTransactionPdf({
 
   drawFooter();
 
-  pdf.save(`Bill Sheet Transaction History ${reportYear}.pdf`);
+  pdf.save(`Bill Sheet Transactions ${reportYear}.pdf`);
 }

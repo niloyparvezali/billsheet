@@ -15,6 +15,22 @@ export default function UserForm({
   const selectedPackages = normalizePackages(
     form?.packages ?? form?.category ?? [],
   );
+  const parseInputDate = (value) => {
+    if (!value) return "";
+    const dateValue =
+      typeof value?.toDate === "function"
+        ? value.toDate()
+        : value instanceof Date
+        ? value
+        : new Date(value);
+    if (Number.isNaN(dateValue.getTime())) return "";
+    const year = dateValue.getFullYear();
+    const month = `${dateValue.getMonth() + 1}`.padStart(2, "0");
+    const day = `${dateValue.getDate()}`.padStart(2, "0");
+    return `${year}-${month}-${day}`;
+  };
+  const joinDateValue = parseInputDate(form.joinDate || "");
+
   const togglePackage = (packageName) => {
     const nextPackages = selectedPackages.includes(packageName)
       ? selectedPackages.filter((item) => item !== packageName)
@@ -122,7 +138,9 @@ export default function UserForm({
         {t("join_date", "Join date")}
         <input
           type="date"
-          value={form.joinDate || ""}
+          required
+          value={joinDateValue}
+          max={new Date().toISOString().split("T")[0]}
           onChange={(e) => set("joinDate", e.target.value)}
         />
       </label>

@@ -1,6 +1,6 @@
 {
   "name": "BillSheet",
-  "description": "Billing and collection management application with dashboard, reports, user management, and monthly sheets.",
+  "description": "Billing and collection management application with dashboard, reports, user management, and billing sheets.",
   "requestFramePermissions": [],
   "majorCapabilities": [
     "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"

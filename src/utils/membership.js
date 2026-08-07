@@ -136,6 +136,32 @@ export const isUserActiveForPeriod = (user, period = {}) => {
   const targetEnd = new Date(year, month, 0, 23, 59, 59, 999);
   const periods = getMembershipPeriods(user);
 
+  if (!periods.length) {
+    const explicitActiveState = normalizeLifecycleState(user?.active);
+    const explicitActive =
+      user?.active === true ||
+      explicitActiveState === "active" ||
+      user?.active === undefined;
+    const joinDate = parseDateValue(
+      user?.joinDate || user?.joinedAt || user?.memberSince || null,
+    );
+    const leaveDate = parseDateValue(
+      user?.inactiveDate || user?.leaveDate || user?.archivedAt || user?.deactivatedAt || user?.inactiveAt || null,
+    );
+
+    if (joinDate && joinDate > targetEnd) {
+      return false;
+    }
+    if (leaveDate && leaveDate <= targetEnd) {
+      return false;
+    }
+    if (joinDate) {
+      return joinDate <= targetEnd;
+    }
+
+    return explicitActive;
+  }
+
   return periods.some((periodItem) => {
     const joinDate = parseDateValue(periodItem?.joinDate);
     if (!joinDate) return false;
@@ -143,6 +169,7 @@ export const isUserActiveForPeriod = (user, period = {}) => {
     const leaveDate = parseDateValue(periodItem?.leaveDate);
     if (joinDate > targetEnd) return false;
     if (leaveDate && leaveDate < targetStart) return false;
+    if (leaveDate && leaveDate <= targetEnd) return false;
 
     return true;
   });

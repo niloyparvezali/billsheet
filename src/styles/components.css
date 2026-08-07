@@ -270,6 +270,8 @@ tbody tr:hover {
   justify-content: flex-end;
   gap: 14px;
   flex-wrap: wrap;
+  align-items: center;
+  min-width: 0;
   margin-bottom: 20px;
 }
 
@@ -279,11 +281,13 @@ tbody tr:hover {
   justify-content: flex-end;
   gap: 14px;
   flex-wrap: wrap;
+  min-width: 0;
 }
 
 .button-row button,
 .transaction-actions button {
-  min-width: 140px;
+  flex: 1 1 140px;
+  min-width: 0;
   min-height: 46px;
   padding: 13px 20px;
   border-radius: 16px;
@@ -313,6 +317,8 @@ tbody tr:hover {
   overflow: clip;
   overflow-x: auto;
   border-radius: 18px;
+  max-width: 100%;
+  -webkit-overflow-scrolling: touch;
 }
 
 .table-wrap th,

@@ -19,7 +19,6 @@ import {
   where,
 } from "firebase/firestore";
 import { auth, db, firebaseReady } from "../firebase/config";
-import { applyTheme, getStoredTheme, normalizeTheme } from "../utils/theme";
 
 const AuthContext = createContext(null);
 const LOCAL_ACCOUNT_KEY = "bill-sheet-auth-accounts";
@@ -75,22 +74,6 @@ const writeSessionUser = (user) => {
   }
 };
 
-const syncThemeFromSettings = async (uid) => {
-  if (!uid || !firebaseReady || !db) return;
-  try {
-    const settingsRef = doc(db, "settings", uid);
-    const snapshot = await getDoc(settingsRef);
-    const firebaseTheme = snapshot.exists() ? normalizeTheme(snapshot.data()?.theme) : "";
-    const storedTheme = normalizeTheme(getStoredTheme());
-    if (!firebaseTheme) return;
-    if (firebaseTheme !== storedTheme) {
-      applyTheme(firebaseTheme);
-    }
-  } catch (error) {
-    console.error("Unable to sync theme preference", error);
-  }
-};
-
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(readSessionUser);
   const [loading, setLoading] = useState(true);
@@ -115,7 +98,6 @@ export function AuthProvider({ children }) {
       };
       setUser(nextUser);
       writeSessionUser(nextUser);
-      void syncThemeFromSettings(u.uid);
       setLoading(false);
     });
   }, []);
@@ -160,7 +142,6 @@ export function AuthProvider({ children }) {
       };
       setUser(nextUser);
       writeSessionUser(nextUser);
-      await syncThemeFromSettings(firebaseUser.user.uid);
       return nextUser;
     }
 
@@ -251,7 +232,6 @@ export function AuthProvider({ children }) {
       };
       setUser(nextUser);
       writeSessionUser(nextUser);
-      await syncThemeFromSettings(created.user.uid);
       return nextUser;
     }
 

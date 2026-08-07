@@ -195,5 +195,5 @@ export function exportMonthlySheetPdf({
 
   drawFooter();
 
-  pdf.save(`Monthly Sheet - ${month} ${year}.pdf`);
+  pdf.save(`Billing Sheet - ${month} ${year}.pdf`);
 }

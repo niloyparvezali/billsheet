@@ -1,4 +1,16 @@
-import { FiEdit2, FiPlus, FiSearch, FiTrash2, FiUsers } from "react-icons/fi";
+import {
+  FiArrowLeft,
+  FiCalendar,
+  FiCreditCard,
+  FiDollarSign,
+  FiEdit2,
+  FiPhone,
+  FiPlus,
+  FiSearch,
+  FiTag,
+  FiTrash2,
+  FiUsers,
+} from "react-icons/fi";
 import { useNavigate } from "react-router-dom";
 import UsersTable from "../components/UsersTable";
 import CategoryModal from "../components/CategoryModal";
@@ -21,7 +33,7 @@ import { useLanguage } from "../context/LanguageContext";
 import useOwnedCollection from "../hooks/useOwnedCollection";
 import Modal from "../components/Modal";
 import ConfirmModal from "../components/ConfirmModal";
-import { formatDate, money } from "../utils/date";
+import { formatDate, formatDateOrNotAvailable, getCreatedDate, money } from "../utils/date";
 import {
   getDisplayPackages,
   normalizeBangladeshPhone,
@@ -120,6 +132,10 @@ export default function Users() {
 
   const [currentPage, setCurrentPage] = useState(1);
   const totalUsers = list.length;
+  const [selectedUserId, setSelectedUserId] = useState(null);
+  const [mobileView, setMobileView] = useState("list");
+  const [savedScrollTop, setSavedScrollTop] = useState(0);
+  const [isMobile, setIsMobile] = useState(false);
 
   const totalPages = Math.max(1, Math.ceil(totalUsers / USERS_PER_PAGE));
 
@@ -131,6 +147,101 @@ export default function Users() {
   useEffect(() => {
     setCurrentPage(1);
   }, [search]);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const updateIsMobile = () => setIsMobile(window.innerWidth < 1024);
+    updateIsMobile();
+    window.addEventListener("resize", updateIsMobile);
+    return () => window.removeEventListener("resize", updateIsMobile);
+  }, []);
+
+  useEffect(() => {
+    if (!selectedUserId) return;
+    const stillVisible = list.some((user) => user.id === selectedUserId);
+    if (!stillVisible) {
+      setSelectedUserId(null);
+      setMobileView("list");
+    }
+  }, [list, selectedUserId]);
+
+  const selectedUser = useMemo(
+    () => list.find((user) => user.id === selectedUserId) || null,
+    [list, selectedUserId],
+  );
+
+  const showStandaloneMobileDetail =
+    isMobile && mobileView === "detail" && Boolean(selectedUser);
+  const showDesktopDetail = !isMobile && mobileView === "detail" && Boolean(selectedUser);
+
+  const openUserDetails = (userId) => {
+    setSelectedUserId(userId);
+    setSavedScrollTop(window.scrollY || 0);
+    setMobileView("detail");
+    if (isMobile) {
+      window.scrollTo({ top: 0, left: 0, behavior: "auto" });
+    }
+  };
+
+  const closeUserDetails = () => {
+    setMobileView("list");
+    window.requestAnimationFrame(() => {
+      window.scrollTo({ top: savedScrollTop, left: 0, behavior: "auto" });
+    });
+  };
+
+  const getUserStatusValue = (user) => {
+    const rawStatus = user?.status;
+    const statusValue = String(
+      rawStatus !== undefined && rawStatus !== null
+        ? rawStatus
+        : user?.active === false
+        ? "Inactive"
+        : "Active",
+    )
+      .trim()
+      .toLowerCase();
+
+    if (["n/a", "na", "none", "not joined"].includes(statusValue)) {
+      return "Inactive";
+    }
+
+    return statusValue === "inactive" ? "Inactive" : "Active";
+  };
+
+  const detailProfileCards = useMemo(() => {
+    if (!selectedUser) return [];
+    const packages = getDisplayPackages(selectedUser);
+    const categoryValue =
+      packages[0] || selectedUser.category || t("uncategorized", "Uncategorized");
+    const phoneValue = selectedUser.phone || "No phone on file";
+    const createdValue = formatDateOrNotAvailable(
+      getCreatedDate(selectedUser),
+    );
+
+    return [
+      {
+        label: t("monthly_bill", "Monthly Bill"),
+        value: money(selectedUser.monthlyBill || 0),
+        icon: <FiDollarSign />,
+      },
+      {
+        label: t("phone"),
+        value: phoneValue,
+        icon: <FiPhone />,
+      },
+      {
+        label: t("category"),
+        value: categoryValue,
+        icon: <FiTag />,
+      },
+      {
+        label: t("created", "Created"),
+        value: createdValue,
+        icon: <FiCalendar />,
+      },
+    ];
+  }, [formatDateOrNotAvailable, selectedUser, t]);
   const save = async (event) => {
     event.preventDefault();
     if (!form?.name?.trim()) {
@@ -167,6 +278,22 @@ export default function Users() {
             { status: normalizedStatusValue, date: new Date().toISOString() },
           ]
         : historyEntries;
+
+      const joinDateValue = form.joinDate || todayValue();
+      const joinDateParsed = new Date(joinDateValue);
+      if (!joinDateValue || Number.isNaN(joinDateParsed.getTime())) {
+        toast.error("Join date is required and must be valid");
+        return;
+      }
+      const now = new Date();
+      const todayString = `${now.getFullYear()}-${String(
+        now.getMonth() + 1,
+      ).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`;
+      if (joinDateValue > todayString) {
+        toast.error("Join date cannot be in the future");
+        return;
+      }
+
       const selectedPackages = normalizePackages(
         form?.packages || form?.category || [],
       );
@@ -177,7 +304,7 @@ export default function Users() {
         monthlyBill: Number(form.monthlyBill || 0),
         phone: normalizedPhone,
         address: form.address.trim(),
-        joinDate: form.joinDate || todayValue(),
+        joinDate: joinDateValue,
         inactiveDate: isActive ? null : serverTimestamp(),
         status: normalizedStatusValue,
         active: isActive,
@@ -308,64 +435,166 @@ export default function Users() {
   return (
     <div className="page users-page">
       <section className="panel users-panel">
-        <div className="users-page-header">
-          <div className="users-page-heading">
-            <h1>{t("users")}</h1>
-            <p>
-              {t(
-                "manage_users_subtitle",
-                "Manage customers and account information.",
-              )}
-            </p>
-          </div>
-        </div>
-        <div className="users-toolbar">
-          <div className="users-toolbar-left">
-            <label className="search users-search">
-              <FiSearch />
-              <input
-                ref={searchRef}
-                placeholder={t(
-                  "search_users_placeholder",
-                  "Search users by name, category or phone...",
-                )}
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-              />
-            </label>
-            <div className="users-meta">
-              <FiUsers />
-              <span> {t("total_users")}:</span>
-              <strong>{formatNumber(list.length)}</strong>
+        {((showStandaloneMobileDetail || showDesktopDetail) && selectedUser) ? (
+          <div className="users-mobile-detail-screen" role="dialog" aria-modal="false">
+            <button
+              type="button"
+              className="users-mobile-back-btn"
+              onClick={closeUserDetails}
+            >
+              <FiArrowLeft /> {t("back", "Back")}
+            </button>
+
+            <div className="users-mobile-profile-card">
+              <div className="users-mobile-avatar" aria-hidden="true">
+                {String(selectedUser.name || "CU")
+                  .trim()
+                  .slice(0, 2)
+                  .toUpperCase()}
+              </div>
+              <div className="users-mobile-profile-copy">
+                <div className="users-mobile-profile-title">
+                  <h3>{selectedUser.name || "Unnamed customer"}</h3>
+                  <span
+                    className={`status user-inline-badge status-${getUserStatusValue(selectedUser).toLowerCase()}`}
+                  >
+                    {getUserStatusValue(selectedUser)}
+                  </span>
+                </div>
+                <div className="users-mobile-profile-meta">
+                  <span>
+                    <FiPhone /> {selectedUser.phone || "No phone on file"}
+                  </span>
+                  <span>
+                    <FiTag /> {getDisplayPackages(selectedUser)[0] || selectedUser.category || t("uncategorized", "Uncategorized")}
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            <div className="users-mobile-summary-grid">
+              {detailProfileCards.map((item) => (
+                <div
+                  className="users-mobile-summary-card users-mobile-summary-card--monthly"
+                  key={item.label}
+                >
+                  <div className="users-mobile-summary-icon-wrap">
+                    <div className="users-mobile-summary-icon">{item.icon}</div>
+                  </div>
+                  <div className="users-mobile-summary-copy">
+                    <div className="users-mobile-summary-value">{item.value}</div>
+                    <div className="users-mobile-summary-label">{item.label}</div>
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            <div className="users-mobile-action-row">
+              <button
+                type="button"
+                className="users-mobile-action users-mobile-action--primary"
+                onClick={() => setForm(selectedUser)}
+              >
+                <FiEdit2 /> {t("Edit")}
+              </button>
+              <button
+                type="button"
+                className="users-mobile-action users-mobile-action--ghost"
+                onClick={() => openAddPayment(selectedUser)}
+              >
+                <FiCreditCard /> {t("add_payment")}
+              </button>
+            </div>
+            <div className="users-mobile-action-row users-mobile-action-row--secondary">
+              <button
+                type="button"
+                className="users-mobile-action users-mobile-action--ghost"
+                onClick={() => openPaymentHistory(selectedUser)}
+              >
+                <FiCalendar /> {t("payment_history", "History")}
+              </button>
+              <button
+                type="button"
+                className="users-mobile-action users-mobile-action--ghost"
+                onClick={() => openAnnualReport(selectedUser)}
+              >
+                <FiDollarSign /> {t("annual_report", "Report")}
+              </button>
+            </div>
+            <div className="users-mobile-action-row">
+              <button
+                type="button"
+                className="users-mobile-action users-mobile-action--danger"
+                onClick={() => setDeleteUser(selectedUser)}
+              >
+                <FiTrash2 /> {t("Delete")}
+              </button>
             </div>
           </div>
-          <button
-            className="btn btn-primary users-add-btn"
-            onClick={() => setForm(blank)}
-          >
-            <FiPlus /> {t("add_user")}
-          </button>
-        </div>
-        <UsersTable
-          list={paginatedUsers}
-          setForm={setForm}
-          setDeleteUser={setDeleteUser}
-          onAddPayment={openAddPayment}
-          onViewHistory={openPaymentHistory}
-          onViewAnnualReport={openAnnualReport}
-          money={money}
-          formatDate={formatDate}
-          currentPage={currentPage}
-          setCurrentPage={setCurrentPage}
-          totalPages={totalPages}
-          totalUsers={totalUsers}
-          startIndex={startIndex}
-          endIndex={endIndex}
-        />
+        ) : (
+          <>
+            <div className="users-page-header">
+              <div className="users-page-heading">
+                <h1>{t("users")}</h1>
+                <p>
+                  {t(
+                    "manage_users_subtitle",
+                    "Manage customers and account information.",
+                  )}
+                </p>
+              </div>
+            </div>
+            <div className="users-toolbar">
+              <div className="users-toolbar-left">
+                <label className="search users-search">
+                  <FiSearch />
+                  <input
+                    ref={searchRef}
+                    placeholder={t(
+                      "search_users_placeholder",
+                      "Search users by name, category or phone...",
+                    )}
+                    value={search}
+                    onChange={(e) => setSearch(e.target.value)}
+                  />
+                </label>
+                <div className="users-meta">
+                  <FiUsers />
+                  <span> {t("total_users")}:</span>
+                  <strong>{formatNumber(list.length)}</strong>
+                </div>
+              </div>
+              <button
+                className="btn btn-primary users-add-btn"
+                onClick={() => setForm(blank)}
+              >
+                <FiPlus /> {t("add_user")}
+              </button>
+            </div>
+            <UsersTable
+              list={paginatedUsers}
+              setForm={setForm}
+              setDeleteUser={setDeleteUser}
+              onAddPayment={openAddPayment}
+              onViewHistory={openPaymentHistory}
+              onViewAnnualReport={openAnnualReport}
+              money={money}
+              formatDate={formatDate}
+              currentPage={currentPage}
+              setCurrentPage={setCurrentPage}
+              totalPages={totalPages}
+              totalUsers={totalUsers}
+              startIndex={startIndex}
+              endIndex={endIndex}
+              selectedUserId={selectedUserId}
+              onSelectUser={openUserDetails}
+            />
+          </>
+        )}
       </section>
       {form && (
         <Modal
-          title={form.id ? t("edit_user") : t("add_user")}
+          title={form.id ? t("EDIT USER") : t("ADD USER")}
           onClose={() => setForm(null)}
         >
           <UserForm
@@ -406,7 +635,7 @@ export default function Users() {
       )}
       {deleteUser && (
         <ConfirmModal
-          title={t("delete_user", "Delete user")}
+          title={t("Delete user", "Delete user")}
           message={`${t("delete_confirm", "Delete")} ${deleteUser.name}? ${t("payment_records_kept", "Their past payment records will be kept.")}`}
           confirmText={t("delete", "Delete")}
           cancelText={t("cancel", "Cancel")}

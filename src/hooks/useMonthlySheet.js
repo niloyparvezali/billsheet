@@ -176,6 +176,14 @@ export default function useMonthlySheet({
             ? new Date(user.joinDate)
             : null;
 
+        const joinMonth = joinDate ? joinDate.getMonth() + 1 : null;
+        const joinYear = joinDate ? joinDate.getFullYear() : null;
+        const joinPeriod = joinMonth && joinYear ? period(joinMonth, joinYear) : null;
+
+        if (joinPeriod && joinPeriod > currentPeriod) {
+          return null;
+        }
+
         let startMonth = joinDate ? joinDate.getMonth() + 1 : month;
         let startYear = joinDate ? joinDate.getFullYear() : year;
 

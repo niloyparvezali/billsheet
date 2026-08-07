@@ -10,26 +10,36 @@ export default function DashboardSummary({
 
   return (
     <div className="dashboard-summary">
-      <div className="summary-card">
-        <small>💰 {t("total_collected")}</small>
-        <h4>{formatMoney(totalCollection)}</h4>
+      <div className="dashboard-summary-card dashboard-summary-card--highest">
+        <div className="dashboard-summary-card-header">
+          <div className="dashboard-summary-card-title">
+            <span>🏆</span>
+            <span>{t("highest")} {t("month")}</span>
+          </div>
+          <div className="dashboard-summary-card-month">
+            {translateMonth(highestMonth.month).toUpperCase()}
+          </div>
+        </div>
+        <div className="dashboard-summary-card-divider" />
+        <div className="dashboard-summary-card-amount">
+          {formatMoney(highestMonth.collection)}
+        </div>
       </div>
 
-      <div className="summary-card">
-        <small>📈 {t("average")} / {t("month")}</small>
-        <h4>{formatMoney(averageCollection)}</h4>
-      </div>
-
-      <div className="summary-card">
-        <small>🏆 {t("highest")} {t("month")}</small>
-        <h4>{translateMonth(highestMonth.month)}</h4>
-        <span>{formatMoney(highestMonth.collection)}</span>
-      </div>
-
-      <div className="summary-card">
-        <small>📉 {t("lowest")} {t("month")}</small>
-        <h4>{translateMonth(lowestMonth.month)}</h4>
-        <span>{formatMoney(lowestMonth.collection)}</span>
+      <div className="dashboard-summary-card dashboard-summary-card--lowest">
+        <div className="dashboard-summary-card-header">
+          <div className="dashboard-summary-card-title">
+            <span>📉</span>
+            <span>{t("lowest")} {t("month")}</span>
+          </div>
+          <div className="dashboard-summary-card-month">
+            {translateMonth(lowestMonth.month).toUpperCase()}
+          </div>
+        </div>
+        <div className="dashboard-summary-card-divider" />
+        <div className="dashboard-summary-card-amount">
+          {formatMoney(lowestMonth.collection)}
+        </div>
       </div>
     </div>
   );
