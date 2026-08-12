@@ -28,5 +28,11 @@ service cloud.firestore {
     match /settings/{id} {
       allow read, write: if signedIn() && id == request.auth.uid;
     }
+    match /authAccounts/{id} {
+      // Allow the authenticated user to read and update their own authAccounts doc.
+      // This keeps sensitive fields (passcodeHash, firebasePassword) hidden from other users
+      // and prevents unauthenticated clients from querying authentication records.
+      allow read, write: if signedIn() && id == request.auth.uid;
+    }
   }
 }

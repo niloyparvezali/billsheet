@@ -5,6 +5,7 @@ import {
   onAuthStateChanged,
   sendPasswordResetEmail,
   signInWithEmailAndPassword,
+  signInWithCustomToken,
   signInWithPopup,
   signOut,
 } from "firebase/auth";
@@ -118,31 +119,39 @@ export function AuthProvider({ children }) {
     const passcodeHash = await hashPasscode(passcode);
 
     if (firebaseReady && auth && db) {
-      const q = query(collection(db, "authAccounts"), where("phone", "==", normalizedPhone));
-      const snapshot = await getDocs(q);
-      if (snapshot.empty) {
-        throw new Error("No matching account was found.");
-      }
-      const account = snapshot.docs[0].data();
-      if (account.passcodeHash !== passcodeHash) {
-        throw new Error("Incorrect passcode.");
-      }
-      const firebaseUser = await signInWithEmailAndPassword(
-        auth,
-        account.email,
-        account.firebasePassword,
-      );
-      const nextUser = {
-        uid: firebaseUser.user.uid,
-        email: firebaseUser.user.email,
-        displayName: account.fullName || firebaseUser.user.displayName || account.email,
-        photoURL: firebaseUser.user.photoURL || null,
-        companyName: account.companyName || "",
-        phoneNumber: normalizedPhone,
-      };
-      setUser(nextUser);
-      writeSessionUser(nextUser);
-      return nextUser;
+        // Use a secure server-side endpoint to verify phone+passcode and
+        // receive a custom token. This prevents the client from needing to
+        // read sensitive fields (passcodeHash / firebasePassword) from Firestore.
+        const functionsUrl = import.meta.env.VITE_FUNCTIONS_URL || `https://us-central1-${import.meta.env.VITE_FIREBASE_PROJECT_ID}.cloudfunctions.net`;
+        if (!functionsUrl) throw new Error("Server functions URL not configured. Set VITE_FUNCTIONS_URL in .env.local.");
+        const verifyUrl = `${functionsUrl.replace(/\/$/,"")}/verifyPhonePasscode`;
+        let resp;
+        try {
+          resp = await fetch(verifyUrl, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ phone: normalizedPhone, passcode }),
+          });
+        } catch (err) {
+          throw new Error(`Unable to reach auth server at ${verifyUrl}: ${err.message}`);
+        }
+        const payload = await resp.json();
+        if (!resp.ok) {
+          throw new Error(payload.error || "Login failed");
+        }
+        const token = payload.token;
+        const firebaseUser = await signInWithCustomToken(auth, token);
+        const nextUser = {
+          uid: firebaseUser.user.uid,
+          email: firebaseUser.user.email,
+          displayName: firebaseUser.user.displayName || firebaseUser.user.email?.split("@")[0] || "User",
+          photoURL: firebaseUser.user.photoURL || null,
+          companyName: null,
+          phoneNumber: normalizedPhone,
+        };
+        setUser(nextUser);
+        writeSessionUser(nextUser);
+        return nextUser;
     }
 
     const accounts = loadLocalAccounts();
@@ -208,16 +217,22 @@ export function AuthProvider({ children }) {
     };
 
     if (firebaseReady && auth && db) {
-      const existingPhoneQuery = query(collection(db, "authAccounts"), where("phone", "==", phone));
-      const phoneSnapshot = await getDocs(existingPhoneQuery);
-      if (!phoneSnapshot.empty) {
-        throw new Error("That phone number is already registered.");
+      const functionsUrl = import.meta.env.VITE_FUNCTIONS_URL || `https://us-central1-${import.meta.env.VITE_FIREBASE_PROJECT_ID}.cloudfunctions.net`;
+      if (!functionsUrl) throw new Error("Server functions URL not configured. Set VITE_FUNCTIONS_URL in .env.local.");
+      const checkUrl = `${functionsUrl.replace(/\/$/,"")}/checkPhoneAvailable`;
+      let checkResp;
+      try {
+        checkResp = await fetch(checkUrl, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ phone, email }),
+        });
+      } catch (err) {
+        throw new Error(`Unable to reach auth server at ${checkUrl}: ${err.message}`);
       }
-      const existingEmailQuery = query(collection(db, "authAccounts"), where("email", "==", email));
-      const emailSnapshot = await getDocs(existingEmailQuery);
-      if (!emailSnapshot.empty) {
-        throw new Error("That email address is already registered.");
-      }
+      const check = await checkResp.json();
+      if (check.phoneExists) throw new Error("That phone number is already registered.");
+      if (check.emailExists) throw new Error("That email address is already registered.");
 
       const created = await createUserWithEmailAndPassword(auth, email, firebasePassword);
       accountRecord.uid = created.user.uid;
@@ -266,14 +281,25 @@ export function AuthProvider({ children }) {
     }
 
     if (firebaseReady && auth && db) {
-      const q = query(collection(db, "authAccounts"), where("phone", "==", normalizedPhone));
-      const snapshot = await getDocs(q);
-      if (!snapshot.empty) {
-        const account = snapshot.docs[0].data();
+      const functionsUrl = import.meta.env.VITE_FUNCTIONS_URL || `https://us-central1-${import.meta.env.VITE_FIREBASE_PROJECT_ID}.cloudfunctions.net`;
+      if (!functionsUrl) throw new Error("Server functions URL not configured. Set VITE_FUNCTIONS_URL in .env.local.");
+      const checkUrl = `${functionsUrl.replace(/\/$/,"")}/checkPhoneAvailable`;
+      let checkResp;
+      try {
+        checkResp = await fetch(checkUrl, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ phone: normalizedPhone }),
+        });
+      } catch (err) {
+        throw new Error(`Unable to reach auth server at ${checkUrl}: ${err.message}`);
+      }
+      const check = await checkResp.json();
+      if (check.phoneExists && check.email) {
         try {
-          await sendPasswordResetEmail(auth, account.email);
+          await sendPasswordResetEmail(auth, check.email);
         } catch {
-          // Intentionally ignore network or provider issues and keep the flow generic.
+          // ignore network/provider issues and keep flow generic
         }
       }
       return { success: true };
