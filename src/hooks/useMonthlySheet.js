@@ -6,6 +6,7 @@ import {
   getPaymentMonthYear,
 } from "../utils/payments.js";
 import { isUserActiveForPeriod } from "../utils/membership.js";
+import { getDisplayPackages } from "../utils/users.js";
 
 const period = (month, year) => Number(year) * 12 + Number(month);
 
@@ -306,33 +307,54 @@ export default function useMonthlySheet({
     (sum, row) => sum + Number(row.user.monthlyBill || 0),
     0,
   );
-  const getStatusPriority = (row) => {
-    const isPending =
-      String(row.status || "Pending").toLowerCase() === "pending";
+  const getStatusPriority = (statusValue) => {
+    const normalized = String(statusValue || "").trim().toLowerCase();
 
-    return statusOrder === "pending" ? (isPending ? 0 : 1) : isPending ? 1 : 0;
+    if (!normalized || normalized === "n/a") return 4;
+    if (normalized.includes("pending") || normalized.includes("due")) return 0;
+    if (normalized.includes("partial")) return 1;
+    if (normalized.includes("paid")) return 2;
+    if (normalized.includes("advance")) return 3;
+    return 4;
   };
+
   const filteredRows = useMemo(() => {
     const rowsWithStatus = [...rows].sort((a, b) => {
-      const statusCompare = getStatusPriority(a) - getStatusPriority(b);
+      const statusCompare =
+        getStatusPriority(a.status) - getStatusPriority(b.status);
 
       if (statusCompare !== 0) return statusCompare;
 
+      const compareName = (left, right) =>
+        String(left.user?.name || "").localeCompare(
+          String(right.user?.name || ""),
+          undefined,
+          { sensitivity: "base" },
+        );
+
       return nameOrder === "asc"
-        ? a.user.name.localeCompare(b.user.name)
-        : b.user.name.localeCompare(a.user.name);
+        ? compareName(a, b)
+        : compareName(b, a);
     });
 
     if (!searchTerm) return rowsWithStatus;
 
-    return rowsWithStatus.filter((row) =>
-      [row.user.name, row.user.phone].some((value) =>
-        String(value || "")
+    return rowsWithStatus.filter((row) => {
+      const searchableValues = [
+        row?.user?.name,
+        row?.user?.phone,
+        row?.user?.customerPhone,
+        row?.user?.category,
+        ...getDisplayPackages(row?.user),
+      ];
+
+      return searchableValues.some((value) =>
+        String(value ?? "")
           .toLowerCase()
           .includes(searchTerm),
-      ),
-    );
-  }, [rows, searchTerm, nameOrder, statusOrder]);
+      );
+    });
+  }, [rows, searchTerm, nameOrder]);
   return {
     rows,
     filteredRows,

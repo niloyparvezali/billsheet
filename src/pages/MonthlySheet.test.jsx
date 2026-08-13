@@ -1,7 +1,7 @@
 import "@testing-library/jest-dom/vitest";
-import { render, screen } from "@testing-library/react";
+import { act, cleanup, render, screen } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import MonthlySheet from "./MonthlySheet";
 
 const { mockUseOwnedCollection, mockUseMonthlySheet, mockUseAuth, mockUseLanguage } =
@@ -49,6 +49,10 @@ vi.mock("../components/FloatingSearch", () => ({
 }));
 
 describe("MonthlySheet routed customer navigation", () => {
+  afterEach(() => {
+    cleanup();
+  });
+
   beforeEach(() => {
     mockUseAuth.mockReturnValue({ user: { uid: "owner-1" } });
     mockUseLanguage.mockReturnValue({
@@ -116,5 +120,51 @@ describe("MonthlySheet routed customer navigation", () => {
     );
 
     expect(screen.getByTestId("payment-modal")).toHaveTextContent(/Alice/i);
+  });
+
+  it("keeps the mobile order as summary, financial cards, filters, then collection list", () => {
+    const originalInnerWidth = window.innerWidth;
+    Object.defineProperty(window, "innerWidth", {
+      configurable: true,
+      writable: true,
+      value: 375,
+    });
+
+    const { unmount } = render(
+      <MemoryRouter initialEntries={[{ pathname: "/monthly-sheet" }]}>
+        <MonthlySheet />
+      </MemoryRouter>,
+    );
+
+    act(() => {
+      window.dispatchEvent(new Event("resize"));
+    });
+
+    const summary = screen.getByText(/total[_ ]users/i).closest(".monthly-sheet-summary-mobile-column");
+    const totalBill = screen.getByText(/total[_ ]bill/i).closest(".monthly-sheet-financial-mobile-item");
+    const totalDue = screen.getByText(/total[_ ]due/i).closest(".monthly-sheet-financial-mobile-item");
+    const monthSelect = document.querySelector(".monthly-sheet-mini-select");
+    const exportButton = screen.getByRole("button", { name: /export[_ ]?pdf/i });
+    const searchInput = screen.getByPlaceholderText(/search customer by name or phone/i);
+
+    expect(summary).toBeInTheDocument();
+    expect(totalBill).toBeInTheDocument();
+    expect(totalDue).toBeInTheDocument();
+    expect(monthSelect).toBeInTheDocument();
+    expect(exportButton).toBeInTheDocument();
+    expect(searchInput).toBeInTheDocument();
+
+    expect(summary.compareDocumentPosition(totalBill) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(totalBill.compareDocumentPosition(totalDue) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(totalDue.compareDocumentPosition(monthSelect) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(monthSelect.compareDocumentPosition(exportButton) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(exportButton.compareDocumentPosition(searchInput) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+
+    unmount();
+    Object.defineProperty(window, "innerWidth", {
+      configurable: true,
+      writable: true,
+      value: originalInnerWidth,
+    });
   });
 });

@@ -467,7 +467,7 @@ header p {
 
 .modal {
   position: relative;
-  width: min(500px, 100%);
+  width: (600px, 100%);
   max-height: 90vh;
   overflow: auto;
   padding: 27px;

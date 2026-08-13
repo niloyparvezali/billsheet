@@ -39,22 +39,28 @@ const normalizeIdentityValue = (value) =>
 
 export const matchesPaymentToUser = (payment, userLike = {}) => {
   const paymentCustomerId = normalizeIdentityValue(payment?.customerId);
-  const userCustomerId = normalizeIdentityValue(userLike?.customerId);
-
-  // Highest priority: customerId
-  if (paymentCustomerId && userCustomerId) {
-    return paymentCustomerId === userCustomerId;
-  }
-
-  // Second priority: Firestore user document ID
   const paymentUserId = normalizeIdentityValue(payment?.userId);
+  const paymentOwnerId = normalizeIdentityValue(payment?.ownerId);
+
+  const userCustomerId = normalizeIdentityValue(userLike?.customerId);
   const userId = normalizeIdentityValue(userLike?.id || userLike?.userId);
 
-  if (paymentUserId && userId) {
-    return paymentUserId === userId;
+  if (paymentCustomerId && userCustomerId && paymentCustomerId === userCustomerId) {
+    return true;
   }
 
-  // Do NOT match by name anymore
+  if (paymentCustomerId && userId && paymentCustomerId === userId) {
+    return true;
+  }
+
+  if (paymentUserId && userId && paymentUserId === userId) {
+    return true;
+  }
+
+  if (paymentOwnerId && userId && paymentOwnerId === userId) {
+    return true;
+  }
+
   return false;
 };
 

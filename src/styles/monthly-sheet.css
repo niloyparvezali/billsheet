@@ -396,13 +396,13 @@
 }
 
 .monthly-sheet-mobile-item .users-mobile-item-meta {
+  display: flex;
   flex: 1 1 auto;
   min-width: 0;
-  gap: 0;
+  gap: 12px;
   font-size: 12px;
   color: var(--text-muted);
 }
-
 .monthly-sheet-mobile-item .users-mobile-item-actions {
   display: inline-flex;
   align-items: center;
@@ -606,7 +606,8 @@
   text-overflow: ellipsis;
 }
 
-.customer-phone {
+.customer-phone,
+.customer-category {
   max-width: 100%;
   margin-top: 3px;
   overflow: hidden;
@@ -705,6 +706,11 @@
 .action-btn--sms {
   background: color-mix(in srgb, var(--primary) 14%, var(--surface));
   color: var(--primary);
+}
+
+.action-btn--payment {
+  background: color-mix(in srgb, var(--info) 13%, var(--surface));
+  color: var(--info);
 }
 
 .action-btn--edit {

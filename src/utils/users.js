@@ -32,6 +32,37 @@ export const normalizeBangladeshPhone = (value = "") => {
   return `+880${digits}`;
 };
 
+export const buildUserDocId = ({ ownerId = "", phone = "" } = {}) => {
+  const normalizedOwnerId = String(ownerId || "").trim();
+  const normalizedPhone = normalizeBangladeshPhone(phone);
+  if (!normalizedOwnerId || !normalizedPhone) {
+    return `${normalizedOwnerId || "owner"}-phone-${normalizedPhone || "unknown"}`;
+  }
+  return `${normalizedOwnerId}-phone-${normalizedPhone}`;
+};
+
+export const findDuplicateUser = (users = [], candidate = {}) => {
+  const ownerId = String(candidate?.ownerId || "").trim();
+  const normalizedPhone = normalizeBangladeshPhone(candidate?.phone);
+  const normalizedName = String(candidate?.name || "").trim().toLowerCase();
+
+  if (!ownerId) {
+    return null;
+  }
+
+  return (users || []).find((user) => {
+    if (String(user?.ownerId || "").trim() !== ownerId) return false;
+
+    const samePhone =
+      normalizedPhone && normalizeBangladeshPhone(user?.phone) === normalizedPhone;
+    const sameName =
+      normalizedName &&
+      String(user?.name || "").trim().toLowerCase() === normalizedName;
+
+    return samePhone || sameName;
+  }) || null;
+};
+
 export const isValidBangladeshPhone = (value = "") => {
   const normalized = normalizeBangladeshPhone(value);
   if (!normalized) return false;

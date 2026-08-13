@@ -22,7 +22,6 @@ import {
   FiCreditCard,
   FiDownload,
   FiDollarSign,
-  FiEdit2,
   FiPhone,
   FiSearch,
   FiTag,
@@ -46,6 +45,7 @@ import {
   getPaymentMonthYear,
   voidPaymentRecord,
 } from "../utils/payments";
+import { getDisplayPackages } from "../utils/users";
 
 const defaultSmsTemplate =
   "Dear {name}, your monthly bill is {bill}. Please pay by {duedate}. Thank you.";
@@ -481,6 +481,12 @@ export default function MonthlySheet() {
       .map((part) => part[0])
       .join("")
       .toUpperCase();
+
+  const getCustomerCategoryLabel = (user = {}) => {
+    const displayPackages = getDisplayPackages(user);
+    return displayPackages[0] || user?.category || "Uncategorized";
+  };
+
   const handleExportPDF = () => {
     exportMonthlySheetPdf({
       rows: filteredRows,
@@ -526,104 +532,156 @@ export default function MonthlySheet() {
             </div>
           </section>
 
-          <div className="monthly-sheet-header-actions">
-            <select
-              className="monthly-sheet-mini-select"
-              value={month}
-              onChange={(e) => setMonth(+e.target.value)}
-            >
-              {monthNames.map((name, i) => (
-                <option key={name} value={i + 1}>
-                  {translateMonth(name)}
-                </option>
-              ))}
-            </select>
+          {!isMobile ? (
+            <>
+              <div className="monthly-sheet-header-actions">
+                <select
+                  className="monthly-sheet-mini-select"
+                  value={month}
+                  onChange={(e) => setMonth(+e.target.value)}
+                >
+                  {monthNames.map((name, i) => (
+                    <option key={name} value={i + 1}>
+                      {translateMonth(name)}
+                    </option>
+                  ))}
+                </select>
 
-            <input
-              className="monthly-sheet-mini-input"
-              type="number"
-              min="2024"
-              value={year}
-              onChange={(e) => setYear(+e.target.value)}
-            />
+                <input
+                  className="monthly-sheet-mini-input"
+                  type="number"
+                  min="2024"
+                  value={year}
+                  onChange={(e) => setYear(+e.target.value)}
+                />
 
-            <button
-              className="monthly-sheet-export-btn"
-              type="button"
-              onClick={handleExportPDF}
-            >
-              <FiDownload />
-              {t("export_pdf")}
-            </button>
-          </div>
-
-          <div
-            className="monthly-sheet-summary-mobile-card"
-            aria-label="Summary"
-          >
-            {mobileSummaryCards.map((card) => (
-              <div
-                key={card.label}
-                className={`monthly-sheet-summary-mobile-column summary-card--${card.accent}`}
-              >
-                <div className="summary-card-icon">{card.icon}</div>
-                <div className="summary-card-number">{card.value}</div>
-                <div className="summary-card-label">{card.label}</div>
+                <button
+                  className="monthly-sheet-export-btn"
+                  type="button"
+                  onClick={handleExportPDF}
+                >
+                  <FiDownload />
+                  {t("export_pdf")}
+                </button>
               </div>
-            ))}
-          </div>
 
-          <div
-            className="monthly-sheet-financial-mobile-card"
-            aria-label="Financial Summary"
-          >
-            {mobileFinancialCards.map((card) => (
-              <div
-                key={card.label}
-                className="monthly-sheet-financial-mobile-item"
-              >
-                <div className="monthly-sheet-financial-mobile-icon">
-                  {card.icon}
-                </div>
-                <div className="monthly-sheet-financial-mobile-copy">
-                  <div className="monthly-sheet-financial-mobile-value">
-                    {card.value}
+              <div className="monthly-sheet-summary-grid">
+                {summaryCards.map((card) => (
+                  <div
+                    key={card.label}
+                    className={`summary-card summary-card--${card.accent}`}
+                  >
+                    <div className="summary-card-icon">{card.icon}</div>
+                    <div className="summary-card-number">{card.value}</div>
+                    <div className="summary-card-label">{card.label}</div>
                   </div>
-                  <div className="monthly-sheet-financial-mobile-label">
-                    {card.label}
-                  </div>
-                </div>
+                ))}
               </div>
-            ))}
-          </div>
 
-          <div className="monthly-sheet-summary-grid">
-            {summaryCards.map((card) => (
+              <div className="monthly-sheet-search-shell">
+                <label className="search-field">
+                  <FiSearch />
+                  <input
+                    ref={searchRef}
+                    placeholder={t(
+                      "search_customer_placeholder",
+                      "Search customer by name or phone",
+                    )}
+                    value={search}
+                    onChange={(e) => setSearch(e.target.value)}
+                  />
+                </label>
+              </div>
+            </>
+          ) : (
+            <>
               <div
-                key={card.label}
-                className={`summary-card summary-card--${card.accent}`}
+                className="monthly-sheet-summary-mobile-card"
+                aria-label="Summary"
               >
-                <div className="summary-card-icon">{card.icon}</div>
-                <div className="summary-card-number">{card.value}</div>
-                <div className="summary-card-label">{card.label}</div>
+                {mobileSummaryCards.map((card) => (
+                  <div
+                    key={card.label}
+                    className={`monthly-sheet-summary-mobile-column summary-card--${card.accent}`}
+                  >
+                    <div className="summary-card-icon">{card.icon}</div>
+                    <div className="summary-card-number">{card.value}</div>
+                    <div className="summary-card-label">{card.label}</div>
+                  </div>
+                ))}
               </div>
-            ))}
-          </div>
 
-          <div className="monthly-sheet-search-shell">
-            <label className="search-field">
-              <FiSearch />
-              <input
-                ref={searchRef}
-                placeholder={t(
-                  "search_customer_placeholder",
-                  "Search customer by name or phone",
-                )}
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-              />
-            </label>
-          </div>
+              <div
+                className="monthly-sheet-financial-mobile-card"
+                aria-label="Financial Summary"
+              >
+                {mobileFinancialCards.map((card) => (
+                  <div
+                    key={card.label}
+                    className="monthly-sheet-financial-mobile-item"
+                  >
+                    <div className="monthly-sheet-financial-mobile-icon">
+                      {card.icon}
+                    </div>
+                    <div className="monthly-sheet-financial-mobile-copy">
+                      <div className="monthly-sheet-financial-mobile-value">
+                        {card.value}
+                      </div>
+                      <div className="monthly-sheet-financial-mobile-label">
+                        {card.label}
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              <div className="monthly-sheet-header-actions">
+                <select
+                  className="monthly-sheet-mini-select"
+                  value={month}
+                  onChange={(e) => setMonth(+e.target.value)}
+                >
+                  {monthNames.map((name, i) => (
+                    <option key={name} value={i + 1}>
+                      {translateMonth(name)}
+                    </option>
+                  ))}
+                </select>
+
+                <input
+                  className="monthly-sheet-mini-input"
+                  type="number"
+                  min="2024"
+                  value={year}
+                  onChange={(e) => setYear(+e.target.value)}
+                />
+              </div>
+
+              <button
+                className="monthly-sheet-export-btn"
+                type="button"
+                onClick={handleExportPDF}
+              >
+                <FiDownload />
+                {t("export_pdf")}
+              </button>
+
+              <div className="monthly-sheet-search-shell">
+                <label className="search-field">
+                  <FiSearch />
+                  <input
+                    ref={searchRef}
+                    placeholder={t(
+                      "search_customer_placeholder",
+                      "Search customer by name or phone",
+                    )}
+                    value={search}
+                    onChange={(e) => setSearch(e.target.value)}
+                  />
+                </label>
+              </div>
+            </>
+          )}
 
           <section
             className={
@@ -743,6 +801,9 @@ export default function MonthlySheet() {
                                   <div className="customer-phone">
                                     {user.phone || "No phone saved"}
                                   </div>
+                                  <div className="customer-category">
+                                    {getCustomerCategoryLabel(user)}
+                                  </div>
                                 </div>
                               </div>
                             </td>
@@ -792,14 +853,14 @@ export default function MonthlySheet() {
                                 <Send size={16} />
                               </button>
                               <button
-                                className="action-btn action-btn--edit"
+                                className="action-btn action-btn--payment"
                                 onClick={() =>
                                   setEditing({ user, payment, openingDue })
                                 }
-                                title="Edit"
+                                title="Payment"
                                 type="button"
                               >
-                                <FiEdit2 />
+                                <FiCreditCard />
                               </button>
                               {payment && (
                                 <button
@@ -910,8 +971,8 @@ export default function MonthlySheet() {
                             {selectedCustomer.user.phone || "No phone on file"}
                           </span>
                           <span>
-                            <FiTag />{" "}
-                            {selectedCustomer.user.category || "Uncategorized"}
+                            <FiTag /> Category:{" "}
+                            {getCustomerCategoryLabel(selectedCustomer.user)}
                           </span>
                         </div>
                       </div>
@@ -959,7 +1020,7 @@ export default function MonthlySheet() {
                           })
                         }
                       >
-                        <FiEdit2 />Payment
+                        <FiCreditCard /> Payment
                       </button>
                     </div>
                     <div className="users-mobile-action-row users-mobile-action-row--secondary">
@@ -1055,6 +1116,7 @@ export default function MonthlySheet() {
                             <div className="users-mobile-item-bottom">
                               <div className="users-mobile-item-meta">
                                 <span>{user.phone || "No phone on file"}</span>
+                                <span> {getCustomerCategoryLabel(user)}</span>
                               </div>
                               <div className="users-mobile-item-actions">
                                 <button
@@ -1285,7 +1347,7 @@ export default function MonthlySheet() {
                 })
               }
             >
-              <FiEdit2 />Payment
+              <FiCreditCard /> Payment
             </button>
           </div>
           <div className="users-mobile-action-row users-mobile-action-row--secondary">

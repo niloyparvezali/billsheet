@@ -19,10 +19,10 @@ import PaymentModal from "../components/PaymentModal";
 import FloatingSearch from "../components/FloatingSearch";
 import { useMemo, useState, useRef, useEffect } from "react";
 import {
-  addDoc,
   collection,
   deleteDoc,
   doc,
+  runTransaction,
   serverTimestamp,
   updateDoc,
 } from "firebase/firestore";
@@ -35,6 +35,8 @@ import Modal from "../components/Modal";
 import ConfirmModal from "../components/ConfirmModal";
 import { formatDate, formatDateOrNotAvailable, getCreatedDate, money } from "../utils/date";
 import {
+  buildUserDocId,
+  findDuplicateUser,
   getDisplayPackages,
   normalizeBangladeshPhone,
   normalizePackages,
@@ -309,20 +311,43 @@ export default function Users() {
         status: normalizedStatusValue,
         active: isActive,
         statusHistory: nextHistory,
-        ...(form.id
-          ? {}
-          : {
-              ownerId: signedInUser.uid,
-              createdAt: serverTimestamp(),
-              customerId: getNextCustomerId(users),
-            }),
       };
-      if (form.id)
+      if (form.id) {
         await updateDoc(doc(db, "users", form.id), {
           ...data,
           updatedAt: serverTimestamp(),
         });
-      else await addDoc(collection(db, "users"), data);
+      } else {
+        const duplicateUser = findDuplicateUser(users, {
+          ownerId: signedInUser.uid,
+          phone: normalizedPhone,
+          name: form.name,
+        });
+
+        if (duplicateUser) {
+          throw new Error("User already exists.");
+        }
+
+        const userDocId = buildUserDocId({
+          ownerId: signedInUser.uid,
+          phone: normalizedPhone,
+        });
+        const userDocRef = doc(db, "users", userDocId);
+
+        await runTransaction(db, async (transaction) => {
+          const existingUser = await transaction.get(userDocRef);
+          if (existingUser.exists()) {
+            throw new Error("User already exists.");
+          }
+
+          transaction.set(userDocRef, {
+            ...data,
+            ownerId: signedInUser.uid,
+            createdAt: serverTimestamp(),
+            customerId: getNextCustomerId(users),
+          });
+        });
+      }
       toast.success("User saved");
       setForm(null);
       setFormError("");

@@ -123,7 +123,6 @@ export default function Login() {
   });
   const [errors, setErrors] = useState({});
   const from = location.state?.from?.pathname || "/";
-  const autoLoginAttemptedRef = useRef("");
 
   useEffect(() => {
     if (mode !== "login") return;
@@ -131,19 +130,6 @@ export default function Login() {
     const frame = window.setTimeout(() => emailInputRef.current?.focus({ preventScroll: true }), 80);
     return () => window.clearTimeout(frame);
   }, [mode]);
-
-  useEffect(() => {
-    if (mode !== "login" || busy) return;
-    const emailIsValid = !emailErrorMessage(email);
-    const passcodeIsValid = !passcodeErrorMessage(passcode);
-    if (!emailIsValid || !passcodeIsValid) return;
-
-    const signature = `${email}|${passcode}`;
-    if (autoLoginAttemptedRef.current === signature) return;
-
-    autoLoginAttemptedRef.current = signature;
-    void attemptLogin(email, passcode);
-  }, [busy, mode, email, passcode]);
 
   if (user) return <Navigate to={from} replace />;
 

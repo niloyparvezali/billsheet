@@ -3,6 +3,7 @@ import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import Users from "./Users";
+import { buildUserDocId, findDuplicateUser } from "../utils/users";
 
 const { mockNavigate, mockUseOwnedCollection } = vi.hoisted(() => ({
   mockNavigate: vi.fn(),
@@ -82,6 +83,17 @@ vi.mock("../components/UsersTable", () => ({
 }));
 
 describe("Users mobile navigation", () => {
+  it("treats the same normalized phone number and same name as duplicate user identities", () => {
+    const existingUsers = [
+      { id: "owner-1-phone-+8801712345678", ownerId: "owner-1", name: "Anik", phone: "+8801712345678" },
+    ];
+
+    expect(findDuplicateUser(existingUsers, { ownerId: "owner-1", phone: "01712345678" })).toEqual(existingUsers[0]);
+    expect(findDuplicateUser(existingUsers, { ownerId: "owner-1", name: "Anik" })).toEqual(existingUsers[0]);
+    expect(findDuplicateUser(existingUsers, { ownerId: "owner-2", phone: "01712345678" })).toBeNull();
+    expect(buildUserDocId({ ownerId: "owner-1", phone: "01712345678" })).toBe("owner-1-phone-+8801712345678");
+  });
+
   afterEach(() => {
     cleanup();
   });
