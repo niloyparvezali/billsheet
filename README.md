@@ -15,8 +15,7 @@ View your app in AI Studio: https://ai.studio/apps/88f2f6a3-f37e-40b8-aad0-88c53
 
 1. Install dependencies:
    `npm install`
-2. Set the `GEMINI_API_KEY` in [.env.local](.env.local) to your Gemini API key
-3. Set `VITE_FUNCTIONS_URL` in [.env.local](.env.local) to your Firebase Functions endpoint, for example:
-   `VITE_FUNCTIONS_URL=https://us-central1-billsheet-c3a04.cloudfunctions.net`
-4. Run the app:
+2. Firebase configuration is automatically loaded from `.env.local`
+   (Already configured with project: billsheet-c3a04)
+3. Run the app:
    `npm run dev`

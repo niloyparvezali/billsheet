@@ -12,6 +12,7 @@ import {
   FiUser,
   FiUserPlus,
 } from "react-icons/fi";
+import { FcGoogle } from "react-icons/fc";
 import toast from "react-hot-toast";
 import { useAuth } from "../context/AuthContext";
 import { useLanguage } from "../context/LanguageContext";
@@ -26,6 +27,13 @@ const phoneErrorMessage = (value) => {
     return `Enter ${11 - digits.length} more digit${11 - digits.length === 1 ? "" : "s"}.`;
   }
   if (!digits.startsWith("01")) return "Number must start with 01.";
+  return "";
+};
+
+const emailErrorMessage = (value) => {
+  const raw = String(value ?? "").trim();
+  if (!raw) return "Enter your email address.";
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(raw)) return "Enter a valid email address.";
   return "";
 };
 
@@ -88,19 +96,20 @@ export default function Login() {
   const {
     user,
     configured,
-    signInWithPhoneAndPasscode,
-    registerWithPhoneAndPasscode,
+    signInWithEmailAndPasscode,
+    registerWithEmailAndPasscode,
     recoverPasscode,
+    signInWithGoogle,
   } = useAuth();
   const location = useLocation();
   const navigate = useNavigate();
-  const phoneInputRef = useRef(null);
+  const emailInputRef = useRef(null);
   const passcodeInputRef = useRef(null);
   const passcodeDisplayRef = useRef(null);
   const [mode, setMode] = useState("login");
   const [busy, setBusy] = useState(false);
-  const [activeInput, setActiveInput] = useState("phone");
-  const [phone, setPhone] = useState("");
+  const [activeInput, setActiveInput] = useState("email");
+  const [email, setEmail] = useState("");
   const [passcode, setPasscode] = useState("");
   const [showPasscode, setShowPasscode] = useState(false);
   const [form, setForm] = useState({
@@ -118,32 +127,32 @@ export default function Login() {
 
   useEffect(() => {
     if (mode !== "login") return;
-    setActiveInput("phone");
-    const frame = window.setTimeout(() => phoneInputRef.current?.focus({ preventScroll: true }), 80);
+    setActiveInput("email");
+    const frame = window.setTimeout(() => emailInputRef.current?.focus({ preventScroll: true }), 80);
     return () => window.clearTimeout(frame);
   }, [mode]);
 
   useEffect(() => {
     if (mode !== "login" || busy) return;
-    const phoneIsValid = !phoneErrorMessage(phone);
+    const emailIsValid = !emailErrorMessage(email);
     const passcodeIsValid = !passcodeErrorMessage(passcode);
-    if (!phoneIsValid || !passcodeIsValid) return;
+    if (!emailIsValid || !passcodeIsValid) return;
 
-    const signature = `${phone}|${passcode}`;
+    const signature = `${email}|${passcode}`;
     if (autoLoginAttemptedRef.current === signature) return;
 
     autoLoginAttemptedRef.current = signature;
-    void attemptLogin(phone, passcode);
-  }, [busy, mode, phone, passcode]);
+    void attemptLogin(email, passcode);
+  }, [busy, mode, email, passcode]);
 
   if (user) return <Navigate to={from} replace />;
 
-  const updatePhone = (value) => {
-    const digits = sanitizePhoneValue(value);
-    setPhone(digits);
+  const updateEmail = (value) => {
+    const trimmed = String(value ?? "").trim();
+    setEmail(trimmed);
     setErrors((current) => ({
       ...current,
-      phone: phoneErrorMessage(digits),
+      email: emailErrorMessage(trimmed),
       login: "",
     }));
   };
@@ -158,22 +167,22 @@ export default function Login() {
     }));
   };
 
-  const attemptLogin = async (nextPhone, nextPasscode) => {
+  const attemptLogin = async (nextEmail, nextPasscode) => {
     const nextErrors = {
-      phone: phoneErrorMessage(nextPhone),
+      email: emailErrorMessage(nextEmail),
       passcode: passcodeErrorMessage(nextPasscode),
       login: "",
     };
     setErrors(nextErrors);
-    if (nextErrors.phone || nextErrors.passcode) return;
+    if (nextErrors.email || nextErrors.passcode) return;
 
     setBusy(true);
     try {
-      await signInWithPhoneAndPasscode(nextPhone, nextPasscode);
+      await signInWithEmailAndPasscode(nextEmail, nextPasscode);
       toast.success("Signed in successfully.");
       navigate(from, { replace: true });
     } catch (error) {
-      const message = error.message || "Phone number or passcode does not match, or the user does not exist.";
+      const message = error.message || "Email or passcode does not match, or the user does not exist.";
       setErrors((current) => ({
         ...current,
         login: message,
@@ -186,7 +195,7 @@ export default function Login() {
 
   const submitLogin = async (event) => {
     event.preventDefault();
-    await attemptLogin(phone, passcode);
+    await attemptLogin(email, passcode);
   };
 
   const submitRegister = async (event) => {
@@ -194,9 +203,7 @@ export default function Login() {
     const nextErrors = {
       fullName: form.fullName.trim() ? "" : "Full name is required.",
       companyName: form.companyName.trim() ? "" : "Company name is required.",
-      email: /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email)
-        ? ""
-        : "Use a valid email address.",
+      email: emailErrorMessage(form.email),
       phone: phoneErrorMessage(form.phone),
       passcode: passcodeErrorMessage(form.passcode),
       confirmPasscode:
@@ -210,7 +217,7 @@ export default function Login() {
 
     setBusy(true);
     try {
-      await registerWithPhoneAndPasscode({
+      await registerWithEmailAndPasscode({
         fullName: form.fullName,
         companyName: form.companyName,
         email: form.email,
@@ -231,16 +238,16 @@ export default function Login() {
   const submitForgot = async (event) => {
     event.preventDefault();
     const nextErrors = {
-      phone: phoneErrorMessage(phone),
+      email: emailErrorMessage(email),
     };
     setErrors(nextErrors);
-    if (nextErrors.phone) return;
+    if (nextErrors.email) return;
 
     setBusy(true);
     try {
-      await recoverPasscode(phone);
+      await recoverPasscode(email);
       toast.success(
-        "If an account exists, verification has been sent to the linked email.",
+        "If an account exists, a password reset link has been sent to your email.",
       );
       setMode("login");
     } catch (error) {
@@ -250,40 +257,50 @@ export default function Login() {
     }
   };
 
+  const handleGoogleSignIn = async () => {
+    setBusy(true);
+    try {
+      await signInWithGoogle();
+      toast.success("Signed in with Google.");
+      navigate(from, { replace: true });
+    } catch (error) {
+      const message = error.message || "Google sign-in failed. Please try again.";
+      toast.error(message);
+    } finally {
+      setBusy(false);
+    }
+  };
+
   const renderLoginFields = () => (
     <>
       <label className="auth-field">
-        <span>{t("phone_number", "Phone number")}</span>
+        <span>{t("email", "Email")}</span>
         <div
-          className={`auth-input auth-input-phone ${errors.phone ? "error" : ""} ${activeInput === "phone" ? "active" : ""}`}
+          className={`auth-input ${errors.email ? "error" : ""} ${activeInput === "email" ? "active" : ""}`}
         >
-          <FiPhone />
+          <FiMail />
           <input
-            ref={phoneInputRef}
-            type="tel"
-            inputMode="numeric"
-            autoComplete="tel"
-            maxLength={13}
-            pattern="[0-9]*"
-            value={formatPhoneDisplay(phone)}
-            onFocus={() => setActiveInput("phone")}
-            onClick={() => setActiveInput("phone")}
-            onKeyDown={handlePhoneKeyDown}
+            ref={emailInputRef}
+            type="email"
+            inputMode="email"
+            autoComplete="email"
+            value={email}
+            onFocus={() => setActiveInput("email")}
+            onClick={() => setActiveInput("email")}
             onChange={(event) => {
-              const digits = sanitizePhoneValue(event.target.value);
-              updatePhone(digits);
+              updateEmail(event.target.value);
             }}
             onPaste={(event) => {
               event.preventDefault();
-              const pasted = sanitizePhoneValue(event.clipboardData?.getData("text") || "");
-              updatePhone(pasted);
+              const pasted = event.clipboardData?.getData("text") || "";
+              updateEmail(pasted);
             }}
-            placeholder="01X XXXX XXXX"
-            aria-label="Phone number"
+            placeholder="you@example.com"
+            aria-label="Email address"
           />
         </div>
-        {errors.phone ? (
-          <small className="auth-error">{errors.phone}</small>
+        {errors.email ? (
+          <small className="auth-error">{errors.email}</small>
         ) : null}
       </label>
 
@@ -395,6 +412,7 @@ export default function Login() {
           <FiMail />
           <input
             type="email"
+            inputMode="email"
             autoComplete="email"
             value={form.email}
             onChange={(event) =>
@@ -538,7 +556,7 @@ export default function Login() {
             {mode === "register"
               ? t("register_description", "Open a secure workspace for your billing team and start managing customers, bills, and reports.")
               : mode === "forgot"
-                ? t("forgot_description", "Enter your registered phone number to recover your passcode and get back into your workspace.")
+                ? t("forgot_description", "Enter your registered email address to recover your passcode and get back into your workspace.")
                 : t("login_description", "Manage customers, Monthly bills, and reports securely.")}
           </p>
         </div>
@@ -561,6 +579,41 @@ export default function Login() {
             {errors.login ? (
               <small className="auth-error">{errors.login}</small>
             ) : null}
+            
+            <div className="auth-divider" style={{ margin: "1.5rem 0", textAlign: "center", color: "#888", fontSize: "0.875rem" }}>
+              or
+            </div>
+
+            <button
+              type="button"
+              className="auth-google-button"
+              onClick={handleGoogleSignIn}
+              disabled={busy}
+              aria-label="Continue with Google"
+              title="Continue with Google"
+              style={{
+                width: "100%",
+                padding: "0.75rem",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                gap: "0.5rem",
+                border: "1px solid #ddd",
+                borderRadius: "6px",
+                backgroundColor: "#fff",
+                color: "#333",
+                cursor: busy ? "not-allowed" : "pointer",
+                opacity: busy ? 0.6 : 1,
+                transition: "all 0.2s ease",
+                fontSize: "0.95rem",
+                fontWeight: "500",
+              }}
+              onMouseEnter={(e) => !busy && (e.target.style.backgroundColor = "#f9f9f9")}
+              onMouseLeave={(e) => (e.target.style.backgroundColor = "#fff")}
+            >
+              <FcGoogle size={20} />
+              <span>{t("continue_with_google", "Continue with Google")}</span>
+            </button>
           </form>
         ) : mode === "register" ? (
           <form onSubmit={submitRegister} className="auth-form">
@@ -576,28 +629,25 @@ export default function Login() {
         ) : (
           <form onSubmit={submitForgot} className="auth-form">
             <label className="auth-field">
-              <span>{t("phone_number", "Registered phone number")}</span>
-              <div className={`auth-input auth-input-phone ${errors.phone ? "error" : ""}`}>
-                <FiPhone />
+              <span>{t("email", "Registered email address")}</span>
+              <div className={`auth-input ${errors.email ? "error" : ""}`}>
+                <FiMail />
                 <input
-                  type="tel"
-                  inputMode="numeric"
-                  autoComplete="tel"
-                  maxLength={13}
-                  pattern="[0-9]*"
-                  value={phone}
-                  onChange={(event) => updatePhone(event.target.value)}
-                  onKeyDown={handlePhoneKeyDown}
+                  type="email"
+                  inputMode="email"
+                  autoComplete="email"
+                  value={email}
+                  onChange={(event) => updateEmail(event.target.value)}
                   onPaste={(event) => {
                     event.preventDefault();
-                    updatePhone(event.clipboardData?.getData("text") || "");
+                    updateEmail(event.clipboardData?.getData("text") || "");
                   }}
-                  placeholder="01X XXXX XXXX"
-                  aria-label="Registered phone number"
+                  placeholder="you@example.com"
+                  aria-label="Registered email address"
                 />
               </div>
-              {errors.phone ? (
-                <small className="auth-error">{errors.phone}</small>
+              {errors.email ? (
+                <small className="auth-error">{errors.email}</small>
               ) : null}
             </label>
             <button
