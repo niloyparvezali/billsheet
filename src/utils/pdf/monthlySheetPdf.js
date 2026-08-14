@@ -6,9 +6,9 @@ import {
   pdfBalance,
 } from "./pdfHelpers";
 import { money, formatDate, formatTime } from "../date";
-import { getDisplayBalanceValues, getDisplayPaymentStatus } from "../payments";
+import { getDisplayBalanceValues, getDisplayPaymentStatus, getEffectiveBillForPeriod } from "../payments";
 
-export function exportMonthlySheetPdf({
+export async function exportMonthlySheetPdf({
   rows,
   month,
   year,
@@ -17,7 +17,7 @@ export function exportMonthlySheetPdf({
   theme = "forest",
 }) {
   const { pdf, colors, startY, drawSummary, drawTable, drawFooter } =
-    createPdfLayout({
+    await createPdfLayout({
       reportTitle: "Monthly Collection Report",
       companyName,
       theme,
@@ -103,7 +103,7 @@ export function exportMonthlySheetPdf({
           carryForward: row.carryForward,
           currentDue: row.currentDue,
           currentAdvance: row.currentAdvance,
-          bill: Number(row.user?.monthlyBill || 0),
+          bill: row.bill || row.user?.monthlyBill || 0,
           amount: Number(row.currentPaid || 0),
           previousDue: Number(row.openingDue || row.previousDue || 0),
           previousAdvance: Number(
@@ -116,7 +116,7 @@ export function exportMonthlySheetPdf({
         return [
           index + 1,
           row.user.name,
-          pdfMoney(row.user.monthlyBill),
+          pdfMoney(row.bill || row.user?.monthlyBill || 0),
           pdfMoney(row.currentPaid || 0),
           pdfBalance({
             due: displayBalance.due,

@@ -3,7 +3,32 @@ import autoTable from "jspdf-autotable";
 import { getPdfTheme } from "./pdfTheme";
 import { formatReportDate } from "./pdfHelpers";
 
-export function createPdfLayout({
+async function loadLogoDataUrl() {
+  try {
+    if (typeof fetch !== "function") {
+      return null;
+    }
+
+    const response = await fetch("/bs-logo.png");
+    if (!response.ok) {
+      return null;
+    }
+
+    const blob = await response.blob();
+
+    return await new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onloadend = () => resolve(reader.result);
+      reader.onerror = () => reject(new Error("Failed to read PDF logo."));
+      reader.readAsDataURL(blob);
+    });
+  } catch (error) {
+    console.warn("Unable to load Bill Sheet PDF logo:", error);
+    return null;
+  }
+}
+
+export async function createPdfLayout({
   reportTitle,
   companyName = "",
   reportInfo = [],
@@ -16,6 +41,8 @@ export function createPdfLayout({
   const pageWidth = pdf.internal.pageSize.getWidth();
   const pageHeight = pdf.internal.pageSize.getHeight();
 
+  const logoDataUrl = await loadLogoDataUrl();
+
   // =============================
   // Header
   // =============================
@@ -25,17 +52,28 @@ export function createPdfLayout({
     pdf.setFillColor(...colors.primary);
     pdf.rect(0, 0, pageWidth, 34, "F");
 
+    const logoX = 15;
+    const logoY = 7;
+    const logoWidth = 9;
+    const logoHeight = 9;
+
+    if (logoDataUrl) {
+      pdf.addImage(logoDataUrl, "PNG", logoX, logoY, logoWidth, logoHeight);
+    }
+
+    const titleX = logoDataUrl ? logoX + logoWidth + 4 : 15;
+
     // Brand
     pdf.setFont("helvetica", "bold");
     pdf.setFontSize(24);
 
     pdf.setTextColor(...colors.white);
-    pdf.text("Bill", 15, 15);
+    pdf.text("Bill", titleX, 15);
 
     const billWidth = pdf.getTextWidth("Bill ");
 
     pdf.setTextColor(...colors.accent);
-    pdf.text("Sheet", 15 + billWidth, 15);
+    pdf.text("Sheet", titleX + billWidth, 15);
 
     // Report Title
     pdf.setFontSize(12);

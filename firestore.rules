@@ -1,37 +1,48 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-    function signedIn() { return request.auth != null; }
-    function ownsExisting() { return resource.data.ownerId == request.auth.uid; }
-    function ownsNew() { return request.resource.data.ownerId == request.auth.uid; }
+    function signedIn() {
+      return request.auth != null;
+    }
 
-    function ownerUnchangedOrUnspecified() {
-      return !(request.resource.data.keys().hasAny(["ownerId"])) ||
-        request.resource.data.ownerId == resource.data.ownerId;
+    function ownsExisting() {
+      return signedIn() && resource.data.ownerId == request.auth.uid;
+    }
+
+    function ownsNew() {
+      return signedIn() && request.resource.data.ownerId == request.auth.uid;
+    }
+
+    function ownerUnchanged() {
+      return request.resource.data.ownerId == resource.data.ownerId;
     }
 
     match /users/{id} {
-      allow create: if signedIn() && ownsNew();
-      allow read, delete: if signedIn() && ownsExisting();
-      allow update: if signedIn() && ownsExisting() && ownerUnchangedOrUnspecified();
+      allow create: if ownsNew();
+      allow read: if ownsExisting();
+      allow update: if ownsExisting() && ownerUnchanged();
+      allow delete: if ownsExisting();
     }
+
     match /categories/{id} {
-      allow create: if signedIn() && ownsNew();
-      allow read, delete: if signedIn() && ownsExisting();
-      allow update: if signedIn() && ownsExisting() && ownerUnchangedOrUnspecified();
+      allow create: if ownsNew();
+      allow read: if ownsExisting();
+      allow update: if ownsExisting() && ownerUnchanged();
+      allow delete: if ownsExisting();
     }
+
     match /payments/{id} {
-      allow create: if signedIn() && ownsNew();
-      allow read, delete: if signedIn() && ownsExisting();
-      allow update: if signedIn() && ownsExisting() && ownerUnchangedOrUnspecified();
+      allow create: if ownsNew();
+      allow read: if ownsExisting();
+      allow update: if ownsExisting() && ownerUnchanged();
+      allow delete: if ownsExisting();
     }
+
     match /settings/{id} {
       allow read, write: if signedIn() && id == request.auth.uid;
     }
+
     match /authAccounts/{id} {
-      // Allow the authenticated user to read and update their own authAccounts doc.
-      // This keeps sensitive fields (passcodeHash, firebasePassword) hidden from other users
-      // and prevents unauthenticated clients from querying authentication records.
       allow read, write: if signedIn() && id == request.auth.uid;
     }
   }

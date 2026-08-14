@@ -2,7 +2,7 @@ import { createPdfLayout } from "./pdfLayout";
 import { pdfMoney, pdfBalance } from "./pdfHelpers";
 import { getDisplayBalanceValues, getDisplayPaymentStatus } from "../payments";
 import { formatDate } from "../date";
-export function exportAnnualCustomerPdf({
+export async function exportAnnualCustomerPdf({
   businessName = "Bill Sheet",
   customer,
   year,
@@ -10,7 +10,7 @@ export function exportAnnualCustomerPdf({
   history,
   theme = "forest",
 }) {
-  const { pdf, startY, drawSummary, drawTable, drawFooter } = createPdfLayout({
+  const { pdf, startY, drawSummary, drawTable, drawFooter } = await createPdfLayout({
     reportTitle: "Annual Customer Report",
     companyName: businessName,
     theme,

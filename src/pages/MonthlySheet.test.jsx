@@ -122,6 +122,112 @@ describe("MonthlySheet routed customer navigation", () => {
     expect(screen.getByTestId("payment-modal")).toHaveTextContent(/Alice/i);
   });
 
+it("renders the void action disabled when the user has no payment in the current month", () => {
+    render(
+      <MemoryRouter initialEntries={[{ pathname: "/monthly-sheet" }]}>
+        <MonthlySheet />
+      </MemoryRouter>,
+    );
+
+    expect(screen.getByTitle("Void")).toBeDisabled();
+  });
+
+  it("renders the void action enabled when the user has a payment in the current month", () => {
+    const current = new Date();
+    mockUseMonthlySheet.mockReturnValue({
+      rows: [
+        {
+          user: { id: "user-1", name: "Alice", monthlyBill: 1000, phone: "123", category: "Gold" },
+          payment: { id: "pay-1", amount: 200, month: current.getMonth() + 1, year: current.getFullYear() },
+          openingDue: 0,
+          openingAdvance: 0,
+          due: 0,
+          carryForward: 0,
+          currentPaid: 200,
+          status: "Paid",
+        },
+      ],
+      filteredRows: [
+        {
+          user: { id: "user-1", name: "Alice", monthlyBill: 1000, phone: "123", category: "Gold" },
+          payment: { id: "pay-1", amount: 200, month: current.getMonth() + 1, year: current.getFullYear() },
+          openingDue: 0,
+          openingAdvance: 0,
+          due: 0,
+          carryForward: 0,
+          currentPaid: 200,
+          status: "Paid",
+        },
+      ],
+      paid: [],
+      total: 0,
+      totalDue: 0,
+      totalBill: 1000,
+    });
+
+    render(
+      <MemoryRouter initialEntries={[{ pathname: "/monthly-sheet" }]}>
+        <MonthlySheet />
+      </MemoryRouter>,
+    );
+
+    expect(screen.getByTitle("Void")).not.toBeDisabled();
+  });
+
+  it("renders mobile rows without crashing when a row does not include a bill value", () => {
+    const originalInnerWidth = window.innerWidth;
+    Object.defineProperty(window, "innerWidth", {
+      configurable: true,
+      writable: true,
+      value: 375,
+    });
+
+    mockUseMonthlySheet.mockReturnValue({
+      rows: [
+        {
+          user: { id: "user-1", name: "Alice", monthlyBill: 1000, phone: "123", category: "Gold" },
+          payment: null,
+          openingDue: 0,
+          openingAdvance: 0,
+          due: 0,
+          carryForward: 0,
+          currentPaid: 0,
+          status: "Pending",
+        },
+      ],
+      filteredRows: [
+        {
+          user: { id: "user-1", name: "Alice", monthlyBill: 1000, phone: "123", category: "Gold" },
+          payment: null,
+          openingDue: 0,
+          openingAdvance: 0,
+          due: 0,
+          carryForward: 0,
+          currentPaid: 0,
+          status: "Pending",
+        },
+      ],
+      paid: [],
+      total: 0,
+      totalDue: 0,
+      totalBill: 1000,
+    });
+
+    expect(() => {
+      render(
+        <MemoryRouter initialEntries={[{ pathname: "/monthly-sheet" }]}>
+          <MonthlySheet />
+        </MemoryRouter>,
+      );
+    }).not.toThrow();
+
+    Object.defineProperty(window, "innerWidth", {
+      configurable: true,
+      writable: true,
+      value: originalInnerWidth,
+    });
+  });
+
   it("keeps the mobile order as summary, financial cards, filters, then collection list", () => {
     const originalInnerWidth = window.innerWidth;
     Object.defineProperty(window, "innerWidth", {

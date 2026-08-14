@@ -5,6 +5,22 @@ import {
 } from "./payments";
 
 describe("billing history stability", () => {
+  it("keeps June and July at the old rate when August is changed, and carries August forward", () => {
+    const user = {
+      monthlyBill: 2000,
+      billHistory: [
+        { effectiveYear: 2026, effectiveMonth: 6, monthlyBill: 200 },
+        { effectiveYear: 2026, effectiveMonth: 8, monthlyBill: 2000 },
+      ],
+    };
+
+    expect(getEffectiveBillForPeriod(user, { month: 6, year: 2026 })).toBe(200);
+    expect(getEffectiveBillForPeriod(user, { month: 7, year: 2026 })).toBe(200);
+    expect(getEffectiveBillForPeriod(user, { month: 8, year: 2026 })).toBe(2000);
+    expect(getEffectiveBillForPeriod(user, { month: 9, year: 2026 })).toBe(2000);
+    expect(getEffectiveBillForPeriod(user, { month: 10, year: 2026 })).toBe(2000);
+  });
+
   it("preserves historical month rates and applies new amounts only from the change month onward", () => {
     const user = {
       monthlyBill: 500,

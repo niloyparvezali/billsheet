@@ -1,13 +1,14 @@
 import "@testing-library/jest-dom/vitest";
-import { cleanup, fireEvent, render, screen } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import Users from "./Users";
 import { buildUserDocId, findDuplicateUser } from "../utils/users";
 
-const { mockNavigate, mockUseOwnedCollection } = vi.hoisted(() => ({
+const { mockNavigate, mockUseOwnedCollection, mockSetDoc } = vi.hoisted(() => ({
   mockNavigate: vi.fn(),
   mockUseOwnedCollection: vi.fn(),
+  mockSetDoc: vi.fn(),
 }));
 
 vi.mock("react-router-dom", async () => {
@@ -23,7 +24,7 @@ vi.mock("../hooks/useOwnedCollection", () => ({
 }));
 
 vi.mock("../context/AuthContext", () => ({
-  useAuth: () => ({ user: { uid: "user-1" } }),
+  useAuth: () => ({ user: { uid: "session-owner-1" } }),
 }));
 
 vi.mock("../context/LanguageContext", () => ({
@@ -42,12 +43,14 @@ vi.mock("firebase/firestore", () => ({
   collection: vi.fn(),
   deleteDoc: vi.fn(),
   doc: vi.fn(),
-  serverTimestamp: () => ({}) ,
+  serverTimestamp: () => ({}),
+  setDoc: mockSetDoc,
   updateDoc: vi.fn(),
 }));
 
 vi.mock("../firebase/config", () => ({
   db: {},
+  auth: { currentUser: { uid: "auth-owner-1" } },
 }));
 
 vi.mock("../components/Modal", () => ({
@@ -63,7 +66,41 @@ vi.mock("../components/CategoryModal", () => ({
 }));
 
 vi.mock("../components/UserForm", () => ({
-  default: () => null,
+  default: ({ form, setForm, onSubmit }) => (
+    <form onSubmit={onSubmit}>
+      <label>
+        Name
+        <input
+          value={form?.name || ""}
+          onChange={(event) => setForm((current) => ({ ...current, name: event.target.value }))}
+        />
+      </label>
+      <label>
+        Phone
+        <input
+          value={form?.phone || ""}
+          onChange={(event) => setForm((current) => ({ ...current, phone: event.target.value }))}
+        />
+      </label>
+      <label>
+        Monthly Bill
+        <input
+          type="number"
+          value={form?.monthlyBill ?? ""}
+          onChange={(event) => setForm((current) => ({ ...current, monthlyBill: event.target.value }))}
+        />
+      </label>
+      <label>
+        Join date
+        <input
+          type="date"
+          value={form?.joinDate || ""}
+          onChange={(event) => setForm((current) => ({ ...current, joinDate: event.target.value }))}
+        />
+      </label>
+      <button type="submit">Save user</button>
+    </form>
+  ),
 }));
 
 vi.mock("../components/PaymentModal", () => ({
@@ -177,5 +214,30 @@ describe("Users mobile navigation", () => {
     fireEvent.click(screen.getByRole("button", { name: /back/i }));
 
     expect(screen.getByPlaceholderText(/search users by name/i)).toBeInTheDocument();
+  });
+
+  it("uses the authenticated owner UID when creating a new user record", async () => {
+    mockSetDoc.mockReset();
+
+    render(
+      <MemoryRouter>
+        <Users />
+      </MemoryRouter>,
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: /add_user/i }));
+    fireEvent.change(screen.getByLabelText(/name/i), { target: { value: "John Smith" } });
+    fireEvent.change(screen.getByLabelText(/phone/i), { target: { value: "+8801712345678" } });
+    fireEvent.change(screen.getByLabelText(/monthly bill/i), { target: { value: "1200" } });
+    fireEvent.change(screen.getByLabelText(/join date/i), { target: { value: "2025-01-10" } });
+    fireEvent.click(screen.getByRole("button", { name: /save user/i }));
+
+    await waitFor(() => {
+      expect(mockSetDoc).toHaveBeenCalledTimes(1);
+    });
+
+    expect(mockSetDoc.mock.calls[0][1]).toEqual(
+      expect.objectContaining({ ownerId: "auth-owner-1" }),
+    );
   });
 });

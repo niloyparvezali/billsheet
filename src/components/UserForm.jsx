@@ -11,7 +11,12 @@ export default function UserForm({
   onSubmit,
 }) {
   const { t } = useLanguage();
-  const set = (key, value) => setForm({ ...form, [key]: value });
+  const set = (key, value) => {
+    setForm((current) => ({
+      ...current,
+      [key]: value,
+    }));
+  };
   const selectedPackages = normalizePackages(
     form?.packages ?? form?.category ?? [],
   );

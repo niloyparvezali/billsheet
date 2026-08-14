@@ -18,6 +18,7 @@ import {
   buildBillingLedger,
   computePaymentSummary,
   formatBalanceDisplayValue,
+  getEffectiveBillForPeriod,
   getMonthPaymentTransactions,
 } from "../utils/payments";
 import {
@@ -31,7 +32,7 @@ export default function PaymentModal({ data, month, year, ownerId, close }) {
   const [extraDue, setExtraDue] = useState("");
   const [saving, setSaving] = useState(false);
   const [showSaveConfirm, setShowSaveConfirm] = useState(false);
-  const bill = Number(data.user.monthlyBill || 0);
+  const bill = getEffectiveBillForPeriod(data.user, { month, year });
   const { data: payments = [] } = useOwnedCollection("payments");
 
   const paymentSummary = useMemo(() => {

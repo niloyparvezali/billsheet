@@ -1,11 +1,11 @@
 import { createPdfLayout } from "./pdfLayout";
 
-export function exportUsersPdf({
+export async function exportUsersPdf({
   users,
   companyName = "Bill Sheet",
   theme = "forest",
 }) {
-  const { pdf, startY, drawSummary, drawTable, drawFooter } = createPdfLayout({
+  const { pdf, startY, drawSummary, drawTable, drawFooter } = await createPdfLayout({
     reportTitle: "Customer List",
     companyName,
     theme,

@@ -6,12 +6,12 @@
 /* Universal Layout & Safety Rules */
 *,
 *::before,
-*::after {
+*::after{
   box-sizing: border-box;
 }
 
 html,
-body {
+body{
   max-width: 100%;
   overflow-x: hidden;
   background: var(--bg);
@@ -19,7 +19,7 @@ body {
 }
 
 #root,
-main {
+main{
   min-width: 0;
 }
 
@@ -29,14 +29,14 @@ video,
 canvas,
 iframe,
 embed,
-object {
+object{
   max-width: 100%;
 }
 
 button,
 input,
 select,
-textarea {
+textarea{
   max-width: 100%;
   font: inherit;
 }
@@ -44,7 +44,7 @@ textarea {
 input[type="date"],
 input[type="datetime-local"],
 input[type="time"],
-select {
+select{
   min-height: 44px;
 }
 
@@ -52,7 +52,7 @@ select {
 .panel,
 .card,
 .modal,
-.settings-page {
+.settings-page{
   max-width: 100%;
   overflow-wrap: anywhere;
   word-break: break-word;
@@ -67,11 +67,11 @@ select {
 .transaction-actions,
 .modal-actions,
 .danger-actions,
-.monthly-sheet-header-actions {
+.monthly-sheet-header-actions{
   min-width: 0;
 }
 
-.page {
+.page{
   width: 100%;
   max-width: 1600px;
   margin: 0 auto;
@@ -81,7 +81,7 @@ select {
 
 /* Modals & Dialog responsiveness */
 
-.modal-wrap {
+.modal-wrap{
   position: fixed;
   inset: 0;
   z-index: 999;
@@ -95,7 +95,7 @@ select {
   overflow-y: auto;
 }
 
-.modal {
+.modal{
   width: min(560px, 94vw);
   max-height: 90vh;
   overflow-y: auto;
@@ -108,14 +108,14 @@ select {
   box-sizing: border-box;
 }
 
-.modal-actions {
+.modal-actions{
   display: flex;
   gap: 10px;
   margin-top: 20px;
   flex-wrap: wrap;
 }
 
-.modal-actions .btn {
+.modal-actions .btn{
   flex: 1 1 120px;
   min-height: 44px;
 }
@@ -124,34 +124,46 @@ select {
 
 .table-wrap,
 .monthly-sheet-panel .table-wrap,
-.reports-history-table-wrap {
+.reports-history-table-wrap{
   width: 100%;
   max-width: 100%;
   overflow-x: auto;
   -webkit-overflow-scrolling: touch;
 }
 
+@media (max-width: 1280px) and (max-height: 1160px){
+  header{
+    border-bottom: 1px solid color-mix(in srgb, var(--divider) 76%, transparent);
+    box-shadow: inset 0 -1px 0 rgba(148, 163, 184, 0.08);
+  }
+
+  .monthly-table-topbar{
+    border-bottom: 1px solid color-mix(in srgb, var(--divider) 72%, transparent);
+    box-shadow: inset 0 -1px 0 rgba(148, 163, 184, 0.06);
+  }
+}
+
 /* ==========================================================================
    BREAKPOINT 1: Ultra Large Desktop (1536px+)
    ========================================================================== */
 
-@media (min-width: 1536px) {
-  .page {
+@media (min-width: 1536px){
+  .page{
     padding: 38px 48px;
   }
 
   .stats,
-  .dashboard-summary {
+  .dashboard-summary{
     grid-template-columns: repeat(4, minmax(0, 1fr));
     gap: 20px;
   }
 
-  .monthly-sheet-summary-grid {
+  .monthly-sheet-summary-grid{
     grid-template-columns: repeat(6, minmax(0, 1fr));
     gap: 16px;
   }
 
-  .triple {
+  .triple{
     grid-template-columns: repeat(3, minmax(0, 1fr));
     gap: 24px;
   }
@@ -161,19 +173,19 @@ select {
    BREAKPOINT 2: Standard Desktop (1280px – 1535px)
    ========================================================================== */
 
-@media (min-width: 1280px) and (max-width: 1535px) {
+@media (min-width: 1280px) and (max-width: 1535px){
   .stats,
-  .dashboard-summary {
+  .dashboard-summary{
     grid-template-columns: repeat(4, minmax(0, 1fr));
     gap: 16px;
   }
 
-  .monthly-sheet-summary-grid {
+  .monthly-sheet-summary-grid{
     grid-template-columns: repeat(6, minmax(0, 1fr));
     gap: 12px;
   }
 
-  .triple {
+  .triple{
     grid-template-columns: repeat(3, minmax(0, 1fr));
     gap: 18px;
   }
@@ -183,41 +195,41 @@ select {
    BREAKPOINT 3: Small Laptop / Desktop (1024px – 1279px)
    ========================================================================== */
 
-@media (min-width: 1024px) and (max-width: 1279px) {
-  .sidebar {
+@media (min-width: 1024px) and (max-width: 1279px){
+  .sidebar{
     width: 230px;
   }
 
-  main {
+  main{
     margin-left: 230px;
   }
 
-  .page {
+  .page{
     padding: 28px 24px;
   }
 
   .stats,
-  .dashboard-summary {
+  .dashboard-summary{
     grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: 14px;
   }
 
-  .monthly-sheet-summary-grid {
+  .monthly-sheet-summary-grid{
     grid-template-columns: repeat(3, minmax(0, 1fr));
     gap: 14px;
   }
 
-  .triple {
+  .triple{
     grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: 16px;
   }
 
-  .reports-overview-grid {
+  .reports-overview-grid{
     grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: 14px;
   }
 
-  .grid-2 {
+  .grid-2{
     grid-template-columns: 1fr 1fr;
     gap: 18px;
   }
@@ -227,61 +239,61 @@ select {
    BREAKPOINT 4: Tablet (768px – 1023px)
    ========================================================================== */
 
-@media (min-width: 768px) and (max-width: 1023px) {
-  .sidebar {
+@media (min-width: 768px) and (max-width: 1023px){
+  .sidebar{
     width: 220px;
   }
 
-  main {
+  main{
     margin-left: 220px;
   }
 
-  .page {
+  .page{
     padding: 24px 20px;
   }
 
-  .grid-2 {
+  .grid-2{
     grid-template-columns: 1fr;
     gap: 16px;
   }
 
   .stats,
-  .dashboard-summary {
+  .dashboard-summary{
     grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: 14px;
   }
 
-  .monthly-sheet-summary-grid {
+  .monthly-sheet-summary-grid{
     grid-template-columns: repeat(3, minmax(0, 1fr));
     gap: 12px;
   }
 
-  .quick-actions-grid {
+  .quick-actions-grid{
     grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: 12px;
   }
 
-  .triple {
+  .triple{
     grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: 14px;
   }
 
-  .reports-overview-grid {
+  .reports-overview-grid{
     grid-template-columns: 1fr;
     gap: 12px;
   }
 
-  .reports-hero {
+  .reports-hero{
     flex-wrap: wrap;
     gap: 14px;
   }
 
-  .monthly-sheet-search-shell {
+  .monthly-sheet-search-shell{
     flex-wrap: wrap;
     gap: 10px;
   }
 
-  .monthly-sheet-search-shell .search-field {
+  .monthly-sheet-search-shell .search-field{
     min-width: 200px;
   }
 }
@@ -289,7 +301,7 @@ select {
 /* ==========================================================================
    BREAKPOINT 5: Large Mobile / Small Tablet (480px – 767px)
    ========================================================================== */
-@media (min-width: 480px) and (max-width: 767px) {
+@media (min-width: 480px) and (max-width: 767px){
   .page-title,
   .page-header,
   .panel-header,
@@ -299,12 +311,12 @@ select {
   .transaction-actions,
   .modal-actions,
   .danger-actions,
-  .monthly-sheet-header-actions {
+  .monthly-sheet-header-actions{
     flex-wrap: wrap;
     gap: 10px;
   }
 
-  .btn:not(.btn-icon) {
+  .btn:not(.btn-icon){
     width: 100%;
     max-width: 100%;
   }
@@ -312,7 +324,7 @@ select {
   .button-row button,
   .transaction-actions button,
   .modal-actions button,
-  .danger-actions button {
+  .danger-actions button{
     width: 100%;
     max-width: 100%;
   }
@@ -323,7 +335,7 @@ select {
   .settings-stat-grid,
   .report-stats,
   .transaction-history-page .transaction-history-toolbar-group,
-  .transaction-history-page .transaction-history-filter-toolbar {
+  .transaction-history-page .transaction-history-filter-toolbar{
     display: grid;
     grid-template-columns: 1fr;
     gap: 10px;
@@ -331,7 +343,7 @@ select {
 
   .table-wrap,
   .monthly-sheet-panel .table-wrap,
-  .reports-history-table-wrap {
+  .reports-history-table-wrap{
     overflow-x: auto;
     -webkit-overflow-scrolling: touch;
   }
@@ -340,19 +352,19 @@ select {
   .table-wrap th,
   .table-wrap td,
   .monthly-table th,
-  .monthly-table td {
+  .monthly-table td{
     min-width: 0;
     white-space: normal;
     overflow-wrap: anywhere;
   }
 
-  .monthly-sheet-header-actions {
+  .monthly-sheet-header-actions{
     align-items: stretch;
   }
 
   .monthly-sheet-mini-select,
   .monthly-sheet-mini-input,
-  .monthly-sheet-export-btn {
+  .monthly-sheet-export-btn{
     width: 100%;
     flex: 1 1 100%;
     min-width: 0;
@@ -360,14 +372,14 @@ select {
 
   .settings-card,
   .summary-card,
-  .panel {
+  .panel{
     padding: 14px;
   }
 
-  .summary-card-number {
+  .summary-card-number{
     font-size: 24px;
   }
-  .sidebar {
+  .sidebar{
     position: fixed;
     inset: 0 auto 0 0;
     z-index: 100;
@@ -378,62 +390,62 @@ select {
     box-shadow: 0 20px 50px rgba(0, 0, 0, 0.18);
   }
 
-  .sidebar.open {
+  .sidebar.open{
     transform: translateX(0);
   }
 
-  main {
+  main{
     margin-left: 0 !important;
     width: 100% !important;
   }
 
-  header {
+  header{
     height: 68px;
     padding: 0 16px;
     background: var(--header-bg);
     border-bottom: 1px solid var(--divider);
   }
 
-  .page {
+  .page{
     padding: 20px 16px;
   }
 
-  .grid-2 {
+  .grid-2{
     grid-template-columns: 1fr;
     gap: 14px;
   }
 
-  .stats {
+  .stats{
     grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: 10px;
   }
 
-  .dashboard-summary {
+  .dashboard-summary{
     grid-template-columns: 1fr;
     gap: 10px;
   }
 
-  .monthly-sheet-summary-grid {
+  .monthly-sheet-summary-grid{
     grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: 10px;
   }
 
-  .quick-actions-grid {
+  .quick-actions-grid{
     grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: 10px;
   }
 
-  .triple {
+  .triple{
     grid-template-columns: 1fr;
     gap: 14px;
   }
 
-  .reports-overview-grid {
+  .reports-overview-grid{
     grid-template-columns: 1fr;
     gap: 10px;
   }
 
-  .reports-hero {
+  .reports-hero{
     flex-direction: column;
     align-items: flex-start;
     padding: 16px;
@@ -441,17 +453,17 @@ select {
     border: 1px solid var(--divider);
   }
 
-  .page-title {
+  .page-title{
     flex-direction: column;
     align-items: flex-start;
     gap: 10px;
   }
 
-  .page-title > div {
+  .page-title > div{
     width: 100%;
   }
 
-  .header-actions {
+  .header-actions{
     width: 100%;
     justify-content: space-between;
   }
@@ -461,8 +473,8 @@ select {
    BREAKPOINT 6: Mobile Portrait (320px – 479px)
    ========================================================================== */
 
-@media (max-width: 479px) {
-  .sidebar {
+@media (max-width: 479px){
+  .sidebar{
     position: fixed;
     inset: 0 auto 0 0;
     width: min(85vw, 280px);
@@ -474,85 +486,85 @@ select {
     box-shadow: 0 20px 50px rgba(0, 0, 0, 0.18);
   }
 
-  .sidebar.open {
+  .sidebar.open{
     transform: translateX(0);
   }
 
-  main {
+  main{
     margin-left: 0 !important;
     width: 100% !important;
   }
 
-  header {
+  header{
     height: 64px;
     padding: 0 12px;
     background: var(--header-bg);
     border-bottom: 1px solid var(--divider);
   }
 
-  .page {
+  .page{
     padding: 16px 12px;
   }
 
   .page-title h1,
-  .page-title h2 {
+  .page-title h2{
     font-size: clamp(20px, 6vw, 24px);
     color: var(--text);
   }
 
-  .grid-2 {
+  .grid-2{
     grid-template-columns: 1fr;
     gap: 12px;
   }
 
-  .stats {
+  .stats{
     grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: 8px;
   }
 
-  .stat {
+  .stat{
     min-height: 90px;
     padding: 12px;
     background: var(--surface);
     border: 1px solid var(--divider);
   }
 
-  .stat h2 {
+  .stat h2{
     font-size: 18px;
     color: var(--text);
   }
 
-  .stat p {
+  .stat p{
     font-size: 11px;
     color: var(--text-muted);
   }
 
-  .dashboard-summary {
+  .dashboard-summary{
     grid-template-columns: 1fr;
     gap: 8px;
   }
 
-  .monthly-sheet-summary-grid {
+  .monthly-sheet-summary-grid{
     grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: 8px;
   }
 
-  .quick-actions-grid {
+  .quick-actions-grid{
     grid-template-columns: 1fr;
     gap: 8px;
   }
 
-  .triple {
+  .triple{
     grid-template-columns: 1fr;
     gap: 12px;
   }
 
-  .reports-overview-grid {
+  .reports-overview-grid{
     grid-template-columns: 1fr;
     gap: 8px;
   }
 
-  .reports-hero {
+  .reports-hero{
     flex-direction: column;
     align-items: flex-start;
     padding: 14px 12px;
@@ -560,18 +572,18 @@ select {
     border: 1px solid var(--divider);
   }
 
-  .reports-hero h2 {
+  .reports-hero h2{
     font-size: 22px;
     color: var(--text);
   }
 
-  .reports-export-btn {
+  .reports-export-btn{
     width: 100%;
     min-width: 0;
     height: 42px;
   }
 
-  .monthly-sheet-header-actions {
+  .monthly-sheet-header-actions{
     display: flex;
     flex-direction: row;
     flex-wrap: wrap;
@@ -580,7 +592,7 @@ select {
   }
 
   .monthly-sheet-mini-select,
-  .monthly-sheet-mini-input {
+  .monthly-sheet-mini-input{
     flex: 1 1 70px;
     width: auto;
     background: var(--input-bg);
@@ -588,13 +600,13 @@ select {
     color: var(--text);
   }
 
-  .monthly-sheet-export-btn {
+  .monthly-sheet-export-btn{
     flex: 1 1 100%;
     width: 100%;
     justify-content: center;
   }
 
-  .modal {
+  .modal{
     width: 96vw;
     padding: 16px 12px;
     background: var(--surface);
@@ -602,16 +614,241 @@ select {
     color: var(--text);
   }
 
-  .modal-actions {
+  .modal-actions{
     flex-direction: column;
   }
 
-  .modal-actions .btn {
+  .modal-actions .btn{
     width: 100%;
   }
 
-  .chart {
+  .chart{
     height: 240px !important;
     min-height: 200px !important;
+  }
+}
+
+
+/* ========================================================================== 
+   FINAL RESPONSIVE SAFETY LAYER
+   Purpose: last-mile viewport, touch, overflow and accessibility guards.
+   Keep this file loaded after the page/component stylesheets.
+   ========================================================================== */
+
+html {
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+  scroll-behavior: smooth;
+}
+
+body {
+  min-width: 320px;
+}
+
+button,
+a,
+input,
+select,
+textarea {
+  -webkit-tap-highlight-color: transparent;
+}
+
+button,
+.btn,
+.primary,
+.secondary,
+.actions button,
+.monthly-sheet-export-btn,
+.reports-export-btn,
+.users-add-btn {
+  min-height: 44px;
+}
+
+button:focus-visible,
+a:focus-visible,
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible {
+  outline: 2px solid var(--primary);
+  outline-offset: 2px;
+}
+
+.table-wrap,
+.monthly-sheet-panel .table-wrap,
+.reports-history-table-wrap {
+  scrollbar-width: thin;
+}
+
+.table-wrap table,
+.monthly-table,
+.reports-history-table,
+.users-table,
+.transaction-table {
+  max-width: 100%;
+}
+
+/* Prevent long names, phone numbers, URLs and IDs from breaking layouts. */
+.customer-name,
+.user-name,
+.users-meta,
+.transaction-row,
+.transaction-head,
+.payment-row,
+.report-table-heading,
+.settings-card-head,
+.settings-tile-copy,
+.modal,
+.form,
+.profile-form,
+.preference-form {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+/* Phones: prioritize usable controls over compressed multi-column layouts. */
+@media (max-width: 479px) {
+  .page,
+  .panel,
+  .modal,
+  .settings-page,
+  .users-page,
+  .reports-page,
+  .monthly-sheet-page {
+    max-width: 100%;
+  }
+
+  .panel,
+  .settings-card,
+  .summary-card,
+  .stat,
+  .modal {
+    border-radius: 14px;
+  }
+
+  .panel-header,
+  .settings-card-head,
+  .page-title,
+  .page-header,
+  .toolbar {
+    width: 100%;
+  }
+
+  .header-actions,
+  .monthly-sheet-header-actions,
+  .settings-action-row,
+  .settings-backup-actions,
+  .reports-history-buttons,
+  .button-row,
+  .transaction-actions,
+  .danger-actions {
+    width: 100%;
+  }
+
+  .header-actions > *,
+  .monthly-sheet-header-actions > *,
+  .settings-action-row > *,
+  .settings-backup-actions > *,
+  .reports-history-buttons > *,
+  .button-row > *,
+  .transaction-actions > *,
+  .danger-actions > * {
+    min-width: 0;
+  }
+
+  .table-wrap {
+    margin-inline: 0;
+    border-radius: 10px;
+  }
+
+  .table-wrap table,
+  .monthly-table,
+  .reports-history-table,
+  .users-table,
+  .transaction-table {
+    width: max-content;
+    min-width: 100%;
+  }
+
+  .modal-wrap {
+    align-items: flex-start;
+    padding:
+      max(12px, env(safe-area-inset-top))
+      max(12px, env(safe-area-inset-right))
+      max(12px, env(safe-area-inset-bottom))
+      max(12px, env(safe-area-inset-left));
+  }
+
+  .modal {
+    width: min(100%, 560px);
+    max-height: calc(100dvh - 24px);
+    margin-block: auto;
+  }
+}
+
+/* Very small devices: prevent two-column summary cards from becoming unusable. */
+@media (max-width: 359px) {
+  .stats,
+  .monthly-sheet-summary-grid,
+  .quick-actions-grid,
+  .settings-stat-grid,
+  .report-stats {
+    grid-template-columns: 1fr;
+  }
+
+  .page {
+    padding-inline: 10px;
+  }
+
+  header {
+    padding-inline: 10px;
+  }
+
+  .brand {
+    font-size: 18px;
+  }
+}
+
+/* Tablet landscape: keep content readable when width is constrained by a sidebar. */
+@media (min-width: 768px) and (max-width: 1023px) and (orientation: landscape) {
+  .page {
+    padding-inline: 18px;
+  }
+
+  .grid-2 {
+    grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr);
+  }
+
+  .monthly-sheet-summary-grid,
+  .reports-overview-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+/* Wide screens: cap readable line length while allowing data tables to scroll. */
+@media (min-width: 1600px) {
+  .page {
+    width: min(100%, 1680px);
+    padding-inline: 48px;
+  }
+}
+
+@media (min-width: 1920px) {
+  .page {
+    width: min(100%, 1760px);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
   }
 }

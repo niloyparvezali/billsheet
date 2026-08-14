@@ -32,13 +32,20 @@ export const normalizeBangladeshPhone = (value = "") => {
   return `+880${digits}`;
 };
 
-export const buildUserDocId = ({ ownerId = "", phone = "" } = {}) => {
+export const buildUserDocId = ({ ownerId = "", phone = "", name = "" } = {}) => {
   const normalizedOwnerId = String(ownerId || "").trim();
   const normalizedPhone = normalizeBangladeshPhone(phone);
-  if (!normalizedOwnerId || !normalizedPhone) {
-    return `${normalizedOwnerId || "owner"}-phone-${normalizedPhone || "unknown"}`;
+
+  if (normalizedPhone) {
+    return `${normalizedOwnerId}-phone-${normalizedPhone}`;
   }
-  return `${normalizedOwnerId}-phone-${normalizedPhone}`;
+
+  const normalizedName = String(name || "").trim();
+  const fingerprint = normalizedName
+    ? normalizedName.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "") || "user"
+    : "user";
+
+  return `${normalizedOwnerId || "owner"}-name-${fingerprint}`;
 };
 
 export const findDuplicateUser = (users = [], candidate = {}) => {

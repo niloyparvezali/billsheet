@@ -1,21 +1,18 @@
 import { createContext, useContext, useEffect, useState } from "react";
 import {
-  GoogleAuthProvider,
   createUserWithEmailAndPassword,
+  fetchSignInMethodsForEmail,
   onAuthStateChanged,
   sendPasswordResetEmail,
   signInWithEmailAndPassword,
-  signInWithPopup,
   signOut,
   updatePassword,
 } from "firebase/auth";
 import {
-  collection,
   doc,
   getDoc,
-  getDocs,
   query,
-  setDoc,
+  collection,
   updateDoc,
   where,
 } from "firebase/firestore";
@@ -32,6 +29,12 @@ export const validateEmail = (email) => {
   const normalized = normalizeEmail(email);
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(normalized) ? normalized : null;
 };
+
+const getProviderIds = (authUser) =>
+  authUser?.providerData?.map((provider) => provider.providerId).filter(Boolean) || [];
+
+export const hasPasswordProvider = (authUser) =>
+  getProviderIds(authUser).includes("password");
 
 const writeSessionUser = (user) => {
   if (typeof window === "undefined") return;
@@ -88,6 +91,7 @@ export function AuthProvider({ children }) {
         email: u.email,
         displayName: u.displayName || u.email?.split("@")[0] || "User",
         photoURL: u.photoURL || null,
+        providerData: u.providerData || [],
       };
       setUser(nextUser);
       writeSessionUser(nextUser);
@@ -130,6 +134,7 @@ export function AuthProvider({ children }) {
         email: firebaseUser.email,
         displayName: firebaseUser.displayName || firebaseUser.email?.split("@")[0] || "User",
         photoURL: firebaseUser.photoURL || null,
+        providerData: firebaseUser.providerData || [],
       };
       setUser(nextUser);
       writeSessionUser(nextUser);
@@ -167,19 +172,12 @@ export function AuthProvider({ children }) {
   };
 
   const registerWithEmailAndPasscode = async (profile) => {
-    const fullName = profile.fullName?.trim() || "";
-    const companyName = profile.companyName?.trim() || "";
     const email = validateEmail(profile.email);
-    const phone = normalizePhone(profile.phone);
     const passcode = String(profile.passcode || "");
     const confirmPasscode = String(profile.confirmPasscode || "");
-    const dob = profile.dob || "";
 
-    if (!fullName || !companyName || !email || !phone || !dob) {
-      throw new Error("Please fill in all fields.");
-    }
-    if (!/^01\d{9}$/.test(phone)) {
-      throw new Error("Use a valid Bangladeshi phone number beginning with 01.");
+    if (!email) {
+      throw new Error("Please fill in all required fields.");
     }
     if (!/^\d{6}$/.test(passcode)) {
       throw new Error("Passcode must be 6 digits.");
@@ -188,91 +186,45 @@ export function AuthProvider({ children }) {
       throw new Error("Passcodes do not match.");
     }
 
-    const accountRecord = {
-      uid: "",
-      fullName,
-      companyName,
-      email,
-      phone,
-      dob,
-      createdAt: new Date().toISOString(),
-      lastLoginAt: new Date().toISOString(),
-    };
-
-    if (firebaseReady && auth && db) {
-      let created;
+    if (firebaseReady && auth) {
+      // SIMPLE REGISTRATION FLOW:
+      // 1. Create Firebase Auth account
+      // 2. Sign out immediately
+      // 3. Return to Login (no Firestore writes during registration)
       try {
-        // Use the user's real email for Firebase Authentication.
-        created = await createUserWithEmailAndPassword(auth, email, passcode);
+        const created = await createUserWithEmailAndPassword(auth, email, passcode);
+        const uid = created.user.uid;
+        
+        // Sign out immediately after account creation
+        // This prevents auth state changes from triggering Firestore operations
+        await signOut(auth);
+        setUser(null);
+        writeSessionUser(null);
+
+        return {
+          uid,
+          email,
+          displayName: email.split("@")[0] || "User",
+          photoURL: null,
+        };
       } catch (error) {
         if (error.code === "auth/email-already-in-use") {
           throw new Error("That email address is already registered.");
         }
+        if (error.code === "auth/credential-already-in-use") {
+          throw new Error("This credential is already linked to another account.");
+        }
         throw error;
       }
-
-      accountRecord.uid = created.user.uid;
-
-      // Now that user is authenticated, check if phone is unique in authAccounts.
-      try {
-        const phoneSnapshot = await getDocs(
-          query(
-            collection(db, "authAccounts"),
-            where("phone", "==", phone)
-          )
-        );
-
-        if (!phoneSnapshot.empty) {
-          // Phone already exists. Delete the auth user we just created.
-          await created.user.delete();
-          throw new Error("That phone number is already registered.");
-        }
-
-        // Check if email is already used (in case someone registered via a different flow).
-        const emailSnapshot = await getDocs(
-          query(
-            collection(db, "authAccounts"),
-            where("email", "==", email)
-          )
-        );
-
-        if (!emailSnapshot.empty) {
-          // Email already exists. Delete the auth user we just created.
-          await created.user.delete();
-          throw new Error("That email address is already registered.");
-        }
-      } catch (queryError) {
-        // If query fails, try to delete the auth user we created
-        try {
-          await created.user.delete();
-        } catch {}
-        throw queryError;
-      }
-
-      // All checks passed. Store account data in Firestore.
-      await setDoc(doc(db, "authAccounts", created.user.uid), accountRecord);
-
-      const nextUser = {
-        uid: created.user.uid,
-        email,
-        displayName: fullName,
-        photoURL: created.user.photoURL || null,
-        companyName,
-        phoneNumber: phone,
-      };
-      setUser(nextUser);
-      writeSessionUser(nextUser);
-      return nextUser;
     }
 
     // Fallback: Use localStorage for offline/unconfigured mode
     const accounts = loadLocalAccounts();
-    const existing = accounts.find((item) => normalizeEmail(item.email) === email || item.phone === phone);
+    const existing = accounts.find((item) => normalizeEmail(item.email) === email);
     if (existing) {
-      throw new Error("That phone number or email is already registered.");
+      throw new Error("That email address is already registered.");
     }
 
-    // For offline mode, store passcodeHash
     const encoder = new TextEncoder();
     const data = encoder.encode(String(passcode));
     const digest = await crypto.subtle.digest("SHA-256", data);
@@ -281,19 +233,18 @@ export function AuthProvider({ children }) {
       .join("");
 
     const nextAccount = {
-      ...accountRecord,
       uid: `local-${email}`,
+      email,
       passcodeHash,
+      createdAt: new Date().toISOString(),
     };
     accounts.push(nextAccount);
     saveLocalAccounts(accounts);
     const nextUser = {
       uid: nextAccount.uid,
       email,
-      displayName: fullName,
+      displayName: email.split("@")[0] || "User",
       photoURL: null,
-      companyName,
-      phoneNumber: phone,
     };
     setUser(nextUser);
     writeSessionUser(nextUser);
@@ -409,41 +360,6 @@ export function AuthProvider({ children }) {
     return true;
   };
 
-  const signInWithGoogle = async () => {
-    if (!firebaseReady || !auth) {
-      throw new Error("Firebase is not configured.");
-    }
-
-    try {
-      const result = await signInWithPopup(auth, new GoogleAuthProvider());
-      const firebaseUser = result.user;
-      
-      // Create session user object
-      const nextUser = {
-        uid: firebaseUser.uid,
-        email: firebaseUser.email,
-        displayName: firebaseUser.displayName || firebaseUser.email?.split("@")[0] || "User",
-        photoURL: firebaseUser.photoURL || null,
-      };
-      
-      setUser(nextUser);
-      writeSessionUser(nextUser);
-      return nextUser;
-    } catch (error) {
-      // Handle common popup errors gracefully
-      if (error.code === "auth/popup-closed-by-user") {
-        throw new Error("Google sign-in was cancelled.");
-      }
-      if (error.code === "auth/popup-blocked") {
-        throw new Error("Please enable popups for BillSheet to use Google sign-in.");
-      }
-      if (error.code === "auth/account-exists-with-different-credential") {
-        throw new Error("An account already exists with this email address.");
-      }
-      throw error;
-    }
-  };
-
   const value = {
     user,
     loading,
@@ -451,7 +367,6 @@ export function AuthProvider({ children }) {
     login: signInWithEmailAndPasscode,
     signup: registerWithEmailAndPasscode,
     resetPassword: recoverPasscode,
-    signInWithGoogle,
     logout: async () => {
       if (firebaseReady && auth) {
         await signOut(auth);

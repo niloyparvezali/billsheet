@@ -2,19 +2,14 @@ import { useEffect, useRef, useState } from "react";
 import { Navigate, useLocation, useNavigate } from "react-router-dom";
 import {
   FiArrowLeft,
-  FiBriefcase,
-  FiCalendar,
   FiEye,
   FiEyeOff,
   FiLock,
   FiMail,
-  FiPhone,
-  FiUser,
   FiUserPlus,
 } from "react-icons/fi";
-import { FcGoogle } from "react-icons/fc";
 import toast from "react-hot-toast";
-import { useAuth } from "../context/AuthContext";
+import { useAuth, validateEmail } from "../context/AuthContext";
 import { useLanguage } from "../context/LanguageContext";
 
 const phoneErrorMessage = (value) => {
@@ -99,7 +94,6 @@ export default function Login() {
     signInWithEmailAndPasscode,
     registerWithEmailAndPasscode,
     recoverPasscode,
-    signInWithGoogle,
   } = useAuth();
   const location = useLocation();
   const navigate = useNavigate();
@@ -113,13 +107,9 @@ export default function Login() {
   const [passcode, setPasscode] = useState("");
   const [showPasscode, setShowPasscode] = useState(false);
   const [form, setForm] = useState({
-    fullName: "",
-    companyName: "",
     email: "",
-    phone: "",
     passcode: "",
     confirmPasscode: "",
-    dob: "",
   });
   const [errors, setErrors] = useState({});
   const from = location.state?.from?.pathname || "/";
@@ -187,16 +177,12 @@ export default function Login() {
   const submitRegister = async (event) => {
     event.preventDefault();
     const nextErrors = {
-      fullName: form.fullName.trim() ? "" : "Full name is required.",
-      companyName: form.companyName.trim() ? "" : "Company name is required.",
       email: emailErrorMessage(form.email),
-      phone: phoneErrorMessage(form.phone),
       passcode: passcodeErrorMessage(form.passcode),
       confirmPasscode:
         form.passcode && form.passcode === form.confirmPasscode
           ? ""
           : "Confirm passcode must match.",
-      dob: form.dob ? "" : "Date of birth is required.",
     };
     setErrors(nextErrors);
     if (Object.values(nextErrors).some(Boolean)) return;
@@ -204,16 +190,15 @@ export default function Login() {
     setBusy(true);
     try {
       await registerWithEmailAndPasscode({
-        fullName: form.fullName,
-        companyName: form.companyName,
         email: form.email,
-        phone: form.phone,
         passcode: form.passcode,
         confirmPasscode: form.confirmPasscode,
-        dob: form.dob,
       });
-      toast.success("Account created securely.");
-      navigate(from, { replace: true });
+      setEmail(form.email);
+      setPasscode("");
+      setMode("login");
+      toast.success("Account created successfully. Please login with your email and passcode.");
+      navigate("/login", { replace: true });
     } catch (error) {
       toast.error(error.message || "Unable to create your account.");
     } finally {
@@ -238,20 +223,6 @@ export default function Login() {
       setMode("login");
     } catch (error) {
       toast.error(error.message || "Unable to recover your passcode.");
-    } finally {
-      setBusy(false);
-    }
-  };
-
-  const handleGoogleSignIn = async () => {
-    setBusy(true);
-    try {
-      await signInWithGoogle();
-      toast.success("Signed in with Google.");
-      navigate(from, { replace: true });
-    } catch (error) {
-      const message = error.message || "Google sign-in failed. Please try again.";
-      toast.error(message);
     } finally {
       setBusy(false);
     }
@@ -359,40 +330,6 @@ export default function Login() {
   const renderRegisterFields = () => (
     <>
       <label className="auth-field">
-        <span>{t("full_name", "Full name")}</span>
-        <div className={`auth-input ${errors.fullName ? "error" : ""}`}>
-          <FiUser />
-          <input
-            type="text"
-            value={form.fullName}
-            onChange={(event) =>
-              setForm({ ...form, fullName: event.target.value })
-            }
-            placeholder={t("full_name", "Full name")}
-          />
-        </div>
-        {errors.fullName ? (
-          <small className="auth-error">{errors.fullName}</small>
-        ) : null}
-      </label>
-      <label className="auth-field">
-        <span>{t("company_name", "Company name")}</span>
-        <div className={`auth-input ${errors.companyName ? "error" : ""}`}>
-          <FiBriefcase />
-          <input
-            type="text"
-            value={form.companyName}
-            onChange={(event) =>
-              setForm({ ...form, companyName: event.target.value })
-            }
-            placeholder={t("company_name", "Company name")}
-          />
-        </div>
-        {errors.companyName ? (
-          <small className="auth-error">{errors.companyName}</small>
-        ) : null}
-      </label>
-      <label className="auth-field">
         <span>{t("email", "Email")}</span>
         <div className={`auth-input ${errors.email ? "error" : ""}`}>
           <FiMail />
@@ -409,43 +346,6 @@ export default function Login() {
         </div>
         {errors.email ? (
           <small className="auth-error">{errors.email}</small>
-        ) : null}
-      </label>
-      <label className="auth-field">
-        <span>{t("phone_number", "Phone number")}</span>
-        <div className={`auth-input auth-input-phone ${errors.phone ? "error" : ""}`}>
-          <FiPhone />
-          <input
-            type="tel"
-            inputMode="numeric"
-            autoComplete="tel"
-            maxLength={13}
-            pattern="[0-9]*"
-            value={form.phone}
-            onChange={(event) => {
-              const digits = sanitizePhoneValue(event.target.value);
-              setForm({ ...form, phone: digits });
-              setErrors((current) => ({
-                ...current,
-                phone: phoneErrorMessage(digits),
-              }));
-            }}
-            onKeyDown={handlePhoneKeyDown}
-            onPaste={(event) => {
-              event.preventDefault();
-              const digits = sanitizePhoneValue(event.clipboardData?.getData("text") || "");
-              setForm({ ...form, phone: digits });
-              setErrors((current) => ({
-                ...current,
-                phone: phoneErrorMessage(digits),
-              }));
-            }}
-            placeholder="01X XXXX XXXX"
-            aria-label="Phone number"
-          />
-        </div>
-        {errors.phone ? (
-          <small className="auth-error">{errors.phone}</small>
         ) : null}
       </label>
       <label className="auth-field">
@@ -496,18 +396,6 @@ export default function Login() {
         {errors.confirmPasscode ? (
           <small className="auth-error">{errors.confirmPasscode}</small>
         ) : null}
-      </label>
-      <label className="auth-field">
-        <span>{t("date_of_birth", "Date of birth")}</span>
-        <div className={`auth-input ${errors.dob ? "error" : ""}`}>
-          <FiCalendar />
-          <input
-            type="date"
-            value={form.dob}
-            onChange={(event) => setForm({ ...form, dob: event.target.value })}
-          />
-        </div>
-        {errors.dob ? <small className="auth-error">{errors.dob}</small> : null}
       </label>
     </>
   );
@@ -566,40 +454,16 @@ export default function Login() {
               <small className="auth-error">{errors.login}</small>
             ) : null}
             
-            <div className="auth-divider" style={{ margin: "1.5rem 0", textAlign: "center", color: "#888", fontSize: "0.875rem" }}>
-              or
+            <div className="auth-inline-actions">
+              <button
+                type="button"
+                className="auth-pill auth-create"
+                onClick={() => setMode("register")}
+              >
+                <FiUserPlus className="auth-pill-icon" />
+                <span>{t("create_account", "Create account")}</span>
+              </button>
             </div>
-
-            <button
-              type="button"
-              className="auth-google-button"
-              onClick={handleGoogleSignIn}
-              disabled={busy}
-              aria-label="Continue with Google"
-              title="Continue with Google"
-              style={{
-                width: "100%",
-                padding: "0.75rem",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                gap: "0.5rem",
-                border: "1px solid #ddd",
-                borderRadius: "6px",
-                backgroundColor: "#fff",
-                color: "#333",
-                cursor: busy ? "not-allowed" : "pointer",
-                opacity: busy ? 0.6 : 1,
-                transition: "all 0.2s ease",
-                fontSize: "0.95rem",
-                fontWeight: "500",
-              }}
-              onMouseEnter={(e) => !busy && (e.target.style.backgroundColor = "#f9f9f9")}
-              onMouseLeave={(e) => (e.target.style.backgroundColor = "#fff")}
-            >
-              <FcGoogle size={20} />
-              <span>{t("continue_with_google", "Continue with Google")}</span>
-            </button>
           </form>
         ) : mode === "register" ? (
           <form onSubmit={submitRegister} className="auth-form">
@@ -649,11 +513,10 @@ export default function Login() {
           {mode === "login" ? (
             <button
               type="button"
-              className="auth-pill auth-create"
-              onClick={() => setMode("register")}
+              className="auth-pill auth-forgot"
+              onClick={() => setMode("forgot")}
             >
-              <FiUserPlus className="auth-pill-icon" />
-              <span>{t("create_account", "Create account")}</span>
+              <span>{t("forgot_passcode", "Forgot passcode")}</span>
             </button>
           ) : mode === "register" ? (
             <button
@@ -664,17 +527,7 @@ export default function Login() {
               <FiArrowLeft className="auth-pill-icon" />
               <span>{t("back_to_sign_in", "Back to sign in")}</span>
             </button>
-          ) : null}
-
-          {mode === "login" ? (
-            <button
-              type="button"
-              className="auth-pill auth-forgot"
-              onClick={() => setMode("forgot")}
-            >
-              <span>{t("forgot_passcode", "Forgot passcode")}</span>
-            </button>
-          ) : mode === "forgot" ? (
+          ) : (
             <button
               type="button"
               className="auth-pill auth-forgot"
@@ -682,7 +535,7 @@ export default function Login() {
             >
               <span>{t("back_to_sign_in", "Back to sign in")}</span>
             </button>
-          ) : null}
+          )}
         </div>
         {mode === "forgot" && (
           <p className="auth-help-text">

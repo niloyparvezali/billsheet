@@ -22,12 +22,12 @@ import {
   collection,
   deleteDoc,
   doc,
-  runTransaction,
   serverTimestamp,
+  setDoc,
   updateDoc,
 } from "firebase/firestore";
 import toast from "react-hot-toast";
-import { db } from "../firebase/config";
+import { auth, db } from "../firebase/config";
 import { useAuth } from "../context/AuthContext";
 import { useLanguage } from "../context/LanguageContext";
 import useOwnedCollection from "../hooks/useOwnedCollection";
@@ -42,6 +42,7 @@ import {
   normalizePackages,
 } from "../utils/users";
 import { getNextCustomerId } from "../utils/customerId";
+import { buildMonthlyBillHistoryEntry, getPaymentMonthYear } from "../utils/payments";
 
 const todayValue = () => {
   const today = new Date();
@@ -67,8 +68,10 @@ export default function Users() {
   const searchRef = useRef(null);
   const navigate = useNavigate();
   const { user: signedInUser } = useAuth();
+  const currentOwnerId = auth?.currentUser?.uid || signedInUser?.uid || null;
   const { t, formatNumber } = useLanguage();
   const { data: allUsers = [] } = useOwnedCollection("users");
+  const { data: payments = [] } = useOwnedCollection("payments");
   const users = useMemo(() => (allUsers || []).filter(Boolean), [allUsers]);
   const { data: savedCategories, error: categoryError } =
     useOwnedCollection("categories");
@@ -255,7 +258,7 @@ export default function Users() {
       toast.error("Enter a valid Bangladesh phone number beginning with +880");
       return;
     }
-    if (!form.id && !signedInUser) {
+    if (!form.id && !currentOwnerId) {
       toast.error("Please sign in again before adding a user");
       return;
     }
@@ -299,11 +302,121 @@ export default function Users() {
       const selectedPackages = normalizePackages(
         form?.packages || form?.category || [],
       );
+      const nextMonthlyBill = Number(form.monthlyBill || 0);
+      const existingUser = form.id
+        ? (allUsers || []).find((item) => item.id === form.id) || form
+        : null;
+      const previousMonthlyBill = Number(existingUser?.monthlyBill || 0);
+      const existingBillHistory = Array.isArray(existingUser?.billHistory)
+        ? existingUser.billHistory
+        : [];
+
+      const runningMonth = now.getMonth() + 1;
+      const runningYear = now.getFullYear();
+
+      let nextBillHistory = existingBillHistory;
+
+      if (!form.id) {
+        nextBillHistory = [
+          {
+            effectiveYear: joinDateParsed.getFullYear(),
+            effectiveMonth: joinDateParsed.getMonth() + 1,
+            monthlyBill: nextMonthlyBill,
+          },
+        ];
+      } else if (
+        nextMonthlyBill !== previousMonthlyBill ||
+        existingBillHistory.length === 0
+      ) {
+        // Legacy users may not have billHistory yet. Reconstruct the known
+        // historical rates from payment snapshots, then lock the current
+        // running month to the newly saved rate. Transactions themselves are
+        // never modified.
+        const historyByPeriod = new Map();
+        existingBillHistory.forEach((entry) => {
+          const entryMonth = Number(entry?.effectiveMonth ?? entry?.month);
+          const entryYear = Number(entry?.effectiveYear ?? entry?.year);
+          const entryBill = Number(
+            entry?.monthlyBill ?? entry?.bill ?? entry?.amount ?? 0,
+          );
+          if (entryMonth >= 1 && entryMonth <= 12 && Number.isFinite(entryYear)) {
+            historyByPeriod.set(
+              `${entryYear}-${String(entryMonth).padStart(2, "0")}`,
+              {
+                effectiveYear: entryYear,
+                effectiveMonth: entryMonth,
+                monthlyBill: entryBill,
+              },
+            );
+          }
+        });
+
+        const userPayments = (payments || []).filter(
+          (payment) =>
+            payment?.userId === existingUser?.id ||
+            payment?.customerId === existingUser?.customerId,
+        );
+        userPayments.forEach((payment) => {
+          const paymentBill = Number(
+            payment?.monthlyBill ?? payment?.billAmount ?? payment?.bill ?? NaN,
+          );
+          if (!Number.isFinite(paymentBill)) return;
+          const paymentPeriod = getPaymentMonthYear(payment);
+          if (!paymentPeriod?.month || !paymentPeriod?.year) return;
+          const key = `${paymentPeriod.year}-${String(paymentPeriod.month).padStart(2, "0")}`;
+          if (!historyByPeriod.has(key)) {
+            historyByPeriod.set(key, {
+              effectiveYear: Number(paymentPeriod.year),
+              effectiveMonth: Number(paymentPeriod.month),
+              monthlyBill: paymentBill,
+            });
+          }
+        });
+
+        const joinPeriod =
+          joinDateParsed.getFullYear() * 100 + (joinDateParsed.getMonth() + 1);
+        const currentPeriod = runningYear * 100 + runningMonth;
+        const sortedKnownHistory = [...historyByPeriod.values()].sort((a, b) => {
+          const aKey = a.effectiveYear * 100 + a.effectiveMonth;
+          const bKey = b.effectiveYear * 100 + b.effectiveMonth;
+          return aKey - bKey;
+        });
+
+        let carriedBill =
+          sortedKnownHistory[0]?.monthlyBill ?? previousMonthlyBill;
+        for (let cursor = joinPeriod; cursor <= currentPeriod; ) {
+          const cursorYear = Math.floor(cursor / 100);
+          const cursorMonth = cursor % 100;
+          const key = `${cursorYear}-${String(cursorMonth).padStart(2, "0")}`;
+          if (historyByPeriod.has(key)) {
+            carriedBill = historyByPeriod.get(key).monthlyBill;
+          } else if (cursor < currentPeriod) {
+            historyByPeriod.set(key, {
+              effectiveYear: cursorYear,
+              effectiveMonth: cursorMonth,
+              monthlyBill: carriedBill,
+            });
+          }
+          cursor =
+            cursorMonth === 12
+              ? (cursorYear + 1) * 100 + 1
+              : cursorYear * 100 + (cursorMonth + 1);
+        }
+
+        nextBillHistory = buildMonthlyBillHistoryEntry({
+          existingHistory: [...historyByPeriod.values()],
+          effectiveMonth: runningMonth,
+          effectiveYear: runningYear,
+          newMonthlyBill: nextMonthlyBill,
+        });
+      }
+
       const data = {
         name: form.name.trim(),
         category: selectedPackages[0] || form.category || "",
         packages: selectedPackages,
-        monthlyBill: Number(form.monthlyBill || 0),
+        monthlyBill: nextMonthlyBill,
+        billHistory: nextBillHistory,
         phone: normalizedPhone,
         address: form.address.trim(),
         joinDate: joinDateValue,
@@ -319,7 +432,7 @@ export default function Users() {
         });
       } else {
         const duplicateUser = findDuplicateUser(users, {
-          ownerId: signedInUser.uid,
+          ownerId: currentOwnerId,
           phone: normalizedPhone,
           name: form.name,
         });
@@ -329,23 +442,17 @@ export default function Users() {
         }
 
         const userDocId = buildUserDocId({
-          ownerId: signedInUser.uid,
+          ownerId: currentOwnerId,
           phone: normalizedPhone,
+          name: form.name,
         });
         const userDocRef = doc(db, "users", userDocId);
 
-        await runTransaction(db, async (transaction) => {
-          const existingUser = await transaction.get(userDocRef);
-          if (existingUser.exists()) {
-            throw new Error("User already exists.");
-          }
-
-          transaction.set(userDocRef, {
-            ...data,
-            ownerId: signedInUser.uid,
-            createdAt: serverTimestamp(),
-            customerId: getNextCustomerId(users),
-          });
+        await setDoc(userDocRef, {
+          ...data,
+          ownerId: currentOwnerId,
+          createdAt: serverTimestamp(),
+          customerId: getNextCustomerId(users),
         });
       }
       toast.success("User saved");

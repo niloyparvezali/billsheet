@@ -42,6 +42,7 @@ import {
   formatBalanceDisplayValue,
   getDisplayBalanceValues,
   getDisplayPaymentStatus,
+  getEffectiveBillForPeriod,
   getPaymentMonthYear,
   voidPaymentRecord,
 } from "../utils/payments";
@@ -317,7 +318,7 @@ export default function MonthlySheet() {
       carryForward: carryForwardValue,
       currentDue: currentDueValue,
       currentAdvance: carryForwardValue,
-      bill: Number(selectedCustomer.user.monthlyBill || 0),
+      bill: Number(selectedCustomer.bill || 0),
       amount: currentPaidValue,
       previousDue: Number(selectedCustomer.openingDue || 0),
       previousAdvance: Number(selectedCustomer.openingAdvance || 0),
@@ -326,7 +327,7 @@ export default function MonthlySheet() {
     return [
       {
         label: "Monthly Bill",
-        value: money(selectedCustomer.user.monthlyBill),
+        value: money(selectedCustomer.bill || 0),
         icon: <FiDollarSign />,
       },
       {
@@ -378,7 +379,7 @@ export default function MonthlySheet() {
   };
 
   const submitVoidPayment = async (payment) => {
-    if (!payment?.id) return;
+    if (!payment?.id || !hasPaymentForVisibleMonth(payment)) return;
     const finalReason =
       voidReasonType === "Other" ? customReasonText.trim() : voidReasonType;
 
@@ -455,7 +456,7 @@ export default function MonthlySheet() {
       );
       const message = createSms(smsTemplate, {
         name: user.name,
-        bill: user.monthlyBill,
+        bill: getEffectiveBillForPeriod(user, { month, year }),
         dueDate,
       });
 
@@ -473,6 +474,15 @@ export default function MonthlySheet() {
     }
   };
 
+  const hasPaymentForVisibleMonth = (payment) => {
+    if (!payment) return false;
+    const { month: paymentMonth, year: paymentYear } = getPaymentMonthYear(payment);
+    return (
+      Number(paymentMonth) === Number(month) &&
+      Number(paymentYear) === Number(year)
+    );
+  };
+
   const getInitials = (name = "") =>
     String(name)
       .split(" ")
@@ -482,10 +492,27 @@ export default function MonthlySheet() {
       .join("")
       .toUpperCase();
 
-  const getCustomerCategoryLabel = (user = {}) => {
-    const displayPackages = getDisplayPackages(user);
-    return displayPackages[0] || user?.category || "Uncategorized";
-  };
+const getCustomerCategoryLabels = (user = {}) => {
+  const displayPackages = getDisplayPackages(user);
+
+  const packages = Array.isArray(displayPackages)
+    ? displayPackages
+        .map((item) => String(item || "").trim())
+        .filter(Boolean)
+    : [];
+
+  const fallback = String(user?.category || "").trim();
+
+  return [
+    ...new Set(
+      packages.length
+        ? packages
+        : fallback
+          ? [fallback]
+          : [],
+    ),
+  ].slice(0, 3);
+};
 
   const handleExportPDF = () => {
     exportMonthlySheetPdf({
@@ -705,6 +732,16 @@ export default function MonthlySheet() {
                   </div>
                 </div>
                 <table className="monthly-table">
+                  <colgroup>
+                    <col style={{ width: "52px" }} />
+                    <col style={{ width: "24%" }} />
+                    <col style={{ width: "12%" }} />
+                    <col style={{ width: "12%" }} />
+                    <col style={{ width: "12%" }} />
+                    <col style={{ width: "12%" }} />
+                    <col style={{ width: "16%" }} />
+                    <col style={{ width: "150px" }} />
+                  </colgroup>
                   <thead>
                     <tr>
                       <th>SL</th>
@@ -718,7 +755,7 @@ export default function MonthlySheet() {
                       </th>
                       <th>{t("Monthly Bill")}</th>
                       <th>{t("paid", "Pay")}</th>
-                      <th>{t("due")}</th>
+                      <th>{t("Balance")}</th>
                       <th
                         className="sortable-th"
                         onClick={() =>
@@ -741,6 +778,7 @@ export default function MonthlySheet() {
                           payment,
                           openingDue,
                           openingAdvance,
+                          bill,
                           due,
                           carryForward,
                           currentPaid,
@@ -759,9 +797,10 @@ export default function MonthlySheet() {
                             : isPaid
                               ? "Paid"
                               : "Pending");
+                        const hasCurrentMonthPayment = hasPaymentForVisibleMonth(payment);
                         const badgeMeta = getMonthlySheetStatusMeta(
                           badgeStatus,
-                          Number(user?.monthlyBill || 0),
+                          Number(bill || 0),
                           Number(currentPaid || payment?.amount || 0),
                           Number(due || 0),
                           Number(carryForward || 0),
@@ -771,7 +810,7 @@ export default function MonthlySheet() {
                           carryForward,
                           currentDue: due,
                           currentAdvance: carryForward,
-                          bill: Number(user?.monthlyBill || 0),
+                          bill: Number(bill || 0),
                           amount: Number(currentPaid || payment?.amount || 0),
                           previousDue: Number(openingDue || 0),
                           previousAdvance: Number(openingAdvance || 0),
@@ -802,14 +841,14 @@ export default function MonthlySheet() {
                                     {user.phone || "No phone saved"}
                                   </div>
                                   <div className="customer-category">
-                                    {getCustomerCategoryLabel(user)}
+                                    {getCustomerCategoryLabels(user).join(", ") || "Uncategorized"}
                                   </div>
                                 </div>
                               </div>
                             </td>
                             <td data-label="Bill">
                               <div className="bill-pill">
-                                {money(user.monthlyBill)}
+                                {money(bill)}
                               </div>
                             </td>
                             <td data-label="Paid">
@@ -862,19 +901,19 @@ export default function MonthlySheet() {
                               >
                                 <FiCreditCard />
                               </button>
-                              {payment && (
-                                <button
-                                  className="action-btn action-btn--delete"
-                                  onClick={() => {
-                                    setSelectedCustomerId(user.id);
-                                    setPaymentAction({ payment, mode: "void" });
-                                  }}
-                                  title="Void"
-                                  type="button"
-                                >
-                                  <FiTrash2 />
-                                </button>
-                              )}
+                              <button
+                                className="action-btn action-btn--delete"
+                                disabled={!hasCurrentMonthPayment}
+                                onClick={() => {
+                                  if (!hasCurrentMonthPayment) return;
+                                  setSelectedCustomerId(user.id);
+                                  setPaymentAction({ payment, mode: "void" });
+                                }}
+                                title="Void"
+                                type="button"
+                              >
+                                <FiTrash2 />
+                              </button>
                             </td>
                           </tr>
                         );
@@ -924,7 +963,7 @@ export default function MonthlySheet() {
                                     : "Pending");
                               return getMonthlySheetStatusMeta(
                                 selectedStatus,
-                                Number(selectedCustomer.user?.monthlyBill || 0),
+                                Number(selectedCustomer.bill || 0),
                                 Number(
                                   selectedCustomer.currentPaid ||
                                     selectedCustomer.payment?.amount ||
@@ -953,7 +992,7 @@ export default function MonthlySheet() {
                                     : "Pending");
                               return getMonthlySheetStatusMeta(
                                 selectedStatus,
-                                Number(selectedCustomer.user?.monthlyBill || 0),
+                                Number(selectedCustomer.bill || 0),
                                 Number(
                                   selectedCustomer.currentPaid ||
                                     selectedCustomer.payment?.amount ||
@@ -972,7 +1011,7 @@ export default function MonthlySheet() {
                           </span>
                           <span>
                             <FiTag /> Category:{" "}
-                            {getCustomerCategoryLabel(selectedCustomer.user)}
+                            {getCustomerCategoryLabels(selectedCustomer.user).join(", ") || "Uncategorized"}
                           </span>
                         </div>
                       </div>
@@ -1024,20 +1063,20 @@ export default function MonthlySheet() {
                       </button>
                     </div>
                     <div className="users-mobile-action-row users-mobile-action-row--secondary">
-                      {selectedCustomer.payment && (
-                        <button
-                          type="button"
-                          className="users-mobile-action users-mobile-action--ghost"
-                          onClick={() =>
-                            setPaymentAction({
-                              payment: selectedCustomer.payment,
-                              mode: "void",
-                            })
-                          }
-                        >
-                          <FiTrash2 /> Void Payment
-                        </button>
-                      )}
+                      <button
+                        type="button"
+                        className="users-mobile-action users-mobile-action--ghost"
+                        disabled={!hasPaymentForVisibleMonth(selectedCustomer?.payment)}
+                        onClick={() => {
+                          if (!hasPaymentForVisibleMonth(selectedCustomer?.payment)) return;
+                          setPaymentAction({
+                            payment: selectedCustomer.payment,
+                            mode: "void",
+                          });
+                        }}
+                      >
+                        <FiTrash2 /> Void Payment
+                      </button>
                     </div>
                   </div>
                 ) : (
@@ -1048,6 +1087,7 @@ export default function MonthlySheet() {
                         payment,
                         openingDue,
                         openingAdvance,
+                        bill,
                         due,
                         carryForward,
                         currentPaid,
@@ -1064,7 +1104,7 @@ export default function MonthlySheet() {
                             : "Pending");
                       const badgeMeta = getMonthlySheetStatusMeta(
                         badgeStatus,
-                        Number(user?.monthlyBill || 0),
+                        Number(bill || 0),
                         Number(currentPaid || payment?.amount || 0),
                         Number(due || 0),
                         Number(carryForward || 0),
@@ -1074,7 +1114,7 @@ export default function MonthlySheet() {
                         carryForward,
                         currentDue: due,
                         currentAdvance: carryForward,
-                        bill: Number(user?.monthlyBill || 0),
+                        bill: Number(bill || 0),
                         amount: Number(currentPaid || payment?.amount || 0),
                         previousDue: Number(openingDue || 0),
                         previousAdvance: Number(openingAdvance || 0),
@@ -1114,10 +1154,15 @@ export default function MonthlySheet() {
                               </div>
                             </div>
                             <div className="users-mobile-item-bottom">
-                              <div className="users-mobile-item-meta">
-                                <span>{user.phone || "No phone on file"}</span>
-                                <span> {getCustomerCategoryLabel(user)}</span>
-                              </div>
+         <div className="users-mobile-item-meta">
+  <span className="users-mobile-item-phone">
+    {user.phone || "No phone on file"}
+  </span>
+
+  <span className="users-mobile-item-category">
+    {getCustomerCategoryLabels(user).join(", ") || "Uncategorized"}
+  </span>
+</div>
                               <div className="users-mobile-item-actions">
                                 <button
                                   type="button"
@@ -1258,7 +1303,7 @@ export default function MonthlySheet() {
                           : "Pending");
                     return getMonthlySheetStatusMeta(
                       selectedStatus,
-                      Number(selectedCustomer.user?.monthlyBill || 0),
+                      Number(selectedCustomer.bill || 0),
                       Number(
                         selectedCustomer.currentPaid ||
                           selectedCustomer.payment?.amount ||
@@ -1287,7 +1332,7 @@ export default function MonthlySheet() {
                           : "Pending");
                     return getMonthlySheetStatusMeta(
                       selectedStatus,
-                      Number(selectedCustomer.user?.monthlyBill || 0),
+                      Number(selectedCustomer.bill || 0),
                       Number(
                         selectedCustomer.currentPaid ||
                           selectedCustomer.payment?.amount ||

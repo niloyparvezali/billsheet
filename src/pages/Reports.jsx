@@ -139,6 +139,19 @@ export default function Reports() {
   const customerOptions = useMemo(() => {
     const options = [];
     const seen = new Set();
+    const currentMonth = now.getMonth() + 1;
+    const currentYear = now.getFullYear();
+
+    const getCustomerActivityRank = (customer) => {
+      const user = customer?.user || null;
+      if (!user) return 0;
+      return isUserActiveForPeriod(user, {
+        month: currentMonth,
+        year: currentYear,
+      })
+        ? 0
+        : 1;
+    };
 
     (users || []).forEach((user) => {
       const key = user.id || user.name || user.email;
@@ -172,8 +185,12 @@ export default function Reports() {
       });
     });
 
-    return options.sort((left, right) => left.name.localeCompare(right.name));
-  }, [users, payments]);
+    return options.sort((left, right) => {
+      const activityDelta = getCustomerActivityRank(left) - getCustomerActivityRank(right);
+      if (activityDelta !== 0) return activityDelta;
+      return String(left?.name || "").localeCompare(String(right?.name || ""));
+    });
+  }, [users, payments, now]);
 
   const visibleCustomers = useMemo(() => {
     const term = customerSearch.trim().toLowerCase();

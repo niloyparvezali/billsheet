@@ -1,4 +1,4 @@
-:root[data-theme="sunrise"] {
+:root[data-theme="sunrise"]{
   --bg: #fafaf9;
   --surface: #ffffff;
   --card: #ffffff;
@@ -105,7 +105,7 @@
   --loading-eyebrow-text: #fb923c;
 }
 
-:root[data-theme="midnight"] {
+:root[data-theme="midnight"]{
   --bg: #0a0a0a;
   --surface: #171717;
   --card: #202020;
@@ -213,7 +213,7 @@
 
 html,
 body,
-#root {
+#root{
   color: var(--text);
   background: var(--bg);
   transition:
@@ -221,7 +221,7 @@ body,
     color 0.25s ease;
 }
 
-body {
+body{
   background: var(--bg);
   color: var(--text);
 }
@@ -230,18 +230,23 @@ body {
    Sidebar
 =========================== */
 
-.sidebar {
+.sidebar{
   background: var(--sidebar-bg);
   color: var(--sidebar-text);
-  border-right: 1px solid var(--divider);
 }
 
-.sidebar a {
+@media (min-width: 1324px){
+  .sidebar{
+    border-right: 1px solid var(--divider);
+  }
+}
+
+.sidebar a{
   color: var(--sidebar-text);
   transition: all 0.25s ease;
 }
 
-.sidebar a:hover {
+.sidebar a:hover{
   background: linear-gradient(
     135deg,
     color-mix(in srgb, var(--primary) 18%, var(--sidebar-hover) 82%),
@@ -251,7 +256,7 @@ body {
 
 .sidebar a.active,
 nav a:hover,
-nav a.active {
+nav a.active{
   background: linear-gradient(
     135deg,
     color-mix(in srgb, var(--primary) 18%, var(--sidebar-hover) 82%),
@@ -261,11 +266,11 @@ nav a.active {
   box-shadow: inset 3px 0 0 var(--sidebar-active-border);
 }
 
-.sidebar-bottom {
+.sidebar-bottom{
   border-color: var(--divider);
 }
 
-.sidebar-bottom button {
+.sidebar-bottom button{
   color: var(--sidebar-text);
 }
 
@@ -273,7 +278,7 @@ nav a.active {
    Header
 =========================== */
 
-header {
+header{
   background: var(--header-bg);
   border-bottom: 1px solid var(--divider);
   backdrop-filter: blur(12px);
@@ -289,7 +294,7 @@ header p,
 .muted-line,
 .security-row span,
 .device span,
-.settings-stat p {
+.settings-stat p{
   color: var(--text-muted);
 }
 
@@ -306,7 +311,7 @@ header p,
 .guide-item,
 .invite-user,
 .report-table-heading span,
-.sheet-empty-content > span {
+.sheet-empty-content > span{
   background: var(--surface);
   color: var(--text);
   border: 1px solid var(--divider);
@@ -319,7 +324,7 @@ header p,
 .panel:hover,
 .stat:hover,
 .settings-card:hover,
-.modal:hover {
+.modal:hover{
   transform: translateY(-2px);
   box-shadow: 0 10px 28px rgba(0, 0, 0, 0.12);
 }
@@ -330,13 +335,13 @@ header p,
 
 .profile-meta span,
 guide-step,
-.theme-card.active {
+.theme-card.active{
   background: color-mix(in srgb, var(--primary) 12%, var(--surface) 88%);
 }
 
 .profile-meta b,
 .guide-item span,
-.theme-card b {
+.theme-card b{
   color: var(--text);
 }
 
@@ -353,7 +358,7 @@ guide-step,
 .password-input,
 .form input,
 .form textarea,
-.form select {
+.form select{
   background: var(--input-bg);
   border: 1px solid var(--input-border);
   color: var(--text);
@@ -369,7 +374,7 @@ guide-step,
 .password-input:focus,
 .form input:focus,
 .form textarea:focus,
-.form select:focus {
+.form select:focus{
   outline: none;
   border-color: var(--primary);
   box-shadow: 0 0 0 3px color-mix(in srgb, var(--primary) 20%, transparent);
@@ -379,14 +384,14 @@ guide-step,
    Settings
 =========================== */
 
-.settings-choice {
+.settings-choice{
   background: var(--surface);
   color: var(--text);
   border: 1px solid var(--divider);
   transition: 0.25s ease;
 }
 
-.settings-choice.active {
+.settings-choice.active{
   background: color-mix(in srgb, var(--primary) 15%, var(--surface) 85%);
   color: var(--text);
   border-color: var(--primary);
@@ -396,7 +401,7 @@ guide-step,
    Tables
 =========================== */
 
-th {
+th{
   background: var(--surface);
   color: var(--text-muted);
 }
@@ -404,15 +409,15 @@ th {
 td,
 .activity,
 .security-row,
-.device {
+.device{
   border-color: var(--divider);
 }
 
-tbody tr {
+tbody tr{
   transition: background 0.2s ease;
 }
 
-tbody tr:hover {
+tbody tr:hover{
   background: color-mix(in srgb, var(--surface) 88%, var(--primary) 12%);
 }
 
@@ -420,7 +425,7 @@ tbody tr:hover {
    Tags
 =========================== */
 
-.tag {
+.tag{
   background: color-mix(in srgb, var(--primary) 10%, var(--surface) 90%);
   color: var(--primary);
 }
@@ -429,13 +434,13 @@ tbody tr:hover {
    Buttons
 =========================== */
 
-.actions button {
+.actions button{
   background: var(--surface);
   color: var(--text);
   border: 1px solid var(--divider);
 }
 
-.primary {
+.primary{
   background: linear-gradient(135deg, var(--primary-hover), var(--primary));
   color: #fff;
   border: none;
@@ -443,19 +448,19 @@ tbody tr:hover {
   transition: 0.25s ease;
 }
 
-.primary:hover {
+.primary:hover{
   transform: translateY(-2px);
   box-shadow: 0 14px 28px var(--primary-shadow);
 }
 
-.secondary {
+.secondary{
   background: color-mix(in srgb, var(--primary) 10%, var(--surface) 90%);
   color: var(--text);
   border: 1px solid var(--divider);
   transition: 0.25s ease;
 }
 
-.secondary:hover {
+.secondary:hover{
   border-color: var(--primary);
 }
 
@@ -463,36 +468,36 @@ tbody tr:hover {
    Monthly Sheet
 =========================== */
 
-.monthly-table .pending-row {
+.monthly-table .pending-row{
   background: var(--status-pending-bg);
   color: var(--text);
 }
 
-.monthly-table .paid-row {
+.monthly-table .paid-row{
   background: var(--status-paid-bg);
   color: var(--text);
 }
 
 .monthly-table .pending-row:hover,
-.monthly-table .paid-row:hover {
+.monthly-table .paid-row:hover{
   filter: brightness(1.04);
 }
 
 .monthly-table .pending-row td,
-.monthly-table .paid-row td {
+.monthly-table .paid-row td{
   color: inherit;
   border-color: var(--divider);
 }
 
-.monthly-table .pending-row .status {
+.monthly-table .pending-row .status{
   color: var(--status-pending-text);
 }
 
-.monthly-table .paid-row .status {
+.monthly-table .paid-row .status{
   color: var(--status-paid-text);
 }
 
-.monthly-table .due-value {
+.monthly-table .due-value{
   color: var(--due-text);
 }
 
@@ -500,24 +505,24 @@ tbody tr:hover {
    Reports
 =========================== */
 
-.report-kicker {
+.report-kicker{
   color: var(--primary);
 }
 
-.report-table-heading p {
+.report-table-heading p{
   color: var(--text-muted);
 }
 
-.report-table-heading span {
+.report-table-heading span{
   background: color-mix(in srgb, var(--primary) 8%, var(--surface) 92%);
   color: var(--primary);
 }
 
-.report-due {
+.report-due{
   color: var(--warning);
 }
 
-.report-clear {
+.report-clear{
   color: var(--success);
 }
 
@@ -525,11 +530,11 @@ tbody tr:hover {
    Invite
 =========================== */
 
-.invite-user {
+.invite-user{
   background: var(--surface);
 }
 
-.invite-user-copy span {
+.invite-user-copy span{
   color: var(--text-muted);
 }
 
@@ -537,27 +542,27 @@ tbody tr:hover {
    Theme Cards
 =========================== */
 
-.theme-card {
+.theme-card{
   background: var(--theme-card-bg);
   border: 1px solid var(--theme-card-border);
   color: var(--theme-card-text);
   transition: all 0.25s ease;
 }
 
-.theme-card:hover {
+.theme-card:hover{
   transform: translateY(-3px);
   border-color: var(--primary);
   box-shadow: 0 14px 30px rgba(0, 0, 0, 0.18);
 }
 
-.theme-card.active {
+.theme-card.active{
   border-color: var(--theme-active);
 }
 
-.theme-card small {
+.theme-card small{
   color: var(--theme-card-subtext);
 }
-.floating-search-button {
+.floating-search-button{
   position: fixed;
 
   top: 16px;
@@ -590,7 +595,7 @@ tbody tr:hover {
 }
 
 .floating-search-button:hover,
-.floating-search-button:focus-visible {
+.floating-search-button:focus-visible{
   transform: translateY(-2px);
 
   background: color-mix(in srgb, var(--primary) 18%, var(--surface));
@@ -602,14 +607,14 @@ tbody tr:hover {
   outline: none;
 }
 
-.floating-search-button svg {
+.floating-search-button svg{
   width: 20px;
   height: 20px;
   color: inherit;
 }
 
-@media (min-width: 769px) {
-  .floating-search-button {
+@media (min-width: 769px){
+  .floating-search-button{
     display: none;
   }
 }

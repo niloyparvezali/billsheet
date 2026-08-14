@@ -88,4 +88,32 @@ describe("Reports routed customer navigation", () => {
 
     expect(screen.getByPlaceholderText(/search customer by name or phone/i).value).toBe("Ali");
   });
+
+  it("sorts active customers before inactive customers and keeps alphabetical order within each group", () => {
+    mockUseOwnedCollection.mockImplementation((collectionName) => {
+      if (collectionName === "users") {
+        return {
+          data: [
+            { id: "u-1", name: "Rafiq", leaveDate: "2025-01-15" },
+            { id: "u-2", name: "Karim", joinDate: "2020-01-01" },
+            { id: "u-3", name: "Abdul", joinDate: "2020-01-01" },
+            { id: "u-4", name: "Anis", leaveDate: "2025-01-15" },
+          ],
+        };
+      }
+      return { data: [] };
+    });
+
+    render(
+      <MemoryRouter>
+        <Reports />
+      </MemoryRouter>,
+    );
+
+    const names = Array.from(document.querySelectorAll(".reports-customer-name")).map(
+      (element) => element.textContent.trim(),
+    );
+
+    expect(names).toEqual(["Abdul", "Karim", "Anis", "Rafiq"]);
+  });
 });

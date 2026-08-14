@@ -1,15 +1,15 @@
-.monthly-panel .dashboard-summary {
+.monthly-panel .dashboard-summary{
   position: relative;
   z-index: 2;
 }
 
-.dashboard-layout {
+.dashboard-layout{
   display: grid;
   width: 100%;
   gap: 26px;
 }
 
-.dashboard-page .stats {
+.dashboard-page .stats{
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 16px;
@@ -17,7 +17,7 @@
   margin-bottom: 18px;
 }
 
-.dashboard-page .stat {
+.dashboard-page .stat{
   min-height: 120px;
   padding: 20px;
   gap: 12px;
@@ -25,7 +25,7 @@
   overflow: hidden;
 }
 
-.dashboard-page .dashboard-summary {
+.dashboard-page .dashboard-summary{
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 16px;
@@ -34,7 +34,7 @@
 }
 
 .dashboard-page .summary-card,
-.dashboard-summary-card {
+.dashboard-summary-card{
   min-height: 170px;
   padding: 24px;
   border-radius: 16px;
@@ -49,20 +49,20 @@
 }
 
 .dashboard-page .summary-card:hover,
-.dashboard-summary-card:hover {
+.dashboard-summary-card:hover{
   transform: translateY(-3px);
   border-color: rgba(255, 255, 255, 0.08);
   box-shadow: var(--shadow-lg);
 }
 
-.dashboard-summary-card-header {
+.dashboard-summary-card-header{
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 16px;
 }
 
-.dashboard-summary-card-title {
+.dashboard-summary-card-title{
   display: flex;
   align-items: center;
   gap: 10px;
@@ -71,46 +71,46 @@
   color: var(--text-muted);
 }
 
-.dashboard-summary-card-title span:first-child {
+.dashboard-summary-card-title span:first-child{
   font-size: 18px;
 }
 
-.dashboard-summary-card-month {
+.dashboard-summary-card-month{
   font-size: 18px;
   font-weight: 700;
   letter-spacing: 0.18em;
   text-transform: uppercase;
 }
 
-.dashboard-summary-card-divider {
+.dashboard-summary-card-divider{
   margin: 16px 0;
   height: 1px;
   background: rgba(255, 255, 255, 0.06);
 }
 
-.dashboard-summary-card-amount {
+.dashboard-summary-card-amount{
   font-size: clamp(48px, 4vw, 56px);
   font-weight: 800;
   text-align: center;
   line-height: 1;
 }
 
-.dashboard-summary-card--highest .dashboard-summary-card-amount {
+.dashboard-summary-card--highest .dashboard-summary-card-amount{
   color: #F59E0B;
 }
 
-.dashboard-summary-card--lowest .dashboard-summary-card-amount {
+.dashboard-summary-card--lowest .dashboard-summary-card-amount{
   color: #3B82F6;
 }
 
-.dashboard-page .chart {
+.dashboard-page .chart{
   width: 100%;
   min-height: 260px;
   height: clamp(260px, 42vh, 320px);
   margin-bottom: 12px;
 }
 
-.dashboard-page .chart-nav {
+.dashboard-page .chart-nav{
   display: flex;
   width: min(230px, 100%);
   max-width: 230px;
@@ -121,7 +121,7 @@
   background: var(--card);
 }
 
-.dashboard-page .chart-nav button {
+.dashboard-page .chart-nav button{
   flex: 1;
   padding: 10px 14px;
   border: none;
@@ -135,12 +135,12 @@
     color 0.25s;
 }
 
-.dashboard-page .chart-nav button.active {
+.dashboard-page .chart-nav button.active{
   background: var(--primary);
   color: #fff;
 }
 
-.dashboard-page .panel-header {
+.dashboard-page .panel-header{
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -148,19 +148,19 @@
   flex-wrap: wrap;
 }
 
-.dashboard-page .payment-row {
+.dashboard-page .payment-row{
   display: grid;
   grid-template-columns: minmax(0, 1.8fr) minmax(0, 1fr) minmax(0, 0.95fr);
   align-items: center;
   gap: 10px;
 }
 
-.dashboard-page .payment-row-head {
+.dashboard-page .payment-row-head{
   display: grid;
   align-items: center;
 }
 
-.dashboard-page .payment-date {
+.dashboard-page .payment-date{
   display: flex;
   flex-direction: column;
   align-items: flex-end;
@@ -168,7 +168,7 @@
   text-align: right;
 }
 
-.dashboard-page .sheet-circle {
+.dashboard-page .sheet-circle{
   display: flex;
   align-items: center;
   justify-content: center;
@@ -192,176 +192,176 @@
     border-color 0.25s ease;
 }
 
-.dashboard-page .sheet-circle svg {
+.dashboard-page .sheet-circle svg{
   width: 18px;
   height: 18px;
 }
 
-.dashboard-page .sheet-circle:hover {
+.dashboard-page .sheet-circle:hover{
   transform: translateY(-2px) scale(1.05);
   border-color: var(--primary);
   box-shadow: var(--primary-shadow);
 }
 
-@media (max-width: 1280px) {
-  .dashboard-page .stats {
+@media (max-width: 1280px){
+  .dashboard-page .stats{
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
-  .dashboard-page .dashboard-summary {
+  .dashboard-page .dashboard-summary{
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
 
-@media (max-width: 1024px) {
-  .dashboard-page .dashboard-summary {
+@media (max-width: 1024px){
+  .dashboard-page .dashboard-summary{
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
-  .dashboard-page .chart {
+  .dashboard-page .chart{
     height: clamp(250px, 38vh, 300px);
   }
 }
 
-@media (max-width: 768px) {
-  .dashboard-page .stats {
+@media (max-width: 768px){
+  .dashboard-page .stats{
     grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: 12px;
   }
 
-  .dashboard-page .stat {
+  .dashboard-page .stat{
     min-height: 104px;
     padding: 16px;
   }
 
-  .dashboard-page .dashboard-summary {
+  .dashboard-page .dashboard-summary{
     grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: 12px;
   }
 
-  .dashboard-page .panel-header {
+  .dashboard-page .panel-header{
     flex-direction: column;
     align-items: flex-start;
     gap: 12px;
   }
 
-  .dashboard-page .chart-nav {
+  .dashboard-page .chart-nav{
     width: 100%;
     max-width: none;
   }
 
-  .dashboard-page .payment-row {
+  .dashboard-page .payment-row{
     grid-template-columns: minmax(0, 1.25fr) minmax(0, 0.8fr) minmax(0, 0.8fr);
     gap: 10px;
   }
 
-  .dashboard-page .payment-row-head {
+  .dashboard-page .payment-row-head{
     display: none;
   }
 
-  .dashboard-page .payment-row-item {
+  .dashboard-page .payment-row-item{
     padding: 14px 0;
     border-bottom: 1px solid var(--divider);
   }
 
-  .dashboard-page .payment-date {
+  .dashboard-page .payment-date{
     align-items: flex-end;
     text-align: right;
   }
 }
 
-@media (max-width: 600px) {
-  .dashboard-page .stats {
+@media (max-width: 600px){
+  .dashboard-page .stats{
     grid-template-columns: repeat(3, minmax(0, 1fr));
     gap: 8px;
   }
 
   .dashboard-page .stats .stat:nth-child(1),
   .dashboard-page .stats .stat:nth-child(2),
-  .dashboard-page .stats .stat:nth-child(3) {
+  .dashboard-page .stats .stat:nth-child(3){
     min-height: 90px;
     padding: 12px;
     gap: 8px;
   }
 
-  .dashboard-page .stats .stat:nth-child(4) {
+  .dashboard-page .stats .stat:nth-child(4){
     grid-column: 1 / -1;
     min-height: 92px;
     padding: 14px 16px;
   }
 
-  .dashboard-page .stat h2 {
+  .dashboard-page .stat h2{
     font-size: 18px;
     line-height: 1.15;
   }
 
-  .dashboard-page .stat p {
+  .dashboard-page .stat p{
     margin-bottom: 4px;
     font-size: 11px;
   }
 
-  .dashboard-page .chart {
+  .dashboard-page .chart{
     min-height: 240px;
     height: 260px;
   }
 }
 
-@media (max-width: 480px) {
-  .dashboard-page .stats {
+@media (max-width: 480px){
+  .dashboard-page .stats{
     grid-template-columns: repeat(3, minmax(0, 1fr));
     gap: 8px;
   }
 
-  .dashboard-page .dashboard-summary {
+  .dashboard-page .dashboard-summary{
     grid-template-columns: 1fr;
   }
 
-  .dashboard-page .stat {
+  .dashboard-page .stat{
     min-height: 86px;
     padding: 10px;
   }
 
-  .dashboard-page .page-title h2 {
+  .dashboard-page .page-title h2{
     font-size: 20px;
   }
 
-  .dashboard-page .page-title p {
+  .dashboard-page .page-title p{
     font-size: 13px;
   }
 
-  .dashboard-page .chart-nav {
+  .dashboard-page .chart-nav{
     width: 100%;
   }
 
-  .dashboard-page .chart-nav button {
+  .dashboard-page .chart-nav button{
     padding: 10px;
     font-size: 12px;
   }
 
-  .dashboard-page .payment-row {
+  .dashboard-page .payment-row{
     grid-template-columns: 1fr;
     gap: 8px;
   }
 
-  .dashboard-page .payment-date {
+  .dashboard-page .payment-date{
     align-items: flex-start;
     text-align: left;
   }
 }
 
-@media (max-width: 390px) {
-  .dashboard-page .chart {
+@media (max-width: 390px){
+  .dashboard-page .chart{
     min-height: 220px;
     height: 240px;
   }
 
-  .dashboard-page .payment-row {
+  .dashboard-page .payment-row{
     grid-template-columns: 1fr;
     gap: 6px;
   }
 }
 
-.dashboard-shortcut {
+.dashboard-shortcut{
   display: flex;
   align-items: center;
   gap: 8px;
@@ -378,12 +378,12 @@
     box-shadow 0.25s;
 }
 
-.dashboard-shortcut:hover {
+.dashboard-shortcut:hover{
   transform: translateY(-2px);
   background: var(--primary-hover);
   box-shadow: var(--primary-shadow);
 }
-.quick-actions .secondary {
+.quick-actions .secondary{
   display: flex;
   align-items: center;
   justify-content: center;
@@ -398,13 +398,13 @@
 
 /* ---------- Quick Guide ---------- */
 
-.quick-guide {
+.quick-guide{
   display: flex;
   flex-direction: column;
   gap: 12px;
 }
 
-.guide-item {
+.guide-item{
   display: flex;
   align-items: center;
   gap: 12px;
@@ -421,30 +421,30 @@
     box-shadow 0.25s;
 }
 
-.guide-item:hover {
+.guide-item:hover{
   transform: translateX(5px);
   border-color: var(--primary);
   background: color-mix(in srgb, var(--surface) 90%, var(--primary) 10%);
   box-shadow: var(--primary-shadow);
 }
 
-.guide-item svg {
+.guide-item svg{
   flex-shrink: 0;
   color: var(--warning);
   font-size: 18px;
 }
 
-.guide-item span {
+.guide-item span{
   color: var(--text);
   font-size: 14px;
   font-weight: 600;
 }
 
-.guide-item:last-of-type {
+.guide-item:last-of-type{
   margin-bottom: 18px;
 }
 
-.quick-action-card {
+.quick-action-card{
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -463,27 +463,27 @@
     background 0.25s;
 }
 
-.quick-action-card svg {
+.quick-action-card svg{
   color: var(--primary);
   font-size: 28px;
 }
 
-.quick-action-card span {
+.quick-action-card span{
   font-weight: 600;
 }
 
-.quick-action-card:hover {
+.quick-action-card:hover{
   transform: translateY(-4px);
   border-color: var(--primary);
   background: color-mix(in srgb, var(--card) 92%, var(--primary) 8%);
   box-shadow: var(--primary-shadow);
 }
 
-.quick-actions-panel {
+.quick-actions-panel{
   margin-top: 22px;
 }
 
-.quick-actions-grid {
+.quick-actions-grid{
   display: grid;
   grid-template-columns: repeat(3, 1fr);
   gap: 16px;
@@ -493,7 +493,7 @@
    .activity
 =========================================== */
 
-.activity {
+.activity{
   display: flex;
   justify-content: space-between;
   gap: 12px;
@@ -502,7 +502,7 @@
   font-size: 14px;
 }
 
-.activity span {
+.activity span{
   color: var(--text-muted);
 }
 
@@ -510,14 +510,14 @@
    .payment-row
 =========================================== */
 
-.payment-row {
+.payment-row{
   display: grid;
   grid-template-columns: minmax(0, 1.8fr) minmax(0, 0.95fr) minmax(0, 0.9fr);
   align-items: center;
   gap: 10px;
 }
 
-.payment-row-head {
+.payment-row-head{
   display: grid;
   grid-template-columns: inherit;
   align-items: center;
@@ -529,7 +529,7 @@
   z-index: 1;
 }
 
-.payment-row-head div {
+.payment-row-head div{
   color: var(--text-muted);
   font-size: 12px;
   font-weight: 700;
@@ -537,16 +537,16 @@
   text-transform: uppercase;
 }
 
-.payment-row-head div:first-child {
+.payment-row-head div:first-child{
   text-align: left;
 }
 
 .payment-row-head div:nth-child(2),
-.payment-row-head div:nth-child(3) {
+.payment-row-head div:nth-child(3){
   text-align: right;
 }
 
-.payment-row-item {
+.payment-row-item{
   padding: 14px 18px;
   border-bottom: 1px solid var(--divider);
   transition:
@@ -554,11 +554,11 @@
     border-color 0.2s;
 }
 
-.payment-row-item:last-child {
+.payment-row-item:last-child{
   border-bottom: none;
 }
 
-.payment-row-item:hover {
+.payment-row-item:hover{
   background: color-mix(in srgb, var(--surface) 90%, var(--primary) 10%);
 }
 
@@ -566,12 +566,12 @@
    .payment-name
 =========================================== */
 
-.payment-name {
+.payment-name{
   min-width: 0;
   overflow: hidden;
 }
 
-.payment-name b {
+.payment-name b{
   display: block;
   max-width: 100%;
   overflow: hidden;
@@ -586,7 +586,7 @@
    .payment-amount
 =========================================== */
 
-.payment-amount {
+.payment-amount{
   color: var(--text);
   text-align: right;
   font-size: 16px;
@@ -597,7 +597,7 @@
    payment-date
 =========================================== */
 
-.payment-date {
+.payment-date{
   display: flex;
   flex-direction: column;
   align-items: flex-end;
@@ -607,13 +607,13 @@
   font-size: 14px;
 }
 
-.payment-date strong {
+.payment-date strong{
   color: var(--text);
   font-size: 14px;
   font-weight: 700;
 }
 
-.payment-date small {
+.payment-date small{
   color: var(--text-muted);
   font-size: 12px;
 }
@@ -622,71 +622,71 @@
    .payment-label
 =========================================== */
 
-.payment-label {
+.payment-label{
   display: none;
 }
 
-@media (max-width: 1100px) {
-  .dashboard-summary {
+@media (max-width: 1100px){
+  .dashboard-summary{
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
-  .quick-actions-grid {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-}
-
-@media (max-width: 1024px) {
-  .dashboard-summary {
+  .quick-actions-grid{
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
 
-@media (max-width: 768px) {
-  .dashboard-summary {
+@media (max-width: 1024px){
+  .dashboard-summary{
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 768px){
+  .dashboard-summary{
     grid-template-columns: 1fr 1fr;
     gap: 12px;
   }
 
-  .quick-actions-grid {
+  .quick-actions-grid{
     grid-template-columns: 1fr;
   }
 
-  .payment-row {
+  .payment-row{
     grid-template-columns: minmax(0, 1.25fr) minmax(0, 0.9fr) minmax(0, 0.9fr);
     gap: 10px;
   }
 
-  .payment-row-head {
+  .payment-row-head{
     display: grid;
   }
 
-  .payment-row-item {
+  .payment-row-item{
     padding: 12px 0;
     border-bottom: 1px solid var(--divider);
   }
 
-  .payment-date {
+  .payment-date{
     align-items: flex-end;
     text-align: right;
   }
 }
 
-@media (max-width: 480px) {
-  .dashboard-summary {
+@media (max-width: 480px){
+  .dashboard-summary{
     grid-template-columns: 1fr;
   }
 
-  .payment-row {
+  .payment-row{
     grid-template-columns: minmax(0, 1.15fr) minmax(0, 0.95fr) minmax(0, 0.95fr);
     gap: 8px;
   }
 
-  .payment-row-item {
+  .payment-row-item{
     padding: 10px 0;
   }
 
-  .payment-date {
+  .payment-date{
     align-items: flex-end;
     text-align: right;
   }

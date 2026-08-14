@@ -444,6 +444,57 @@ const normalizeBillHistoryEntry = (entry) => {
   };
 };
 
+export const buildMonthlyBillHistoryEntry = ({
+  existingHistory = [],
+  effectiveMonth,
+  effectiveYear,
+  newMonthlyBill,
+} = {}) => {
+  const targetMonth = Number(effectiveMonth);
+  const targetYear = Number(effectiveYear);
+  const targetBill = Number(newMonthlyBill || 0);
+
+  if (
+    !Number.isFinite(targetMonth) ||
+    targetMonth < 1 ||
+    targetMonth > 12 ||
+    !Number.isFinite(targetYear) ||
+    targetYear < 1
+  ) {
+    return Array.isArray(existingHistory) ? [...existingHistory] : [];
+  }
+
+  const normalized = (Array.isArray(existingHistory) ? existingHistory : [])
+    .map(normalizeBillHistoryEntry)
+    .filter(Boolean)
+    .map((entry) => ({
+      effectiveYear: entry.effectiveYear,
+      effectiveMonth: entry.effectiveMonth,
+      monthlyBill: entry.monthlyBill,
+    }));
+
+  const targetKey = targetYear * 100 + targetMonth;
+  const withoutTarget = normalized.filter(
+    (entry) =>
+      Number(entry.effectiveYear) * 100 + Number(entry.effectiveMonth) !==
+      targetKey,
+  );
+
+  withoutTarget.push({
+    effectiveYear: targetYear,
+    effectiveMonth: targetMonth,
+    monthlyBill: targetBill,
+  });
+
+  return withoutTarget.sort((left, right) => {
+    const leftKey =
+      Number(left.effectiveYear) * 100 + Number(left.effectiveMonth);
+    const rightKey =
+      Number(right.effectiveYear) * 100 + Number(right.effectiveMonth);
+    return leftKey - rightKey;
+  });
+};
+
 export const getEffectiveBillForPeriod = (user, period = {}) => {
   const fallbackBill = Number(user?.monthlyBill || 0);
   const history = Array.isArray(user?.billHistory) ? user.billHistory : [];
@@ -964,6 +1015,7 @@ export const buildMonthlySheetLedgerRow = ({
   const status = lifecycleInactive ? "N/A" : summary.status;
   return {
     user,
+    bill: lifecycleInactive ? 0 : Number(bill || 0),
     payment: lifecycleInactive ? null : latestPayment,
     previousDue: lifecycleInactive ? 0 : summary.previousDue,
     previousAdvance: lifecycleInactive ? 0 : summary.previousAdvance,
@@ -1076,12 +1128,8 @@ export const buildDashboardLedgerSummary = ({
   const partialCustomers = statusCounts.partial;
   const pendingCustomers = statusCounts.pending;
   const advanceCustomers = statusCounts.advance;
-  const totalMonthlyBill = activeUsers.reduce(
-    (sum, user) =>
-      sum +
-      (isUserActiveForPeriod(user, { month, year })
-        ? Number(user?.monthlyBill || 0)
-        : 0),
+  const totalMonthlyBill = rows.reduce(
+    (sum, row) => sum + Number(row?.bill || 0),
     0,
   );
   const totalCollection = rows.reduce(
@@ -1179,8 +1227,8 @@ export const buildMonthlyReportSummary = ({
     };
   });
 
-  const totalMonthlyBill = activeUsers.reduce(
-    (sum, user) => sum + Number(user?.monthlyBill || 0),
+  const totalMonthlyBill = rows.reduce(
+    (sum, row) => sum + Number(row?.bill || 0),
     0,
   );
   const totalCollection = rows.reduce(

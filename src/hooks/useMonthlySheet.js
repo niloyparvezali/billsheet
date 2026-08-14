@@ -277,6 +277,9 @@ export default function useMonthlySheet({
 
         return {
           user,
+          bill: isLifecycleActive
+            ? getEffectiveBillForPeriod(user, { month, year })
+            : 0,
           payment: isLifecycleActive ? latestPayment : null,
           openingDue: isLifecycleActive ? summary.previousDue : 0,
           openingAdvance: isLifecycleActive ? summary.previousAdvance : 0,
@@ -304,7 +307,7 @@ export default function useMonthlySheet({
   );
   const totalDue = rows.reduce((sum, row) => sum + Number(row.due || 0), 0);
   const totalBill = rows.reduce(
-    (sum, row) => sum + Number(row.user.monthlyBill || 0),
+    (sum, row) => sum + Number(row.bill || 0),
     0,
   );
   const getStatusPriority = (statusValue) => {

@@ -2,6 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 
 import {
+  buildUserDocId,
   getDisplayPackages,
   getPrimaryPackage,
   normalizeBangladeshPhone,
@@ -29,4 +30,13 @@ test('normalizeBangladeshPhone prefixes +880 and validates Bangladesh numbers', 
   assert.equal(isValidBangladeshPhone('+8801712345678'), true);
   assert.equal(isValidBangladeshPhone('01712345678'), true);
   assert.equal(isValidBangladeshPhone('12345'), false);
+});
+
+test('buildUserDocId produces unique ids for different users without phone numbers', () => {
+  const first = buildUserDocId({ ownerId: 'owner-1', phone: '', name: 'User X' });
+  const second = buildUserDocId({ ownerId: 'owner-1', phone: '', name: 'User Y' });
+
+  assert.notEqual(first, second);
+  assert.match(first, /^owner-1-/);
+  assert.match(second, /^owner-1-/);
 });

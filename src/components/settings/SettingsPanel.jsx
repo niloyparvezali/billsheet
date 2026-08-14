@@ -142,6 +142,8 @@ export default function SettingsPanel({ user, onSave, onExportBackup }) {
   const [helpSearch, setHelpSearch] = useState("");
   const [activeGuide, setActiveGuide] = useState("dashboard");
   const [expandedGuide, setExpandedGuide] = useState("dashboard");
+  const [guideFlowIndex, setGuideFlowIndex] = useState(0);
+  const [showGuideFlowModal, setShowGuideFlowModal] = useState(false);
   const [activeWorkflowStep, setActiveWorkflowStep] = useState("login");
   const [activeFaq, setActiveFaq] = useState("password");
   const [beginnerMode, setBeginnerMode] = useState("beginner");
@@ -405,12 +407,52 @@ export default function SettingsPanel({ user, onSave, onExportBackup }) {
       100,
   );
 
+  const mainGuideItems = guideItems.slice(0, 5);
+  const selectedGuideFlow = mainGuideItems[guideFlowIndex] || mainGuideItems[0];
+
   const handleGuideOpen = (guideId) => {
+    const nextIndex = mainGuideItems.findIndex((guide) => guide.id === guideId);
     setActiveGuide(guideId);
     setExpandedGuide(guideId);
+    setGuideFlowIndex(nextIndex >= 0 ? nextIndex : 0);
+    setShowGuideFlowModal(true);
     setRecentGuides((current) =>
       [guideId, ...current.filter((item) => item !== guideId)].slice(0, 4),
     );
+  };
+
+  const handleGuideFlowNext = () => {
+    setGuideFlowIndex((current) => {
+      const nextIndex = current + 1;
+      if (nextIndex >= mainGuideItems.length) {
+        setShowGuideFlowModal(false);
+        return current;
+      }
+      const nextGuide = mainGuideItems[nextIndex];
+      setActiveGuide(nextGuide.id);
+      setExpandedGuide(nextGuide.id);
+      return nextIndex;
+    });
+  };
+
+  const handleGuideFlowPrevious = () => {
+    setGuideFlowIndex((current) => {
+      const previousIndex = current - 1;
+      if (previousIndex < 0) {
+        return 0;
+      }
+      const previousGuide = mainGuideItems[previousIndex];
+      setActiveGuide(previousGuide.id);
+      setExpandedGuide(previousGuide.id);
+      return previousIndex;
+    });
+  };
+
+  const handleGuideFlowCancel = () => {
+    setShowGuideFlowModal(false);
+    setGuideFlowIndex(0);
+    setActiveGuide("dashboard");
+    setExpandedGuide("dashboard");
   };
 
   const handlePrintGuide = () => {
@@ -1309,8 +1351,9 @@ export default function SettingsPanel({ user, onSave, onExportBackup }) {
               marginTop: "10px",
             }}
           >
-            {guideItems.slice(0, 5).map((guide) => {
+            {mainGuideItems.map((guide) => {
               const Icon = guide.icon;
+              const isActive = activeGuide === guide.id;
               return (
                 <button
                   key={guide.id}
@@ -1318,12 +1361,13 @@ export default function SettingsPanel({ user, onSave, onExportBackup }) {
                   onClick={() => handleGuideOpen(guide.id)}
                   style={{
                     textAlign: "left",
-                    border: "1px solid var(--divider)",
+                    border: `1px solid ${isActive ? "var(--primary)" : "var(--divider)"}`,
                     borderRadius: "14px",
                     padding: "12px",
-                    background: "var(--card)",
+                    background: isActive ? "rgba(59,130,246,0.08)" : "var(--card)",
                     cursor: "pointer",
                     color: "var(--text)",
+                    boxShadow: isActive ? "0 0 0 1px rgba(59,130,246,0.18)" : "none",
                   }}
                 >
                   <div
@@ -1362,6 +1406,165 @@ export default function SettingsPanel({ user, onSave, onExportBackup }) {
               );
             })}
           </div>
+
+          {showGuideFlowModal && (
+            <div
+              style={{
+                position: "fixed",
+                inset: 0,
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                background: "rgba(15, 23, 42, 0.72)",
+                zIndex: 1000,
+                padding: "20px",
+              }}
+            >
+              <div
+                style={{
+                  width: "min(620px, 100%)",
+                  background: "#1f2937",
+                  borderRadius: "18px",
+                  border: "1px solid var(--divider)",
+                  boxShadow: "0 24px 60px rgba(0,0,0,0.35)",
+                  padding: "20px 18px 16px",
+                  color: "var(--text)",
+                }}
+              >
+                <div
+                  style={{
+                    display: "flex",
+                    justifyContent: "space-between",
+                    alignItems: "center",
+                    marginBottom: "12px",
+                  }}
+                >
+                  <div style={{ fontSize: "18px", fontWeight: 700 }}>
+                    How {selectedGuideFlow.title} works
+                  </div>
+                  <button
+                    type="button"
+                    onClick={handleGuideFlowCancel}
+                    style={{
+                      background: "transparent",
+                      border: "none",
+                      color: "var(--text-muted)",
+                      fontSize: "26px",
+                      cursor: "pointer",
+                      lineHeight: 1,
+                    }}
+                    aria-label="Close guide popup"
+                  >
+                    ×
+                  </button>
+                </div>
+
+                <div
+                  style={{
+                    color: "var(--text-muted)",
+                    marginBottom: "16px",
+                    lineHeight: 1.5,
+                  }}
+                >
+                  {selectedGuideFlow.overview}
+                </div>
+
+                <div style={{ display: "grid", gap: "10px" }}>
+                  {(selectedGuideFlow.actions || []).map((step, index) => (
+                    <div
+                      key={`${selectedGuideFlow.id}-flow-${step}`}
+                      style={{
+                        display: "flex",
+                        alignItems: "center",
+                        gap: "12px",
+                        borderRadius: "12px",
+                        padding: "12px",
+                        background: "rgba(59,130,246,0.10)",
+                        border: "1px solid rgba(59,130,246,0.15)",
+                      }}
+                    >
+                      <div
+                        style={{
+                          width: "28px",
+                          height: "28px",
+                          borderRadius: "50%",
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "center",
+                          background: "var(--primary)",
+                          color: "#fff",
+                          fontWeight: 700,
+                          fontSize: "12px",
+                        }}
+                      >
+                        {index + 1}
+                      </div>
+                      <div style={{ fontWeight: 600 }}>{step}</div>
+                    </div>
+                  ))}
+                </div>
+
+                <div
+                  style={{
+                    display: "flex",
+                    justifyContent: "space-between",
+                    gap: "10px",
+                    marginTop: "18px",
+                  }}
+                >
+                  <button
+                    type="button"
+                    onClick={handleGuideFlowPrevious}
+                    disabled={guideFlowIndex === 0}
+                    style={{
+                      flex: 1,
+                      borderRadius: "10px",
+                      border: "1px solid var(--divider)",
+                      background: "transparent",
+                      color: "var(--text)",
+                      padding: "10px 12px",
+                      cursor: guideFlowIndex === 0 ? "not-allowed" : "pointer",
+                      opacity: guideFlowIndex === 0 ? 0.5 : 1,
+                    }}
+                  >
+                    Previous
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={handleGuideFlowNext}
+                    style={{
+                      flex: 1,
+                      borderRadius: "10px",
+                      border: "none",
+                      background: "var(--primary)",
+                      color: "#fff",
+                      padding: "10px 12px",
+                      cursor: "pointer",
+                    }}
+                  >
+                    {guideFlowIndex === mainGuideItems.length - 1 ? "Finish" : "Next"}
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={handleGuideFlowCancel}
+                    style={{
+                      flex: 1,
+                      borderRadius: "10px",
+                      border: "1px solid var(--divider)",
+                      background: "transparent",
+                      color: "var(--text)",
+                      padding: "10px 12px",
+                      cursor: "pointer",
+                    }}
+                  >
+                    Cancel
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
         </div>
 
         <div

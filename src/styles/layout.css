@@ -1,10 +1,10 @@
-html {
+html{
   font-family: "DM Sans", sans-serif;
   color: var(--text);
   background: var(--bg);
 }
 
-body {
+body{
   margin: 0;
   min-height: 100vh;
   overflow-x: hidden;
@@ -12,7 +12,7 @@ body {
   background: inherit;
 }
 
-header {
+header{
   position: sticky;
   top: 0;
   z-index: 10;
@@ -27,7 +27,7 @@ header {
   border-bottom: 1px solid var(--divider);
 }
 
-.sidebar {
+.sidebar{
   position: fixed;
   inset: 0 auto 0 0;
   z-index: 10;
@@ -39,26 +39,26 @@ header {
   color: var(--text);
 }
 
-.sidebar a {
+.sidebar a{
   color: var(--text);
 }
 
-.sidebar a:hover {
+.sidebar a:hover{
   background: color-mix(in srgb, var(--primary) 12%, transparent);
 }
 
-.sidebar a.active {
+.sidebar a.active{
   background: var(--primary);
   color: #fff;
 }
 
-.sidebar-bottom {
+.sidebar-bottom{
   margin-top: auto;
   padding: 18px 8px 0;
   border-top: 1px solid var(--divider);
 }
 
-.sidebar-bottom button {
+.sidebar-bottom button{
   display: flex;
   gap: 9px;
   padding: 10px 2px;
@@ -66,7 +66,7 @@ header {
   color: var(--text-muted);
 }
 
-.brand {
+.brand{
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -77,33 +77,33 @@ header {
   font-weight: 700;
 }
 
-.brand-text {
+.brand-text{
   display: inline-flex;
   align-items: center;
   gap: 0.4em;
   flex-wrap: wrap;
 }
 
-.brand-word {
+.brand-word{
   display: inline-block;
   line-height: 1;
 }
 
-.brand-word-bill {
+.brand-word-bill{
   color: var(--text);
 }
 
-.brand-word-sheet {
+.brand-word-sheet{
   color: var(--primary);
   transition: color 280ms ease;
 }
 
-nav {
+nav{
   display: grid;
   gap: 5px;
 }
 
-nav a {
+nav a{
   display: flex;
   align-items: center;
   gap: 13px;
@@ -114,18 +114,18 @@ nav a {
 }
 
 nav a:hover,
-nav a.active {
+nav a.active{
   background: color-mix(in srgb, var(--primary) 18%, transparent);
   color: var(--text);
 }
 
-.page {
+.page{
   width: min(100%, 1600px);
   margin: 0 auto;
   padding: 34px clamp(20px, 3vw, 38px);
 }
 
-.page-title {
+.page-title{
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -135,12 +135,12 @@ nav a.active {
   margin-bottom: 18px;
 }
 
-.page-title > div:first-child {
+.page-title > div:first-child{
   flex: 1 1 280px;
   min-width: 0;
 }
 
-.page-title h2 {
+.page-title h2{
   margin: 0;
   font-size: 30px;
   font-weight: 700;
@@ -148,14 +148,14 @@ nav a.active {
   color: var(--text);
 }
 
-.page-title p {
+.page-title p{
   margin: 6px 0 0;
   font-size: 14px;
   line-height: 1.5;
   color: var(--text-muted);
 }
 
-.page-header {
+.page-header{
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -163,25 +163,25 @@ nav a.active {
   margin-bottom: 28px;
 }
 
-.page-title h1 {
+.page-title h1{
   margin: 0;
   color: var(--text);
   font-size: clamp(24px, 3vw, 34px);
   font-weight: 700;
 }
 
-.page-title p {
+.page-title p{
   margin: 6px 0 0;
   color: var(--text-muted);
 }
 
-.grid-2 {
+.grid-2{
   display: grid;
   grid-template-columns: 1.3fr 1fr;
   gap: 22px;
 }
 
-.toolbar {
+.toolbar{
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -190,7 +190,7 @@ nav a.active {
   margin-bottom: 16px;
 }
 
-.panel {
+.panel{
   margin-top: 16px;
   padding: 24px;
   border: 1px solid var(--divider);
@@ -202,13 +202,13 @@ nav a.active {
   overflow-wrap: anywhere;
 }
 
-.panel h3 {
+.panel h3{
   margin: 0;
   color: var(--text);
   font-size: 20px;
 }
 
-.panel-header {
+.panel-header{
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
@@ -216,7 +216,7 @@ nav a.active {
   margin-bottom: 18px;
 }
 
-.panel-header h3 {
+.panel-header h3{
   margin: 0;
   color: var(--text);
   font-size: clamp(20px, 2vw, 26px);
@@ -224,18 +224,18 @@ nav a.active {
 }
 
 .monthly-panel .panel-header h3,
-.report-table-heading h3 {
+.report-table-heading h3{
   color: var(--primary);
 }
 
-.panel-header p {
+.panel-header p{
   margin: 6px 0 0;
   color: var(--text-muted);
   font-size: 14px;
 }
 
 
-.loading-screen {
+.loading-screen{
   /* Full-viewport fixed overlay to ensure consistent centering and block interactions */
   position: fixed;
   inset: 0;
@@ -255,12 +255,12 @@ nav a.active {
   animation: loading-screen-fade 280ms ease both;
 }
 
-.loading-screen--compact {
+.loading-screen--compact{
   /* Keep compact variant visually centered but allow smaller card height */
   padding: clamp(12px, 3vw, 20px);
 }
 
-.loading-backdrop {
+.loading-backdrop{
   position: absolute;
   inset: 0;
   /* Backdrop covers the entire overlay and blocks interactions */
@@ -273,7 +273,7 @@ nav a.active {
   animation: loading-fade 2.4s ease-in-out infinite alternate;
 }
 
-.loading-card {
+.loading-card{
   position: relative;
   display: grid;
   justify-items: center;
@@ -291,7 +291,7 @@ nav a.active {
   animation: loading-card-enter 0.4s ease both;
 }
 
-.loading-orbit {
+.loading-orbit{
   position: relative;
   display: grid;
   place-items: center;
@@ -300,7 +300,7 @@ nav a.active {
   transition: width 200ms ease, height 200ms ease, transform 200ms ease;
 }
 
-.loading-core {
+.loading-core{
   width: 22px;
   height: 22px;
   border-radius: 999px;
@@ -310,7 +310,7 @@ nav a.active {
   animation: loading-pulse 1.4s ease-in-out infinite;
 }
 
-.loading-ring {
+.loading-ring{
   position: absolute;
   inset: 0;
   border: 2px solid transparent;
@@ -320,7 +320,7 @@ nav a.active {
   animation: loader-spin 1.2s linear infinite;
 }
 
-.loading-ring--two {
+.loading-ring--two{
   inset: 10px;
   border-top-color: var(--loading-accent);
   border-right-color: transparent;
@@ -328,7 +328,7 @@ nav a.active {
   animation-direction: reverse;
 }
 
-.loading-particle {
+.loading-particle{
   position: absolute;
   width: 7px;
   height: 7px;
@@ -338,24 +338,24 @@ nav a.active {
   animation: loading-float 2.2s ease-in-out infinite;
 }
 
-.loading-particle--one {
+.loading-particle--one{
   top: 6px;
   right: 14px;
 }
 
-.loading-particle--two {
+.loading-particle--two{
   bottom: 16px;
   left: 14px;
   animation-delay: 0.45s;
 }
 
-.loading-particle--three {
+.loading-particle--three{
   top: 36px;
   left: 8px;
   animation-delay: 0.9s;
 }
 
-.loading-wave {
+.loading-wave{
   position: absolute;
   inset: 18px;
   border-radius: 50%;
@@ -364,17 +364,17 @@ nav a.active {
   animation: loading-wave 2.3s ease-out infinite;
 }
 
-.loading-wave--two {
+.loading-wave--two{
   inset: 32px;
   animation-delay: 0.9s;
 }
 
-.loading-copy {
+.loading-copy{
   display: grid;
   gap: 8px;
 }
 
-.loading-eyebrow {
+.loading-eyebrow{
   display: inline-flex;
   align-self: center;
   padding: 7px 10px;
@@ -387,7 +387,7 @@ nav a.active {
   text-transform: uppercase;
 }
 
-.loading-copy h1 {
+.loading-copy h1{
   margin: 0;
   color: var(--loading-title);
   font-size: clamp(1.2rem, 2.6vw, 1.5rem);
@@ -395,7 +395,7 @@ nav a.active {
   letter-spacing: -0.02em;
 }
 
-.loading-copy p {
+.loading-copy p{
   margin: 0;
   color: var(--loading-text);
   font-size: 0.95rem;
@@ -404,177 +404,177 @@ nav a.active {
 
 
 
-@keyframes loader-spin {
-  to {
+@keyframes loader-spin{
+  to{
     transform: rotate(360deg);
   }
 }
 
-@keyframes loading-screen-fade {
-  from { opacity: 0; transform: translateY(6px); }
-  to { opacity: 1; transform: translateY(0); }
+@keyframes loading-screen-fade{
+  from{ opacity: 0; transform: translateY(6px); }
+  to{ opacity: 1; transform: translateY(0); }
 }
 
-@keyframes loading-pulse {
+@keyframes loading-pulse{
   0%,
-  100% {
+  100%{
     transform: scale(0.92);
     opacity: 0.85;
   }
-  50% {
+  50%{
     transform: scale(1.05);
     opacity: 1;
   }
 }
 
-@keyframes loading-float {
+@keyframes loading-float{
   0%,
-  100% {
+  100%{
     transform: translateY(0px);
     opacity: 0.55;
   }
-  50% {
+  50%{
     transform: translateY(-6px);
     opacity: 0.96;
   }
 }
 
-@keyframes loading-wave {
-  0% {
+@keyframes loading-wave{
+  0%{
     transform: scale(0.8);
     opacity: 0;
   }
-  40% {
+  40%{
     opacity: 0.34;
   }
-  100% {
+  100%{
     transform: scale(1.18);
     opacity: 0;
   }
 }
 
-@keyframes loading-fade {
-  0% {
+@keyframes loading-fade{
+  0%{
     opacity: 0.86;
   }
-  100% {
+  100%{
     opacity: 1;
   }
 }
 
-@keyframes loading-card-enter {
-  from {
+@keyframes loading-card-enter{
+  from{
     transform: translateY(8px);
     opacity: 0;
   }
-  to {
+  to{
     transform: translateY(0);
     opacity: 1;
   }
 }
 
-@media (prefers-reduced-motion: reduce) {
+@media (prefers-reduced-motion: reduce){
   .loading-backdrop,
   .loading-card,
   .loading-core,
   .loading-ring,
   .loading-ring--two,
   .loading-particle,
-  .loading-wave {
+  .loading-wave{
     animation: none !important;
     transition: none !important;
   }
 }
 
 
-.header-actions {
+.header-actions{
   display: flex;
   gap: 9px;
   flex-wrap: wrap;
 }
 
-@media (max-width: 1200px) {
-  .sidebar {
+@media (max-width: 1200px){
+  .sidebar{
     width: 220px;
   }
 
-  main {
+  main{
     margin-left: 220px;
   }
 }
 
-@media (max-width: 900px) {
-  .sidebar {
+@media (max-width: 900px){
+  .sidebar{
     width: min(84vw, 270px);
     padding: 20px 12px;
   }
 
-  main {
+  main{
     margin-left: 0;
   }
 
-  header {
+  header{
     min-height: 74px;
     padding: 0 24px;
   }
 
-  .page {
+  .page{
     padding: 24px 20px;
   }
 
-  .page-title {
+  .page-title{
     align-items: flex-start;
   }
 
-  .header-actions {
+  .header-actions{
     width: 100%;
     justify-content: flex-end;
   }
 }
 
-@media (max-width: 700px) {
-  .sidebar {
+@media (max-width: 767px){
+  .sidebar{
     transform: translateX(-100%);
     transition: transform 0.24s ease;
   }
 
-  .sidebar.open {
+  .sidebar.open{
     transform: none;
   }
 
-  .mobile-only {
+  .mobile-only{
     display: grid;
   }
 
-  header {
+  header{
     height: 70px;
     padding: 0 16px;
   }
 
-  .page {
+  .page{
     padding: 20px 16px;
   }
 
-  .page-title h2 {
+  .page-title h2{
     font-size: clamp(20px, 4vw, 24px);
   }
 
-  .page-title p {
+  .page-title p{
     max-width: 100%;
   }
 }
 
-@media (max-width: 480px) {
-  header {
+@media (max-width: 480px){
+  header{
     min-height: 66px;
     padding: 0 12px;
   }
 
-  .page {
+  .page{
     padding: 18px 12px;
   }
 
-  .brand {
+  .brand{
     padding-inline: 6px;
     font-size: 20px;
   }

@@ -2,7 +2,7 @@ import { createPdfLayout } from "./pdfLayout";
 import { getStatusColor, pdfMoney, pdfBalance } from "./pdfHelpers";
 import { getDisplayBalanceValues, getDisplayPaymentStatus } from "../payments";
 
-export function exportTransactionPdf({
+export async function exportTransactionPdf({
   rows,
   companyName = "Bill Sheet",
   theme = "forest",
@@ -10,7 +10,7 @@ export function exportTransactionPdf({
 }) {
   const reportYear = Number(year) || new Date().getFullYear();
   const { pdf, colors, startY, drawSummary, drawTable, drawFooter } =
-    createPdfLayout({
+    await createPdfLayout({
       reportTitle: "Transactions",
       companyName,
       theme,

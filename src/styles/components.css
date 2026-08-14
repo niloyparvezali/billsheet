@@ -1,4 +1,4 @@
-.btn {
+.btn{
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -19,59 +19,59 @@
     box-shadow 0.2s ease;
 }
 
-.btn:hover {
+.btn:hover{
   transform: translateY(-1px);
 }
 
-.btn:active {
+.btn:active{
   transform: translateY(0);
 }
 
-.btn:disabled {
+.btn:disabled{
   opacity: 0.6;
   cursor: not-allowed;
 }
 
-.btn-primary {
+.btn-primary{
   color: #fff;
   background: linear-gradient(135deg, var(--primary), var(--primary-hover));
   box-shadow: var(--primary-shadow);
 }
 
-.btn-secondary {
+.btn-secondary{
   border-color: var(--divider);
   background: var(--card);
   color: var(--text);
   box-shadow: 0 8px 18px rgba(0, 0, 0, 0.08);
 }
 
-.btn-secondary:hover {
+.btn-secondary:hover{
   border-color: var(--primary);
   background: color-mix(in srgb, var(--surface) 90%, var(--primary) 10%);
 }
 
 .btn-primary:active,
-.btn-secondary:active {
+.btn-secondary:active{
   transform: translateY(0);
 }
 
-.btn-danger {
+.btn-danger{
   background: var(--danger);
   color: #fff;
 }
 
-.btn-success {
+.btn-success{
   background: var(--success);
   color: #fff;
 }
 
-.btn-outline {
+.btn-outline{
   border-color: var(--divider);
   background: transparent;
   color: var(--text);
 }
 
-.btn-icon {
+.btn-icon{
   display: grid;
   place-items: center;
   width: 38px;
@@ -86,7 +86,7 @@
     color 0.2s;
 }
 
-.btn-icon:hover {
+.btn-icon:hover{
   border-color: var(--primary);
   background: color-mix(in srgb, var(--card) 90%, var(--primary) 10%);
   color: var(--primary);
@@ -99,7 +99,7 @@
 .input,
 input,
 textarea,
-select {
+select{
   width: 100%;
   padding: 10px 14px;
   border: 1px solid var(--input-border);
@@ -117,19 +117,19 @@ select {
 .input:focus,
 input:focus,
 textarea:focus,
-select:focus {
+select:focus{
   border-color: var(--primary);
   box-shadow: 0 0 0 3px color-mix(in srgb, var(--primary) 22%, transparent);
 }
 
 input::placeholder,
-textarea::placeholder {
+textarea::placeholder{
   color: var(--text-muted);
 }
 
 input:disabled,
 textarea:disabled,
-select:disabled {
+select:disabled{
   opacity: 0.7;
   cursor: not-allowed;
 }
@@ -138,7 +138,7 @@ select:disabled {
    Universal Card System
 =========================================== */
 
-.card {
+.card{
   border: 1px solid var(--divider);
   border-radius: var(--radius-lg);
   background: var(--card);
@@ -146,7 +146,7 @@ select:disabled {
   color: var(--text);
 }
 
-.badge {
+.badge{
   display: inline-flex;
   align-items: center;
   padding: 6px 12px;
@@ -155,17 +155,17 @@ select:disabled {
   font-weight: 600;
 }
 
-.badge-success {
+.badge-success{
   background: color-mix(in srgb, var(--success) 14%, transparent);
   color: var(--success);
 }
 
-.badge-danger {
+.badge-danger{
   background: color-mix(in srgb, var(--danger) 14%, transparent);
   color: var(--danger);
 }
 
-.badge-warning {
+.badge-warning{
   background: color-mix(in srgb, var(--warning) 14%, transparent);
   color: var(--warning);
 }
@@ -174,14 +174,14 @@ select:disabled {
    Table System
 =========================================== */
 
-table {
+table{
   overflow: hidden;
   border: 1px solid var(--divider);
   border-radius: var(--radius-lg);
   background: var(--card);
 }
 
-th {
+th{
   padding: 14px 16px;
   border-bottom: 1px solid var(--divider);
   color: var(--text-muted);
@@ -189,21 +189,21 @@ th {
   text-align: left;
 }
 
-td {
+td{
   padding: 14px 16px;
   border-bottom: 1px solid var(--divider);
   color: var(--text);
 }
 
-tbody tr {
+tbody tr{
   transition: background 0.2s;
 }
 
-tbody tr:hover {
+tbody tr:hover{
   background: color-mix(in srgb, var(--card) 88%, var(--primary) 12%);
 }
 
-.transaction-row--voided-original {
+.transaction-row--voided-original{
   border-left: 4px solid var(--danger);
   background: linear-gradient(
     90deg,
@@ -213,7 +213,7 @@ tbody tr:hover {
   opacity: 0.92;
 }
 
-.transaction-row--voided-original:hover {
+.transaction-row--voided-original:hover{
   background: linear-gradient(
     90deg,
     color-mix(in srgb, var(--warning) 30%, transparent),
@@ -225,7 +225,7 @@ tbody tr:hover {
    Search System
 =========================================== */
 
-.search {
+.search{
   display: flex;
   align-items: center;
   gap: 10px;
@@ -242,12 +242,12 @@ tbody tr:hover {
     background 0.2s;
 }
 
-.search:focus-within {
+.search:focus-within{
   border-color: var(--primary);
   box-shadow: 0 0 0 3px color-mix(in srgb, var(--primary) 22%, transparent);
 }
 
-.search input {
+.search input{
   width: 100%;
   border: 0;
   outline: 0;
@@ -255,7 +255,7 @@ tbody tr:hover {
   color: var(--text);
 }
 
-.search input:focus {
+.search input:focus{
   border: none;
   outline: none;
   box-shadow: none;
@@ -265,7 +265,7 @@ tbody tr:hover {
    Button Rows
 =========================================== */
 
-.button-row {
+.button-row{
   display: flex;
   justify-content: flex-end;
   gap: 14px;
@@ -275,7 +275,7 @@ tbody tr:hover {
   margin-bottom: 20px;
 }
 
-.transaction-actions {
+.transaction-actions{
   display: flex;
   align-items: center;
   justify-content: flex-end;
@@ -285,7 +285,7 @@ tbody tr:hover {
 }
 
 .button-row button,
-.transaction-actions button {
+.transaction-actions button{
   flex: 1 1 140px;
   min-width: 0;
   min-height: 46px;
@@ -296,23 +296,23 @@ tbody tr:hover {
     box-shadow 0.2s ease;
 }
 
-.transaction-actions button {
+.transaction-actions button{
   flex: 0 1 auto;
 }
 
 .button-row button:hover,
-.transaction-actions button:hover {
+.transaction-actions button:hover{
   transform: translateY(-1px);
   box-shadow: var(--primary-shadow);
 }
 
-.button-row button {
+.button-row button{
   font-weight: 600;
 } /* ===========================================
    Table Wrapper
 =========================================== */
 
-.table-wrap {
+.table-wrap{
   padding: 0;
   overflow: clip;
   overflow-x: auto;
@@ -322,16 +322,16 @@ tbody tr:hover {
 }
 
 .table-wrap th,
-.table-wrap td {
+.table-wrap td{
   padding: 18px 20px;
   vertical-align: middle;
 }
 
-.table-wrap thead {
+.table-wrap thead{
   background: transparent;
 }
 
-.table-wrap tbody tr {
+.table-wrap tbody tr{
   background: var(--surface);
   border: 1px solid var(--divider);
   border-radius: 18px;
@@ -343,13 +343,13 @@ tbody tr:hover {
     border-color 0.2s ease;
 }
 
-.table-wrap tbody tr:hover {
+.table-wrap tbody tr:hover{
   border-color: var(--primary);
   background: color-mix(in srgb, var(--surface) 90%, var(--primary) 10%);
   box-shadow: var(--primary-shadow);
 }
 
-.table-wrap td.actions {
+.table-wrap td.actions{
   text-align: right;
 }
 
@@ -357,7 +357,7 @@ tbody tr:hover {
    Floating Search Button Styles
 =========================================== */
 
-.search-fab {
+.search-fab{
   position: fixed;
   top: 96px;
   right: 28px;
@@ -388,32 +388,32 @@ tbody tr:hover {
     background 0.2s ease;
 }
 
-.search-fab:hover {
+.search-fab:hover{
   transform: translateY(-2px);
   background: linear-gradient(135deg, var(--primary-hover), var(--primary));
   box-shadow: var(--primary-shadow);
 }
 
-.search-fab:active {
+.search-fab:active{
   transform: scale(0.96);
 }
 
-.search-fab:focus-visible {
+.search-fab:focus-visible{
   outline: none;
   box-shadow:
     0 0 0 3px color-mix(in srgb, var(--primary) 30%, transparent),
     var(--primary-shadow);
 }
 
-.search-fab svg {
+.search-fab svg{
   width: 20px;
   height: 20px;
   stroke-width: 2.4;
   color: inherit;
 }
 
-@media (max-width: 700px) {
-  .search-fab {
+@media (max-width: 700px){
+  .search-fab{
     top: 86px;
     right: 4px;
     width: 48px;
@@ -421,11 +421,11 @@ tbody tr:hover {
   }
 }
 
-.actions {
+.actions{
   white-space: nowrap;
 }
 
-.actions button {
+.actions button{
   margin-left: 4px;
   padding: 7px;
   border-radius: 7px;
@@ -438,19 +438,19 @@ tbody tr:hover {
     border-color 0.2s;
 }
 
-.actions button:hover {
+.actions button:hover{
   background: color-mix(in srgb, var(--surface) 88%, var(--primary) 12%);
   border-color: var(--primary);
   color: var(--primary);
 }
 
-.actions .danger {
+.actions .danger{
   background: color-mix(in srgb, var(--danger) 12%, transparent);
   border-color: color-mix(in srgb, var(--danger) 25%, transparent);
   color: var(--danger);
 }
 
-.button-row {
+.button-row{
   display: flex;
   justify-content: flex-end;
   gap: 14px;
@@ -458,7 +458,7 @@ tbody tr:hover {
   margin-bottom: 20px;
 }
 
-.status {
+.status{
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -470,44 +470,46 @@ tbody tr:hover {
 
 .status.completed,
 .status.complete,
-.status.paid {
+.status.paid{
   color: var(--status-paid-text);
   background: var(--status-paid-bg);
 }
 
-.status.active {
+.status.active,
+.status-active{
   color: var(--status-paid-text);
   background: var(--status-paid-bg);
 }
 
-.status.inactive {
+.status.inactive,
+.status-inactive{
   color: var(--status-due-text);
   background: var(--status-due-bg);
 }
 
-.status.pending {
+.status.pending{
   color: var(--status-pending-text);
   background: var(--status-pending-bg);
 }
 
-.status.advance {
+.status.advance{
   color: var(--status-advance-text);
   background: var(--status-advance-bg);
 }
 
-.status.partial {
+.status.partial{
   color: var(--status-partial-text);
   background: var(--status-partial-bg);
 }
 
 .status.due,
 .status.voided,
-.status.reversed {
+.status.reversed{
   color: var(--status-due-text);
   background: var(--status-due-bg);
 }
 
-.tag {
+.tag{
   padding: 6px 10px;
   border-radius: var(--radius-xl);
   background: color-mix(in srgb, var(--primary) 12%, transparent);
@@ -515,20 +517,20 @@ tbody tr:hover {
   font-size: 12px;
 }
 
-.empty {
+.empty{
   padding: 60px 20px;
   color: var(--text-muted);
   text-align: center;
 }
 
-.summary-subtitle {
+.summary-subtitle{
   display: block;
   margin-top: 6px;
   color: var(--text-muted);
   font-size: 12px;
 }
 
-.section-header {
+.section-header{
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
@@ -537,27 +539,27 @@ tbody tr:hover {
   border-bottom: 1px solid var(--divider);
 }
 
-.section-title h3 {
+.section-title h3{
   margin: 0;
   color: var(--text);
 }
 
-.section-title p {
+.section-title p{
   margin: 6px 0 0;
   color: var(--text-muted);
 }
 
-.section-action {
+.section-action{
   flex-shrink: 0;
 }
 
-@media (max-width: 768px) {
-  .section-header {
+@media (max-width: 768px){
+  .section-header{
     flex-direction: column;
     align-items: flex-start;
   }
 
-  .section-action {
+  .section-action{
     width: fit-content;
   }
 }
