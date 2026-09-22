@@ -1,43 +1,28 @@
 # BillSheet
 
-BillSheet is a React + Vite + Firebase billing and collection management application.
+BillSheet is a React + Vite billing and collection management application backed by Firebase Authentication and Cloud Firestore.
 
-## Requirements
+## Deploy to Vercel
 
-- Node.js 22 LTS (or a compatible current Node.js version)
-- A Firebase project configured for the application
+1. Import this repository into Vercel.
+2. Use the default Vite build settings:
+   - Build command: `npm run build`
+   - Output directory: `dist`
+3. The included `vercel.json` keeps React Router routes working on Vercel.
 
-## Local setup
+The production build includes the Firebase web configuration in `.env.production` so the deployed app connects to the existing Firestore project. Firebase security rules still control access to the data.
 
-1. Clone the repository.
-2. Run `npm install`.
-3. Create `.env.local` from `.env.example` and fill in the Firebase web-app configuration values.
-4. Run `npm run dev`.
-5. For a production build, run `npm run build`.
+## Run locally
 
-## Vercel deployment
+```bash
+npm install
+npm run dev
+```
 
-Set these environment variables in the Vercel project settings:
+## Firebase
 
-- `VITE_FIREBASE_API_KEY`
-- `VITE_FIREBASE_AUTH_DOMAIN`
-- `VITE_FIREBASE_PROJECT_ID`
-- `VITE_FIREBASE_STORAGE_BUCKET`
-- `VITE_FIREBASE_MESSAGING_SENDER_ID`
-- `VITE_FIREBASE_APP_ID`
+Firestore rules, indexes, Storage rules, and Firebase Functions configuration are kept in this repository for the existing Firebase project. Deploy those resources with the Firebase CLI only when you intentionally need to change the backend configuration.
 
-Vercel will use `npm run build` and publish the generated `dist` directory.
-The included `vercel.json` keeps the React Router routes working on refresh/direct navigation.
+## Data safety
 
-## Firebase configuration
-
-The repository keeps the Firebase deployment files used by the current application:
-
-- `firebase.json`
-- `firestore.rules`
-- `firestore.indexes.json`
-- `storage.rules`
-- `functions/`
-
-Deploy Firebase resources separately with the Firebase CLI when required.
-Do not commit secret `.env` files.
+The application reads users, payments, categories, settings, and related records from Firestore for the authenticated owner. No sample/demo dataset is included in this production bundle, and no automatic database reset or migration is performed by the deploy package.
