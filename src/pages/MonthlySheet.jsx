@@ -30,7 +30,7 @@ import {
   FiUsers,
 } from "react-icons/fi";
 import toast from "react-hot-toast";
-import { db } from "../firebase/config";
+import { db, firebaseReady } from "../firebase/config";
 import useOwnedCollection from "../hooks/useOwnedCollection";
 import ConfirmModal from "../components/ConfirmModal";
 import { useAuth } from "../context/AuthContext";
@@ -97,7 +97,7 @@ export default function MonthlySheet() {
 
   useEffect(() => {
     const loadSmsTemplate = async () => {
-      if (!signedInUser || !db) return;
+      if (!signedInUser || !firebaseReady || !db) return;
       try {
         const saved = await getDoc(doc(db, "settings", signedInUser.uid));
         const template = saved?.data()?.smsTemplate;
@@ -380,6 +380,10 @@ export default function MonthlySheet() {
   };
 
   const submitVoidPayment = async (payment) => {
+    if (!firebaseReady || !db) {
+      toast.error("Cloud data connection is unavailable.");
+      return;
+    }
     if (!payment?.id || !hasPaymentForVisibleMonth(payment)) return;
     const finalReason =
       voidReasonType === "Other" ? customReasonText.trim() : voidReasonType;

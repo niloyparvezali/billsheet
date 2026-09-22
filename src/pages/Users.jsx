@@ -18,7 +18,7 @@ import {
   updateDoc,
 } from "firebase/firestore";
 import toast from "react-hot-toast";
-import { auth, db } from "../firebase/config";
+import { auth, db, firebaseReady } from "../firebase/config";
 import { useAuth } from "../context/AuthContext";
 import { useLanguage } from "../context/LanguageContext";
 import useOwnedCollection from "../hooks/useOwnedCollection";
@@ -245,6 +245,10 @@ export default function Users() {
 
   const save = async (event) => {
     event.preventDefault();
+    if (!firebaseReady || !db) {
+      toast.error("Cloud data connection is unavailable.");
+      return;
+    }
     if (!form?.name?.trim()) {
       toast.error("Name is required");
       return;
@@ -482,6 +486,11 @@ export default function Users() {
     }
   };
   const remove = async (id) => {
+    if (!firebaseReady || !db) {
+      toast.error("Cloud data connection is unavailable.");
+      setDeleteUser(null);
+      return;
+    }
     try {
       const existingUser = (allUsers || []).find((item) => item.id === id);
       const historyEntries = Array.isArray(existingUser?.statusHistory)
@@ -535,6 +544,11 @@ export default function Users() {
 
 
   const removeCategory = async (category) => {
+    if (!firebaseReady || !db) {
+      toast.error("Cloud data connection is unavailable.");
+      setCategoryToRemove(null);
+      return;
+    }
     if (!category?.id) {
       toast.error("Could not delete category because its ID is missing.");
       setCategoryToRemove(null);

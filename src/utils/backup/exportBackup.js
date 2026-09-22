@@ -6,11 +6,14 @@ import {
   query,
   where,
 } from "firebase/firestore";
-import { db } from "../../firebase/config";
+import { db, firebaseReady } from "../../firebase/config";
 
 export async function exportBackup(user) {
   if (!user?.uid) {
     throw new Error("User not found.");
+  }
+  if (!firebaseReady || !db) {
+    throw new Error("Cloud data connection is unavailable.");
   }
 
   // Load all user-owned collections

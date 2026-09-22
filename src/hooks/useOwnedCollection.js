@@ -1,6 +1,6 @@
 import { useMemo } from "react";
 import { collection, query, where } from "firebase/firestore";
-import { db } from "../firebase/config";
+import { db, firebaseReady } from "../firebase/config";
 import { useAuth } from "../context/AuthContext";
 import useCollection from "./useCollection";
 
@@ -13,7 +13,7 @@ export default function useOwnedCollection(
   const { user } = useAuth();
 
   const q = useMemo(() => {
-    if (!db || !user?.uid) return null;
+    if (!firebaseReady || !db || !user?.uid) return null;
 
     const constraints = Array.isArray(queryConstraints)
       ? queryConstraints.filter(Boolean)

@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { doc, setDoc } from "firebase/firestore";
-import { db } from "../firebase/config";
+import { db, firebaseReady } from "../firebase/config";
+import toast from "react-hot-toast";
 import { readThemeColors } from "../utils/theme";
 import { useLanguage } from "../context/LanguageContext";
 
@@ -66,12 +67,17 @@ export default function MonthlyCollectionChart({
             onClick={async () => {
               setChartPage(0);
 
-              if (user) {
-                await setDoc(
-                  doc(db, "settings", user.uid),
-                  { dashboardChartPage: 0 },
-                  { merge: true },
-                );
+              if (user && firebaseReady && db) {
+                try {
+                  await setDoc(
+                    doc(db, "settings", user.uid),
+                    { dashboardChartPage: 0 },
+                    { merge: true },
+                  );
+                } catch (error) {
+                  console.error("Unable to save dashboard chart preference", error);
+                  toast.error(error.message || "Unable to save dashboard chart preference.");
+                }
               }
             }}
           >
@@ -83,12 +89,17 @@ export default function MonthlyCollectionChart({
             onClick={async () => {
               setChartPage(1);
 
-              if (user) {
-                await setDoc(
-                  doc(db, "settings", user.uid),
-                  { dashboardChartPage: 1 },
-                  { merge: true },
-                );
+              if (user && firebaseReady && db) {
+                try {
+                  await setDoc(
+                    doc(db, "settings", user.uid),
+                    { dashboardChartPage: 1 },
+                    { merge: true },
+                  );
+                } catch (error) {
+                  console.error("Unable to save dashboard chart preference", error);
+                  toast.error(error.message || "Unable to save dashboard chart preference.");
+                }
               }
             }}
           >

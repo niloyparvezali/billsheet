@@ -121,6 +121,18 @@ export default function Login() {
     return () => window.clearTimeout(frame);
   }, [mode]);
 
+  if (import.meta.env.PROD && !configured) {
+    return (
+      <div className="app-error">
+        <section>
+          <h1>Cloud data connection is unavailable</h1>
+          <p>BillSheet cannot start because the Firebase production configuration is missing or could not be initialized.</p>
+          <p>Configure the required VITE_FIREBASE_* variables in Vercel, then redeploy.</p>
+        </section>
+      </div>
+    );
+  }
+
   if (user) return <Navigate to={from} replace />;
 
   const updateEmail = (value) => {

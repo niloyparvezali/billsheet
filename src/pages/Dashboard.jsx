@@ -2,7 +2,7 @@ import MonthlyCollectionChart from "../components/MonthlyCollectionChart";
 import RecentPayments from "../components/RecentPayments";
 import DashboardSummary from "../components/DashboardSummary";
 import { doc, getDoc, setDoc } from "firebase/firestore";
-import { db } from "../firebase/config";
+import { db, firebaseReady } from "../firebase/config";
 import { useAuth } from "../context/AuthContext";
 import { useLanguage } from "../context/LanguageContext";
 import { useEffect, useMemo, useState } from "react";
@@ -63,7 +63,11 @@ export default function Dashboard() {
   );
   const chartPages = [chart.slice(0, 6), chart.slice(6, 12)];
   useEffect(() => {
-    if (!user) return;
+    if (!user || !firebaseReady || !db) {
+      setLoadingChartPage(false);
+      setChartPage(0);
+      return;
+    }
 
     const loadPreference = async () => {
       try {
@@ -83,7 +87,7 @@ export default function Dashboard() {
     };
 
     loadPreference();
-  }, [user]);
+  }, [user, db]);
 
   const currentChart = chartPages[chartPage];
 

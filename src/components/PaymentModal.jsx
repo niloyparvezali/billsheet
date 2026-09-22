@@ -10,7 +10,7 @@ import toast from "react-hot-toast";
 import Modal from "./Modal";
 import ConfirmModal from "./ConfirmModal";
 
-import { db } from "../firebase/config";
+import { db, firebaseReady } from "../firebase/config";
 import useOwnedCollection from "../hooks/useOwnedCollection";
 import { useLanguage } from "../context/LanguageContext";
 import { money } from "../utils/date";
@@ -79,6 +79,11 @@ export default function PaymentModal({ data, month, year, ownerId, close }) {
 
   const savePayment = async () => {
     setSaving(true);
+    if (!firebaseReady || !db) {
+      toast.error("Cloud data connection is unavailable.");
+      setSaving(false);
+      return;
+    }
     const paid = Number(amount || 0);
     const addedDue = Number(extraDue || 0);
     if (!validatePaymentInputs({ paid, addedDue })) {

@@ -71,11 +71,17 @@ const saveLocalAccounts = (accounts) => {
 };
 
 export function AuthProvider({ children }) {
-  const [user, setUser] = useState(readSessionUser);
+  const [user, setUser] = useState(() =>
+    import.meta.env.PROD && !firebaseReady ? null : readSessionUser(),
+  );
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    if (!firebaseReady || !auth) {
+    if (!firebaseReady || !auth || !db) {
+      if (import.meta.env.PROD) {
+        setUser(null);
+        writeSessionUser(null);
+      }
       setLoading(false);
       return;
     }
@@ -99,7 +105,14 @@ export function AuthProvider({ children }) {
     });
   }, []);
 
+  const ensureProductionFirebase = () => {
+    if (import.meta.env.PROD && (!firebaseReady || !auth || !db)) {
+      throw new Error("Cloud data connection is unavailable. Check the Firebase Vercel configuration.");
+    }
+  };
+
   const signInWithEmailAndPasscode = async (email, passcode) => {
+    ensureProductionFirebase();
     if (!email || !passcode) {
       throw new Error("Enter both your email address and passcode.");
     }
@@ -172,6 +185,7 @@ export function AuthProvider({ children }) {
   };
 
   const registerWithEmailAndPasscode = async (profile) => {
+    ensureProductionFirebase();
     const email = validateEmail(profile.email);
     const passcode = String(profile.passcode || "");
     const confirmPasscode = String(profile.confirmPasscode || "");
@@ -252,6 +266,7 @@ export function AuthProvider({ children }) {
   };
 
   const recoverPasscode = async (email) => {
+    ensureProductionFirebase();
     const normalizedEmail = validateEmail(email);
     if (!normalizedEmail) {
       throw new Error("Enter a valid email address.");
@@ -279,6 +294,7 @@ export function AuthProvider({ children }) {
   };
 
   const changePasscode = async ({ currentPasscode, newPasscode, confirmNewPasscode }) => {
+    ensureProductionFirebase();
     const trimmedCurrent = String(currentPasscode || "").trim();
     const trimmedNew = String(newPasscode || "").trim();
     const trimmedConfirm = String(confirmNewPasscode || "").trim();
@@ -296,7 +312,7 @@ export function AuthProvider({ children }) {
       throw new Error("Please choose a different passcode.");
     }
 
-    if (firebaseReady && auth && user?.uid && user?.email) {
+    if (firebaseReady && auth && db && user?.uid && user?.email) {
       try {
         // Verify current passcode by re-authenticating
         try {
@@ -363,7 +379,7 @@ export function AuthProvider({ children }) {
   const value = {
     user,
     loading,
-    configured: firebaseReady,
+    configured: firebaseReady && Boolean(auth && db),
     login: signInWithEmailAndPasscode,
     signup: registerWithEmailAndPasscode,
     resetPassword: recoverPasscode,

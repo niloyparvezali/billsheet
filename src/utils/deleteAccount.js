@@ -8,7 +8,7 @@ import {
   doc,
 } from "firebase/firestore";
 
-import { auth, db } from "../firebase/config";
+import { auth, db, firebaseReady } from "../firebase/config";
 
 export async function deleteAccount(user) {
   const authUser = auth?.currentUser;
@@ -16,6 +16,9 @@ export async function deleteAccount(user) {
 
   if (!targetUid) {
     throw new Error("User not found.");
+  }
+  if (!firebaseReady || !db) {
+    throw new Error("Cloud data connection is unavailable.");
   }
 
   const batch = writeBatch(db);

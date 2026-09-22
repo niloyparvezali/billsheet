@@ -7,11 +7,14 @@ import {
   doc,
 } from "firebase/firestore";
 
-import { db } from "../../firebase/config";
+import { db, firebaseReady } from "../../firebase/config";
 
 export async function resetApplicationData(user) {
   if (!user?.uid) {
     throw new Error("User not found.");
+  }
+  if (!firebaseReady || !db) {
+    throw new Error("Cloud data connection is unavailable.");
   }
 
   const batch = writeBatch(db);

@@ -7,7 +7,7 @@ import {
   writeBatch,
 } from "firebase/firestore";
 
-import { db } from "../../firebase/config";
+import { db, firebaseReady } from "../../firebase/config";
 
 const COLLECTIONS = ["users", "payments", "categories"];
 
@@ -111,7 +111,7 @@ const cloneForAccount = (item, ownerId) => {
 };
 
 const createFreshDocId = (collectionName) => {
-  if (!db) return `${collectionName}-${Math.random().toString(36).slice(2, 10)}`;
+  if (!db) throw new Error("Cloud data connection is unavailable.");
   const ref = doc(collection(db, collectionName));
   return ref?.id || `${collectionName}-${Math.random().toString(36).slice(2, 10)}`;
 };
@@ -119,6 +119,9 @@ const createFreshDocId = (collectionName) => {
 export async function restoreBackup(backup, user, mode = "keep") {
   if (!user?.uid) {
     throw new Error("User not found.");
+  }
+  if (!firebaseReady || !db) {
+    throw new Error("Cloud data connection is unavailable.");
   }
 
   if (!backup) {

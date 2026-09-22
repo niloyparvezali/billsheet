@@ -5,7 +5,7 @@ import toast from "react-hot-toast";
 import { FiTrash2 } from "react-icons/fi";
 
 import Modal from "./Modal";
-import { db } from "../firebase/config";
+import { db, firebaseReady } from "../firebase/config";
 import { getDisplayPackages } from "../utils/users";
 import { useLanguage } from "../context/LanguageContext";
 
@@ -31,6 +31,10 @@ export default function CategoryModal({
       )
     ) {
       toast.error(`The category “${clean}” already exists`);
+      return;
+    }
+    if (!firebaseReady || !db) {
+      toast.error("Cloud data connection is unavailable.");
       return;
     }
     try {
