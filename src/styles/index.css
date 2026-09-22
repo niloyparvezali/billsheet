@@ -5221,7 +5221,7 @@ table{
 
 
 /* ==========================================
-   Monthly Transaction Ledger
+   Monthly Transaction Ledger — Single Row
 ========================================== */
 
 .sr-only{
@@ -5241,6 +5241,7 @@ table{
   max-width:1180px;
   margin:0 auto;
   padding-bottom:140px;
+  min-width:0;
 }
 
 .transaction-history-page .ledger-header{
@@ -5249,6 +5250,10 @@ table{
   justify-content:space-between;
   gap:20px;
   margin-bottom:18px;
+}
+
+.transaction-history-page .ledger-title-copy{
+  min-width:0;
 }
 
 .transaction-history-page .ledger-title-copy h2{
@@ -5318,6 +5323,11 @@ table{
 .transaction-history-page .ledger-export-btn:hover:not(:disabled){
   transform:translateY(-1px);
   box-shadow:var(--primary-shadow);
+}
+
+.transaction-history-page .ledger-export-btn:disabled{
+  opacity:.55;
+  cursor:not-allowed;
 }
 
 .transaction-history-page .ledger-panel{
@@ -5399,78 +5409,120 @@ table{
   color:var(--text-muted);
 }
 
-.transaction-history-page .ledger-list{
-  display:flex;
-  flex-direction:column;
+.transaction-history-page .transaction-ledger{
+  width:100%;
+  min-width:0;
+  overflow:hidden;
 }
 
-.transaction-history-page .ledger-row{
-  padding:13px 16px 12px;
-  border-top:1px solid var(--divider);
+.transaction-history-page .transaction-ledger-head,
+.transaction-history-page .transaction-ledger-row{
+  display:grid;
+  grid-template-columns:
+    minmax(92px, 0.95fr)
+    minmax(58px, 0.65fr)
+    minmax(150px, 1.55fr)
+    minmax(78px, 0.8fr)
+    minmax(92px, 0.9fr);
+  align-items:center;
+  column-gap:10px;
+  width:100%;
+  min-width:0;
+  box-sizing:border-box;
+}
+
+.transaction-history-page .transaction-ledger-head{
+  min-height:38px;
+  padding:0 16px;
+  border-bottom:1px solid var(--divider);
+  background:var(--surface);
+  color:var(--text-muted);
+  font-size:11px;
+  font-weight:800;
+  letter-spacing:.04em;
+  text-transform:uppercase;
+}
+
+.transaction-history-page .transaction-ledger-body{
+  width:100%;
+  min-width:0;
+}
+
+.transaction-history-page .transaction-ledger-row{
+  min-height:56px;
+  padding:9px 16px;
+  border-bottom:1px solid var(--divider);
   background:var(--card);
+  color:var(--text);
+  cursor:pointer;
+  transition:background .16s ease;
 }
 
-.transaction-history-page .ledger-row:first-child{
-  border-top:0;
+.transaction-history-page .transaction-ledger-row:last-child{
+  border-bottom:0;
 }
 
-.transaction-history-page .ledger-row:hover{
+.transaction-history-page .transaction-ledger-row:hover{
   background:color-mix(in srgb, var(--primary) 4%, var(--card));
 }
 
-.transaction-history-page .ledger-row-top{
-  display:flex;
-  align-items:baseline;
-  justify-content:space-between;
-  gap:12px;
+.transaction-history-page .ledger-cell{
+  min-width:0;
+  overflow:hidden;
+  text-overflow:ellipsis;
 }
 
-.transaction-history-page .ledger-row-top time{
-  color:var(--text-muted);
-  font-size:11px;
-  font-weight:600;
-}
-
-.transaction-history-page .ledger-row-top > strong{
-  color:var(--text);
-  font-size:16px;
-  font-weight:800;
+.transaction-history-page .ledger-date,
+.transaction-history-page .ledger-time{
   white-space:nowrap;
 }
 
-.transaction-history-page .ledger-customer{
-  margin-top:4px;
+.transaction-history-page .ledger-date{
   color:var(--text);
-  font-size:14px;
+  font-size:12px;
+  font-weight:700;
+}
+
+.transaction-history-page .ledger-time{
+  color:var(--text-muted);
+  font-size:12px;
+  font-weight:600;
+}
+
+.transaction-history-page .ledger-name{
+  color:var(--text);
+  font-size:13px;
   font-weight:750;
   overflow-wrap:anywhere;
 }
 
-.transaction-history-page .ledger-row-meta{
-  display:flex;
-  flex-wrap:wrap;
-  align-items:center;
-  gap:5px 9px;
-  margin-top:3px;
-  color:var(--text-muted);
-  font-size:11px;
+.transaction-history-page .is-numeric{
+  text-align:right;
+  font-variant-numeric:tabular-nums;
+  white-space:nowrap;
 }
 
-.transaction-history-page .ledger-row-meta span + span::before{
-  content:"·";
-  margin-right:9px;
-  color:var(--divider);
+.transaction-history-page .ledger-paid{
+  color:var(--success);
+  font-size:13px;
+  font-weight:750;
 }
 
-.transaction-history-page .ledger-reference{
-  overflow-wrap:anywhere;
+.transaction-history-page .ledger-balance{
+  font-size:13px;
+  font-weight:800;
 }
 
-.transaction-history-page .ledger-note{
-  margin-top:5px;
-  color:var(--text-muted);
-  font-size:11px;
-  overflow-wrap:anywhere;
+.transaction-history-page .ledger-balance.is-advance{
+  color:var(--status-advance-text);
+}
+
+.transaction-history-page .ledger-balance.is-due{
+  color:var(--status-due-text);
+}
+
+.transaction-history-page .ledger-balance.is-zero{
+  color:var(--text);
 }
 
 .transaction-history-page .ledger-pagination{
@@ -5517,7 +5569,7 @@ table{
   align-items:center;
   justify-content:center;
   gap:6px;
-  min-height:300px;
+  min-height:240px;
   padding:24px;
   text-align:center;
   color:var(--text-muted);
@@ -5534,22 +5586,24 @@ table{
 
 @media (max-width: 768px){
   .transaction-history-page{
-    padding-bottom:150px;
+    padding:0 0 128px;
+    max-width:none;
   }
 
   .transaction-history-page .ledger-header{
     align-items:stretch;
     flex-direction:column;
-    gap:12px;
-    margin-bottom:12px;
+    gap:10px;
+    margin-bottom:10px;
   }
 
   .transaction-history-page .ledger-title-copy h2{
-    font-size:22px;
+    font-size:21px;
   }
 
   .transaction-history-page .ledger-title-copy p{
-    font-size:12px;
+    font-size:11px;
+    line-height:1.45;
   }
 
   .transaction-history-page .ledger-actions{
@@ -5573,55 +5627,105 @@ table{
   }
 
   .transaction-history-page .ledger-export-btn{
-    padding:0 12px;
+    padding:0 10px;
+    white-space:nowrap;
+  }
+
+  .transaction-history-page .ledger-panel{
+    border-radius:14px;
   }
 
   .transaction-history-page .ledger-summary{
     align-items:flex-start;
-    flex-direction:column;
-    gap:5px;
-    padding:12px 13px;
+    flex-direction:row;
+    gap:10px;
+    padding:11px 12px;
   }
 
-  .transaction-history-page .ledger-summary > div,
+  .transaction-history-page .ledger-summary > div{
+    flex-direction:column;
+    align-items:flex-start;
+    gap:2px;
+  }
+
   .transaction-history-page .ledger-summary-total{
-    width:100%;
-    justify-content:space-between;
-    gap:10px;
+    align-items:flex-end !important;
+    text-align:right;
   }
 
   .transaction-history-page .ledger-summary strong{
-    font-size:15px;
+    font-size:14px;
+  }
+
+  .transaction-history-page .ledger-summary span{
+    font-size:11px;
   }
 
   .transaction-history-page .ledger-summary-total strong{
-    font-size:17px;
+    font-size:16px;
   }
 
   .transaction-history-page .ledger-search{
-    margin:10px;
+    min-height:42px;
+    margin:9px;
+    padding:0 11px;
   }
 
-  .transaction-history-page .ledger-row{
-    padding:12px 12px 11px;
+  .transaction-history-page .ledger-search input{
+    font-size:14px;
   }
 
-  .transaction-history-page .ledger-row-top time{
+  .transaction-history-page .transaction-ledger{
+    overflow:hidden;
+  }
+
+  .transaction-history-page .transaction-ledger-head,
+  .transaction-history-page .transaction-ledger-row{
+    min-width:0;
+    grid-template-columns:
+      62px
+      44px
+      minmax(52px, 1fr)
+      54px
+      64px;
+    column-gap:5px;
+    padding-left:9px;
+    padding-right:9px;
+  }
+
+  .transaction-history-page .transaction-ledger-head{
+    min-height:34px;
+    font-size:9px;
+    letter-spacing:.02em;
+  }
+
+  .transaction-history-page .transaction-ledger-row{
+    min-height:50px;
+    padding-top:7px;
+    padding-bottom:7px;
+  }
+
+  .transaction-history-page .ledger-date{
     font-size:10.5px;
   }
 
-  .transaction-history-page .ledger-row-top > strong{
-    font-size:15px;
+  .transaction-history-page .ledger-time{
+    font-size:10px;
   }
 
-  .transaction-history-page .ledger-customer{
-    font-size:14px;
+  .transaction-history-page .ledger-name{
+    font-size:11.5px;
+  }
+
+  .transaction-history-page .ledger-paid,
+  .transaction-history-page .ledger-balance{
+    font-size:11.5px;
   }
 
   .transaction-history-page .ledger-pagination{
     align-items:flex-start;
     flex-direction:column;
-    padding:10px 12px;
+    padding:10px 11px;
   }
 
   .transaction-history-page .ledger-pagination-buttons{
@@ -5630,29 +5734,71 @@ table{
   }
 
   .transaction-history-page .ledger-pagination-buttons button{
-    min-width:92px;
+    min-width:90px;
     min-height:40px;
   }
 }
 
 @media (max-width: 380px){
   .transaction-history-page .ledger-actions{
-    flex-direction:column;
+    flex-direction:row;
   }
 
   .transaction-history-page .ledger-month-picker,
   .transaction-history-page .ledger-export-btn{
-    width:100%;
-    flex:none;
+    width:auto;
+    flex:1 1 0;
   }
 
-  .transaction-history-page .ledger-row-top{
-    align-items:flex-start;
-    flex-direction:column;
-    gap:3px;
+  .transaction-history-page .transaction-ledger-head,
+  .transaction-history-page .transaction-ledger-row{
+    min-width:0;
+    grid-template-columns:
+      58px
+      40px
+      minmax(50px, 1fr)
+      50px
+      60px;
+    column-gap:4px;
+    padding-left:8px;
+    padding-right:8px;
   }
 
-  .transaction-history-page .ledger-row-top > strong{
-    align-self:flex-end;
+  .transaction-history-page .ledger-date{
+    font-size:10px;
+  }
+
+  .transaction-history-page .ledger-time{
+    font-size:9.5px;
+  }
+
+  .transaction-history-page .ledger-name{
+    font-size:11px;
+  }
+
+  .transaction-history-page .ledger-paid,
+  .transaction-history-page .ledger-balance{
+    font-size:11px;
+  }
+}
+
+@media (max-width: 359px){
+  .transaction-history-page .transaction-ledger-head,
+  .transaction-history-page .transaction-ledger-row{
+    min-width:0;
+    grid-template-columns:
+      56px
+      39px
+      minmax(48px, 1fr)
+      48px
+      58px;
+  }
+
+  .transaction-history-page .ledger-date{
+    font-size:9.7px;
+  }
+
+  .transaction-history-page .ledger-time{
+    font-size:9.2px;
   }
 }

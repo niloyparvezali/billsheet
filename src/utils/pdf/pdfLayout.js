@@ -3,29 +3,56 @@ import { autoTable } from "jspdf-autotable";
 import { getPdfTheme } from "./pdfTheme";
 import { formatReportDate } from "./pdfHelpers";
 
+const PNG_SIGNATURE = [0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a];
+
+function hasPngSignature(bytes) {
+  if (!bytes || bytes.length < PNG_SIGNATURE.length) return false;
+  return PNG_SIGNATURE.every((value, index) => bytes[index] === value);
+}
+
 async function loadLogoDataUrl() {
-  try {
-    if (typeof fetch !== "function") {
-      return null;
+  if (typeof fetch !== "function") return null;
+
+  // The logo is optional. Try the branded PDF asset first, then the existing
+  // application favicon as a bundled fallback. Never pass an unvalidated
+  // response to jsPDF: Vercel's SPA rewrite can otherwise return index.html
+  // for a missing /bs-logo.png and jsPDF will report "wrong PNG signature".
+  const candidates = ["/bs-logo.png", "/favicon.png"];
+
+  for (const assetUrl of candidates) {
+    try {
+      const response = await fetch(assetUrl, { cache: "no-store" });
+      if (!response.ok) continue;
+
+      const contentType = String(
+        response.headers?.get?.("content-type") || "",
+      )
+        .split(";", 1)[0]
+        .trim()
+        .toLowerCase();
+
+      // A valid image/png response is preferred. If the server omits the
+      // content type, the binary signature below remains authoritative.
+      if (contentType && contentType !== "image/png") continue;
+
+      const blob = await response.blob();
+      const buffer = await blob.arrayBuffer();
+      const bytes = new Uint8Array(buffer);
+
+      if (!hasPngSignature(bytes)) continue;
+
+      return await new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(reader.result);
+        reader.onerror = () => reject(new Error("Failed to read PDF logo."));
+        reader.readAsDataURL(blob);
+      });
+    } catch (error) {
+      console.warn(`Unable to load Bill Sheet PDF logo asset ${assetUrl}:`, error);
     }
-
-    const response = await fetch("/bs-logo.png");
-    if (!response.ok) {
-      return null;
-    }
-
-    const blob = await response.blob();
-
-    return await new Promise((resolve, reject) => {
-      const reader = new FileReader();
-      reader.onloadend = () => resolve(reader.result);
-      reader.onerror = () => reject(new Error("Failed to read PDF logo."));
-      reader.readAsDataURL(blob);
-    });
-  } catch (error) {
-    console.warn("Unable to load Bill Sheet PDF logo:", error);
-    return null;
   }
+
+  return null;
 }
 
 export function downloadPdfDocument(pdf, filename) {
@@ -37,6 +64,27 @@ export function downloadPdfDocument(pdf, filename) {
     String(filename || "BillSheet.pdf").replace(/[\\/:*?"<>|]+/g, "-").trim() ||
     "BillSheet.pdf";
 
+  // Generate an ArrayBuffer first so we can verify the actual PDF payload
+  // before attempting a browser download.
+  const arrayBuffer = pdf.output("arraybuffer");
+
+  if (
+    !(arrayBuffer instanceof ArrayBuffer) ||
+    arrayBuffer.byteLength < 100
+  ) {
+    throw new Error("The generated PDF is empty or incomplete.");
+  }
+
+  const header = new TextDecoder().decode(
+    new Uint8Array(arrayBuffer.slice(0, 5)),
+  );
+
+  if (header !== "%PDF-") {
+    throw new Error("The generated PDF payload is invalid.");
+  }
+
+  const blob = new Blob([arrayBuffer], { type: "application/pdf" });
+
   if (
     typeof document === "undefined" ||
     typeof URL === "undefined" ||
@@ -44,30 +92,50 @@ export function downloadPdfDocument(pdf, filename) {
   ) {
     if (typeof pdf.save === "function") {
       pdf.save(safeFilename);
-      return;
+      return { filename: safeFilename, size: blob.size };
     }
     throw new Error("Browser download APIs are unavailable.");
   }
 
-  const blob = pdf.output("blob");
-  if (!blob || typeof blob.size !== "number" || blob.size < 100) {
-    throw new Error("The generated PDF is empty or incomplete.");
+  // Support legacy Edge environments when present.
+  if (typeof navigator !== "undefined" && typeof navigator.msSaveOrOpenBlob === "function") {
+    navigator.msSaveOrOpenBlob(blob, safeFilename);
+    return { filename: safeFilename, size: blob.size };
   }
 
   const objectUrl = URL.createObjectURL(blob);
   const link = document.createElement("a");
-  link.href = objectUrl;
-  link.download = safeFilename;
-  link.rel = "noopener";
-  link.style.display = "none";
 
-  document.body.appendChild(link);
-  link.click();
-  link.remove();
+  try {
+    link.href = objectUrl;
+    link.download = safeFilename;
+    link.rel = "noopener";
+    link.style.display = "none";
+    document.body.appendChild(link);
 
-  window.setTimeout(() => {
-    URL.revokeObjectURL(objectUrl);
-  }, 0);
+    if (typeof link.click !== "function") {
+      throw new Error("Browser download is not supported.");
+    }
+
+    link.click();
+  } finally {
+    link.remove();
+    // Keep the URL alive briefly so mobile browsers have time to consume it.
+    const scheduleCleanup =
+      typeof globalThis?.setTimeout === "function"
+        ? globalThis.setTimeout.bind(globalThis)
+        : null;
+
+    if (scheduleCleanup) scheduleCleanup(() => {
+      try {
+        URL.revokeObjectURL(objectUrl);
+      } catch {
+        // Cleanup failure does not affect the generated PDF.
+      }
+    }, 1500);
+  }
+
+  return { filename: safeFilename, size: blob.size };
 }
 
 export async function createPdfLayout({
@@ -76,6 +144,10 @@ export async function createPdfLayout({
   reportInfo = [],
   theme = "forest",
 }) {
+  if (typeof autoTable !== "function") {
+    throw new Error("PDF table generator is unavailable.");
+  }
+
   const pdf = new jsPDF("p", "mm", "a4");
 
   const colors = getPdfTheme(theme);
@@ -99,11 +171,21 @@ export async function createPdfLayout({
     const logoWidth = 9;
     const logoHeight = 9;
 
+    let logoRendered = false;
+
     if (logoDataUrl) {
-      pdf.addImage(logoDataUrl, "PNG", logoX, logoY, logoWidth, logoHeight);
+      try {
+        pdf.addImage(logoDataUrl, "PNG", logoX, logoY, logoWidth, logoHeight);
+        logoRendered = true;
+      } catch (error) {
+        // Logo rendering is optional and must never prevent a financial PDF
+        // from being generated. The source has already been binary-validated;
+        // this protects against browser/jsPDF-specific image decoder issues.
+        console.warn("Unable to render Bill Sheet PDF logo; continuing without it:", error);
+      }
     }
 
-    const titleX = logoDataUrl ? logoX + logoWidth + 4 : 15;
+    const titleX = logoRendered ? logoX + logoWidth + 4 : 15;
 
     // Brand
     pdf.setFont("helvetica", "bold");
@@ -202,7 +284,7 @@ export async function createPdfLayout({
       },
     });
 
-    return pdf.lastAutoTable.finalY + 8;
+    return (pdf.lastAutoTable?.finalY || startY) + 8;
   };
   // =============================
   // Table

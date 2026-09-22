@@ -36,7 +36,7 @@ import {
 import { useAuth } from "../../context/AuthContext";
 import { useLanguage } from "../../context/LanguageContext";
 import { useTheme } from "../../context/ThemeContext";
-import { db } from "../../firebase/config";
+import { db, firebaseReady } from "../../firebase/config";
 import { normalizeTheme } from "../../utils/theme";
 import SettingsSectionCard from "./SettingsSectionCard";
 import SettingsTile from "./SettingsTile";
@@ -318,7 +318,7 @@ export default function SettingsPanel({ user, onSave, onExportBackup }) {
     let cancelled = false;
 
     const loadSmsTemplate = async () => {
-      if (!user?.uid || !db) return;
+      if (!user?.uid || !firebaseReady || !db) return;
 
       try {
         const snapshot = await getDoc(doc(db, "settings", user.uid));
@@ -610,10 +610,12 @@ export default function SettingsPanel({ user, onSave, onExportBackup }) {
   };
 
   const handleSmsSave = async () => {
-    if (!user?.uid || !db) {
-      setSmsHasChanges(false);
-      onSave?.();
-      toast.success("SMS template updated successfully.");
+    if (!user?.uid) {
+      toast.error("Authenticated user is unavailable.");
+      return;
+    }
+    if (!firebaseReady || !db) {
+      toast.error("Cloud data connection is unavailable.");
       return;
     }
 

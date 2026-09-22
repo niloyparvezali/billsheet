@@ -99,5 +99,5 @@ export async function exportTransactionPdf({
   drawFooter();
 
   const filePeriod = month || String(reportYear);
-  downloadPdfDocument(pdf, `Bill Sheet Transactions ${filePeriod}.pdf`);
+  return downloadPdfDocument(pdf, `Bill Sheet Transactions ${filePeriod}.pdf`);
 }

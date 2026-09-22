@@ -1,6 +1,6 @@
 import { initializeApp } from "firebase/app";
 import { getAuth } from "firebase/auth";
-import { getFirestore, enableIndexedDbPersistence } from "firebase/firestore";
+import { getFirestore, initializeFirestore, persistentLocalCache } from "firebase/firestore";
 import { getStorage } from "firebase/storage";
 
 const config = {
@@ -37,10 +37,24 @@ if (firebaseConfigComplete) {
   try {
     app = initializeApp(config);
     auth = getAuth(app);
-    db = getFirestore(app);
-    storage = getStorage(app);
+    try {
+      // Firestore v12 recommends configuring IndexedDB persistence during
+      // initialization instead of calling enableIndexedDbPersistence() after
+      // the Firestore instance has been created.
+      db = initializeFirestore(app, {
+        localCache: persistentLocalCache(),
+      });
+    } catch (persistenceError) {
+      // Keep Firestore fully usable when persistent IndexedDB storage is not
+      // available (for example, an unsupported/private browser context).
+      db = getFirestore(app);
+      console.warn(
+        "Firestore persistent cache unavailable; continuing with the default cache.",
+        persistenceError,
+      );
+    }
 
-    enableIndexedDbPersistence(db).catch(() => {});
+    storage = getStorage(app);
   } catch (error) {
     firebaseInitError = error;
     app = null;

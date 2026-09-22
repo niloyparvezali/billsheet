@@ -118,41 +118,25 @@ const getMonthTitle = (range, translateMonth) => {
   return `${translateMonth(label)} ${range.year}`;
 };
 
-const getPaymentDescription = (row) => {
-  const explicitType =
-    row?.transactionType ||
-    row?.type ||
-    row?.paymentType ||
-    "Payment";
-
-  const normalized = String(explicitType).trim().toLowerCase();
-
-  if (normalized === "payment_reversal" || normalized === "payment reversal") {
-    return "Payment Reversal";
-  }
-  if (normalized === "payment_removed" || normalized === "payment removed") {
-    return "Payment Removed";
-  }
-  if (normalized === "adjustment") {
-    return "Adjustment";
-  }
-  if (normalized === "bill_generated" || normalized === "bill generated") {
-    return "Bill Generated";
-  }
-  if (
-    normalized === "carry_forward_due" ||
-    normalized === "carry forward due"
-  ) {
-    return "Carry Forward Due";
-  }
-  if (
-    normalized === "carry_forward_advance" ||
-    normalized === "carry forward advance"
-  ) {
-    return "Carry Forward Advance";
+const getTransactionBalance = (row = {}) => {
+  const directBalance = row?.balance ?? row?.currentBalance;
+  if (directBalance !== undefined && directBalance !== null && directBalance !== "") {
+    const parsed = Number(directBalance);
+    if (Number.isFinite(parsed)) return Math.round(parsed);
   }
 
-  return "Payment Received";
+  return Math.round(
+    Number(row?.currentAdvance || 0) - Number(row?.currentDue || 0),
+  );
+};
+
+const formatSignedMoney = (value, formatMoney) => {
+  const numeric = Number(value || 0);
+  if (!Number.isFinite(numeric) || numeric === 0) {
+    return formatMoney(0);
+  }
+  const absolute = formatMoney(Math.abs(Math.round(numeric)));
+  return numeric < 0 ? `-${absolute}` : absolute;
 };
 
 export default function TransactionHistory() {
@@ -392,15 +376,16 @@ export default function TransactionHistory() {
           index,
         );
 
+        const balance = getTransactionBalance(row);
+
         return {
           ...row,
+          balance,
           customerName:
             user?.name ||
             payment?.customerName ||
             payment?.userName ||
             "Customer",
-          customerPhone: user?.phone || payment?.phone || "",
-          description: getPaymentDescription(row),
         };
       });
   }, [pagePayments, users, usersByIdentity]);
@@ -582,28 +567,45 @@ export default function TransactionHistory() {
           </div>
         ) : pagePayments.length ? (
           <>
-            <div className="ledger-list" role="list">
-              {currentRows.map((row) => {
-                const date = getTimestampDate(row);
-                const relatedPeriod =
-                  Number(row?.month) >= 1 && Number(row?.year) > 0
-                    ? `${monthNames[Number(row.month) - 1] || "Month"} ${
-                        row.year
-                      }`
-                    : "";
+            <div className="transaction-ledger" role="table" aria-label={`${monthTitle} transactions`}>
+              <div className="transaction-ledger-head" role="row">
+                <span role="columnheader">Date</span>
+                <span role="columnheader">Time</span>
+                <span role="columnheader">Name</span>
+                <span role="columnheader" className="is-numeric">Paid</span>
+                <span role="columnheader" className="is-numeric">Balance</span>
+              </div>
 
-                return (
-                  <article
-                    className="ledger-row"
-                    role="listitem"
-                    key={
-                      row.transactionId ||
-                      row.id ||
-                      `${row.customerId}-${row.paymentDate}-${row.amount}`
-                    }
-                  >
-                    <div className="ledger-row-top">
-                      <time dateTime={date ? date.toISOString() : undefined}>
+              <div className="transaction-ledger-body">
+                {currentRows.map((row) => {
+                  const date = getTimestampDate(row);
+                  const balance = getTransactionBalance(row);
+                  const balanceClass =
+                    balance > 0
+                      ? "is-advance"
+                      : balance < 0
+                        ? "is-due"
+                        : "is-zero";
+
+                  return (
+                    <article
+                      className="transaction-ledger-row"
+                      role="row"
+                      key={
+                        row.transactionId ||
+                        row.id ||
+                        `${row.customerId}-${row.paymentDate}-${row.amount}`
+                      }
+                      aria-label={`${date ? date.toLocaleDateString("en-GB", {
+                        day: "2-digit",
+                        month: "short",
+                        year: "numeric",
+                      }) : "--"} ${date ? date.toLocaleTimeString([], {
+                        hour: "2-digit",
+                        minute: "2-digit",
+                      }) : row.paymentTime || "--"} ${row.customerName}, ${formatMoney(row.amount)}, ${formatSignedMoney(balance, formatMoney)}`}
+                    >
+                      <time role="cell" className="ledger-cell ledger-date" dateTime={date ? date.toISOString() : undefined}>
                         {date
                           ? date.toLocaleDateString("en-GB", {
                               day: "2-digit",
@@ -611,7 +613,9 @@ export default function TransactionHistory() {
                               year: "numeric",
                             })
                           : "--"}
-                        {" · "}
+                      </time>
+
+                      <time role="cell" className="ledger-cell ledger-time" dateTime={date ? date.toISOString() : undefined}>
                         {date
                           ? date.toLocaleTimeString([], {
                               hour: "2-digit",
@@ -619,27 +623,22 @@ export default function TransactionHistory() {
                             })
                           : row.paymentTime || "--"}
                       </time>
-                      <strong>{formatMoney(row.amount)}</strong>
-                    </div>
 
-                    <div className="ledger-customer">{row.customerName}</div>
+                      <span role="cell" className="ledger-cell ledger-name" title={row.customerName}>
+                        {row.customerName}
+                      </span>
 
-                    <div className="ledger-row-meta">
-                      <span>{row.description}</span>
-                      {relatedPeriod ? <span>{relatedPeriod}</span> : null}
-                      {row.transactionId ? (
-                        <span className="ledger-reference">
-                          Ref {String(row.transactionId).slice(0, 16)}
-                        </span>
-                      ) : null}
-                    </div>
+                      <span role="cell" className="ledger-cell ledger-paid is-numeric">
+                        {formatMoney(row.amount)}
+                      </span>
 
-                    {row.notes ? (
-                      <div className="ledger-note">{row.notes}</div>
-                    ) : null}
-                  </article>
-                );
-              })}
+                      <span role="cell" className={`ledger-cell ledger-balance is-numeric ${balanceClass}`}>
+                        {formatSignedMoney(balance, formatMoney)}
+                      </span>
+                    </article>
+                  );
+                })}
+              </div>
             </div>
 
             <div className="ledger-pagination">

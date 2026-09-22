@@ -5,8 +5,8 @@ import {
   pdfMoney,
   pdfBalance,
 } from "./pdfHelpers";
-import { money, formatDate, formatTime } from "../date";
-import { getDisplayBalanceValues, getDisplayPaymentStatus, getEffectiveBillForPeriod } from "../payments";
+import { formatDate, formatTime } from "../date";
+import { getDisplayBalanceValues } from "../payments";
 
 export async function exportMonthlySheetPdf({
   rows,
@@ -53,37 +53,37 @@ export async function exportMonthlySheetPdf({
 
     columnStyles: {
       0: {
-        cellWidth: 12,
+        cellWidth: 10,
         halign: "center",
       },
 
       1: {
-        cellWidth: 46,
+        cellWidth: 42,
         halign: "left",
       },
 
       2: {
-        cellWidth: 22,
+        cellWidth: 20,
         halign: "right",
       },
 
       3: {
-        cellWidth: 22,
+        cellWidth: 20,
         halign: "right",
       },
 
       4: {
-        cellWidth: 24,
+        cellWidth: 22,
         halign: "right",
       },
 
       5: {
-        cellWidth: 22,
+        cellWidth: 20,
         halign: "center",
       },
 
       6: {
-        cellWidth: 42,
+        cellWidth: 43,
         halign: "center",
       },
     },
@@ -129,32 +129,6 @@ export async function exportMonthlySheetPdf({
               )}`
             : "-",
         ];
-        // old code change for pdf
-        // return [
-        //   index + 1,
-        //   row.user.name,
-        //   pdfMoney(row.user.monthlyBill),
-        //   pdfMoney(row.currentPaid || 0),
-        //   pdfBalance({
-        //     due: displayBalance.due,
-        //     carryForward: displayBalance.carryForward,
-        //   }),
-        //   getDisplayPaymentStatus({
-        //     status: row.status,
-        //     bill: Number(row.user?.monthlyBill || 0),
-        //     paid: Number(row.currentPaid || 0),
-        //     due: Number(displayBalance.due || 0),
-        //     advance: Number(displayBalance.carryForward || 0),
-        //     month: Number(row.month || 0),
-        //     currentMonth: new Date().getMonth() + 1,
-        //     currentDate: new Date(),
-        //   }).label,
-        //   row.payment?.paymentDate
-        //     ? `${formatDate(row.payment.paymentDate)} ${formatTime(
-        //         row.payment.paymentDate,
-        //       )}`
-        //     : "-",
-        // ];
       }),
 
     didParseCell(data) {
@@ -195,5 +169,5 @@ export async function exportMonthlySheetPdf({
 
   drawFooter();
 
-  downloadPdfDocument(pdf, `Billing Sheet - ${month} ${year}.pdf`);
+  return downloadPdfDocument(pdf, `Billing Sheet - ${month} ${year}.pdf`);
 }

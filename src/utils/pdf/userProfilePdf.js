@@ -283,5 +283,5 @@ export async function exportUserProfilePdf({
   drawFooter();
 
   const filename = `BillSheet-${safeFilePart(user.name)}-Profile.pdf`;
-  downloadPdfDocument(pdf, filename);
+  return downloadPdfDocument(pdf, filename);
 }
