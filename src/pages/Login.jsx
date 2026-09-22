@@ -428,10 +428,10 @@ export default function Login() {
 
           <p>
             {mode === "register"
-              ? t("register_description", "Open a secure workspace for your billing team and start managing customers, bills, and reports.")
+              ? t("register_description", "Open a secure workspace for your billing team and start managing customers and bills.")
               : mode === "forgot"
                 ? t("forgot_description", "Enter your registered email address to recover your passcode and get back into your workspace.")
-                : t("login_description", "Manage customers, Monthly bills, and reports securely.")}
+                : t("login_description", "Manage customers and Monthly bills securely.")}
           </p>
         </div>
         {!configured && (

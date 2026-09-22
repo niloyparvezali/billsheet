@@ -174,3 +174,147 @@ export const isUserActiveForPeriod = (user, period = {}) => {
     return true;
   });
 };
+
+
+const isUserCurrentlyActive = (user = {}) => {
+  const explicitStatus = normalizeLifecycleState(user?.status);
+  if (explicitStatus) return explicitStatus === "active";
+  if (typeof user?.active === "boolean") return user.active;
+  const periods = getMembershipPeriods(user);
+  const latest = periods[periods.length - 1];
+  return Boolean(latest && !latest.leaveDate);
+};
+
+const sortAndDeduplicateMembershipPeriods = (periods = []) => {
+  const normalized = (periods || [])
+    .map(normalizeMembershipPeriod)
+    .filter(Boolean)
+    .sort((left, right) => {
+      const leftTime = parseDateValue(left.joinDate)?.getTime() || 0;
+      const rightTime = parseDateValue(right.joinDate)?.getTime() || 0;
+      return leftTime - rightTime;
+    });
+
+  const result = [];
+  normalized.forEach((period) => {
+    const previous = result[result.length - 1];
+    if (
+      previous &&
+      previous.joinDate === period.joinDate &&
+      previous.leaveDate === period.leaveDate
+    ) {
+      return;
+    }
+    result.push(period);
+  });
+  return result;
+};
+
+/**
+ * Preserve a user's identity while recording each distinct membership period.
+ *
+ * This is intentionally additive: historical periods are never overwritten.
+ * The returned values are plain ISO date strings so they can safely live in a
+ * Firestore array and remain deterministic across later edits.
+ */
+export const buildUpdatedMembershipHistory = ({
+  user = null,
+  nextStatus = "Active",
+  joinDate = null,
+  now = new Date(),
+} = {}) => {
+  const safeNow =
+    now instanceof Date && !Number.isNaN(now.getTime()) ? now : new Date();
+  const nextLifecycle = normalizeLifecycleState(nextStatus) || "active";
+  const wasActive = isUserCurrentlyActive(user || {});
+  const periods = getMembershipPeriods(user || {});
+  const requestedJoinDate = toDateString(joinDate);
+
+  if (!user?.id && periods.length === 0) {
+    const initialJoinDate = requestedJoinDate || toDateString(safeNow);
+    return [
+      {
+        joinDate: initialJoinDate,
+        leaveDate:
+          nextLifecycle === "active" ? null : toDateString(safeNow),
+      },
+    ];
+  }
+
+  const nextPeriods = periods.map((period) => ({ ...period }));
+
+  if (nextPeriods.length === 0) {
+    const fallbackJoinDate =
+      requestedJoinDate ||
+      toDateString(
+        user?.joinDate ||
+          user?.joinedAt ||
+          user?.memberSince ||
+          safeNow,
+      );
+
+    nextPeriods.push({
+      joinDate: fallbackJoinDate,
+      leaveDate: null,
+    });
+  }
+
+  const latestIndex = nextPeriods.length - 1;
+  const latest = nextPeriods[latestIndex];
+
+  if (wasActive && nextLifecycle === "inactive") {
+    // Close the current open period. Never replace an already closed period.
+    if (!latest.leaveDate) {
+      latest.leaveDate = toDateString(safeNow);
+    } else {
+      nextPeriods.push({
+        joinDate:
+          requestedJoinDate ||
+          toDateString(
+            user?.joinDate ||
+              user?.joinedAt ||
+              user?.memberSince ||
+              safeNow,
+          ),
+        leaveDate: toDateString(safeNow),
+      });
+    }
+  } else if (!wasActive && nextLifecycle === "active") {
+    // Rejoin creates a brand-new period while keeping all prior periods intact.
+    const lastLeave = parseDateValue(latest.leaveDate);
+    let effectiveJoinDate = parseDateValue(requestedJoinDate);
+
+    if (
+      !effectiveJoinDate ||
+      (lastLeave && effectiveJoinDate < lastLeave)
+    ) {
+      effectiveJoinDate = safeNow;
+    }
+
+    const normalizedJoin = toDateString(effectiveJoinDate);
+    const openAlreadyExists =
+      !latest.leaveDate &&
+      latest.joinDate === normalizedJoin;
+
+    if (!openAlreadyExists) {
+      nextPeriods.push({
+        joinDate: normalizedJoin,
+        leaveDate: null,
+      });
+    }
+  } else if (nextLifecycle === "active") {
+    // Normal edits to an active user may still correct the current period's
+    // join date, preserving all completed historical periods.
+    const currentJoin = parseDateValue(requestedJoinDate);
+    const lastClosedLeave = parseDateValue(latest.leaveDate);
+    if (
+      currentJoin &&
+      !latest.leaveDate &&
+      (!lastClosedLeave || currentJoin >= lastClosedLeave)
+    ) {
+      latest.joinDate = toDateString(currentJoin);
+    }
+  }
+
+  return sortAndDeduplicateMembershipPeriods(nextPeriods);
+};

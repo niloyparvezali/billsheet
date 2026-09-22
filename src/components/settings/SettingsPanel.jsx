@@ -7,7 +7,6 @@ import { restoreBackup } from "../../utils/backup/restoreBackup";
 import { deleteAccount } from "../../utils/deleteAccount";
 import {
   AlertTriangle,
-  BarChart3,
   BookOpen,
   Camera,
   ChevronDown,
@@ -211,24 +210,6 @@ export default function SettingsPanel({ user, onSave, onExportBackup }) {
       warning: "Enter either a payment amount or an additional due value.",
     },
     {
-      id: "reports",
-      title: "Reports",
-      icon: BarChart3,
-      purpose: "Review year-long billing summaries",
-      why: "Use this page to understand yearly bills, paid amounts, and remaining balances.",
-      buttons: ["Select a customer", "Export report"],
-      tips: ["Pick one customer at a time", "Use the year filter"],
-      mistakes: ["Skipping the customer search"],
-      time: "3 min",
-      keywords: ["report", "yearly", "annual", "summary"],
-      overview: "Reports show a yearly view of a customer’s billing history.",
-      fields: ["Customer search", "Year", "Monthly history"],
-      actions: ["Open a customer report", "Export a PDF"],
-      example:
-        "Choose a customer and year to review their full annual billing story.",
-      warning: "If no customer is selected, the page shows a general overview.",
-    },
-    {
       id: "transaction-history",
       title: "Transactions",
       icon: FileText,
@@ -304,12 +285,6 @@ export default function SettingsPanel({ user, onSave, onExportBackup }) {
       description: "Open the Monthly Sheet and save the first payment.",
       target: "monthly-sheet",
     },
-    {
-      id: "report",
-      title: "Generate report",
-      description: "Open Reports to review the yearly story.",
-      target: "reports",
-    },
   ];
 
   const workflowSteps = [
@@ -317,7 +292,6 @@ export default function SettingsPanel({ user, onSave, onExportBackup }) {
     { id: "dashboard", label: "Dashboard", guideId: "dashboard" },
     { id: "users", label: "Customers", guideId: "users" },
     { id: "monthly-sheet", label: "Payment", guideId: "monthly-sheet" },
-    { id: "reports", label: "Reports", guideId: "reports" },
   ];
 
   const faqItems = [
@@ -326,12 +300,6 @@ export default function SettingsPanel({ user, onSave, onExportBackup }) {
       question: "How do I change my passcode?",
       answer:
         "Open Settings, go to Security, and update your passcode using the form. Keep the new passcode between 4 and 6 digits.",
-    },
-    {
-      id: "export",
-      question: "How do I export reports?",
-      answer:
-        "Open Reports and click the Export PDF button. You can also export transactions from the Transactions page.",
     },
     {
       id: "customer",
@@ -1289,11 +1257,11 @@ export default function SettingsPanel({ user, onSave, onExportBackup }) {
             Start here
           </div>
           <h3 style={{ margin: "6px 0 8px", fontSize: "22px" }}>
-            Use this website in 4 simple steps
+            Use this website in 3 simple steps
           </h3>
           <p style={{ margin: 0, opacity: 0.95 }}>
-            Follow these steps and you can manage customers, payments, and
-            reports without confusion.
+            Follow these steps and you can manage customers and payments
+            without confusion.
           </p>
 
           <div style={{ display: "grid", gap: "8px", marginTop: "12px" }}>
@@ -1309,10 +1277,6 @@ export default function SettingsPanel({ user, onSave, onExportBackup }) {
               {
                 title: "3. Record payments",
                 text: "Open Billing Sheet and save payments for the selected month.",
-              },
-              {
-                title: "4. Check reports",
-                text: "Use Reports to review yearly billing and payment status.",
               },
             ].map((step) => (
               <div

@@ -1,14 +1,6 @@
 import {
-  FiArrowLeft,
-  FiCalendar,
-  FiCreditCard,
-  FiDollarSign,
-  FiEdit2,
-  FiPhone,
   FiPlus,
   FiSearch,
-  FiTag,
-  FiTrash2,
   FiUsers,
 } from "react-icons/fi";
 import { useNavigate } from "react-router-dom";
@@ -19,7 +11,6 @@ import PaymentModal from "../components/PaymentModal";
 import FloatingSearch from "../components/FloatingSearch";
 import { useMemo, useState, useRef, useEffect } from "react";
 import {
-  collection,
   deleteDoc,
   doc,
   serverTimestamp,
@@ -33,7 +24,6 @@ import { useLanguage } from "../context/LanguageContext";
 import useOwnedCollection from "../hooks/useOwnedCollection";
 import Modal from "../components/Modal";
 import ConfirmModal from "../components/ConfirmModal";
-import { formatDate, formatDateOrNotAvailable, getCreatedDate, money } from "../utils/date";
 import {
   buildUserDocId,
   findDuplicateUser,
@@ -43,6 +33,9 @@ import {
 } from "../utils/users";
 import { getNextCustomerId } from "../utils/customerId";
 import { buildMonthlyBillHistoryEntry, getPaymentMonthYear } from "../utils/payments";
+import { buildUpdatedMembershipHistory } from "../utils/membership";
+import { getCurrentUserBalance } from "../utils/userHistory";
+import UserProfile from "../components/UserProfile";
 
 const todayValue = () => {
   const today = new Date();
@@ -71,7 +64,7 @@ export default function Users() {
   const currentOwnerId = auth?.currentUser?.uid || signedInUser?.uid || null;
   const { t, formatNumber } = useLanguage();
   const { data: allUsers = [] } = useOwnedCollection("users");
-  const { data: payments = [] } = useOwnedCollection("payments");
+  const { data: payments = [], loading: paymentsLoading = true } = useOwnedCollection("payments");
   const users = useMemo(() => (allUsers || []).filter(Boolean), [allUsers]);
   const { data: savedCategories, error: categoryError } =
     useOwnedCollection("categories");
@@ -141,6 +134,32 @@ export default function Users() {
   const [mobileView, setMobileView] = useState("list");
   const [savedScrollTop, setSavedScrollTop] = useState(0);
   const [isMobile, setIsMobile] = useState(false);
+  const [balanceDate, setBalanceDate] = useState(() => new Date());
+
+  useEffect(() => {
+    if (typeof window === "undefined") return undefined;
+
+    let timerId;
+    const scheduleNextMonthRefresh = () => {
+      const now = new Date();
+      const nextMonth = new Date(
+        now.getFullYear(),
+        now.getMonth() + 1,
+        1,
+        0,
+        0,
+        1,
+      );
+      const delay = Math.max(1000, nextMonth.getTime() - now.getTime());
+      timerId = window.setTimeout(() => {
+        setBalanceDate(new Date());
+        scheduleNextMonthRefresh();
+      }, delay);
+    };
+
+    scheduleNextMonthRefresh();
+    return () => window.clearTimeout(timerId);
+  }, []);
 
   const totalPages = Math.max(1, Math.ceil(totalUsers / USERS_PER_PAGE));
 
@@ -149,6 +168,16 @@ export default function Users() {
   const endIndex = Math.min(startIndex + USERS_PER_PAGE, totalUsers);
 
   const paginatedUsers = list.slice(startIndex, endIndex);
+
+  const userBalanceById = useMemo(() => {
+    const balanceMap = new Map();
+    (paginatedUsers || []).forEach((user) => {
+      if (!user?.id) return;
+      const summary = getCurrentUserBalance(user, payments, balanceDate);
+      balanceMap.set(user.id, summary);
+    });
+    return balanceMap;
+  }, [paginatedUsers, payments, balanceDate]);
   useEffect(() => {
     setCurrentPage(1);
   }, [search]);
@@ -214,39 +243,6 @@ export default function Users() {
     return statusValue === "inactive" ? "Inactive" : "Active";
   };
 
-  const detailProfileCards = useMemo(() => {
-    if (!selectedUser) return [];
-    const packages = getDisplayPackages(selectedUser);
-    const categoryValue =
-      packages[0] || selectedUser.category || t("uncategorized", "Uncategorized");
-    const phoneValue = selectedUser.phone || "No phone on file";
-    const createdValue = formatDateOrNotAvailable(
-      getCreatedDate(selectedUser),
-    );
-
-    return [
-      {
-        label: t("monthly_bill", "Monthly Bill"),
-        value: money(selectedUser.monthlyBill || 0),
-        icon: <FiDollarSign />,
-      },
-      {
-        label: t("phone"),
-        value: phoneValue,
-        icon: <FiPhone />,
-      },
-      {
-        label: t("category"),
-        value: categoryValue,
-        icon: <FiTag />,
-      },
-      {
-        label: t("created", "Created"),
-        value: createdValue,
-        icon: <FiCalendar />,
-      },
-    ];
-  }, [formatDateOrNotAvailable, selectedUser, t]);
   const save = async (event) => {
     event.preventDefault();
     if (!form?.name?.trim()) {
@@ -411,6 +407,23 @@ export default function Users() {
         });
       }
 
+      const membershipHistory = buildUpdatedMembershipHistory({
+        user: existingUser,
+        nextStatus: normalizedStatusValue,
+        joinDate: joinDateValue,
+        now,
+      });
+
+      const latestMembership =
+        membershipHistory[membershipHistory.length - 1] || null;
+
+      const effectiveJoinDate =
+        statusChanged &&
+        previousStatus === "inactive" &&
+        isActive
+          ? latestMembership?.joinDate || joinDateValue
+          : joinDateValue;
+
       const data = {
         name: form.name.trim(),
         category: selectedPackages[0] || form.category || "",
@@ -419,8 +432,13 @@ export default function Users() {
         billHistory: nextBillHistory,
         phone: normalizedPhone,
         address: form.address.trim(),
-        joinDate: joinDateValue,
-        inactiveDate: isActive ? null : serverTimestamp(),
+        joinDate: effectiveJoinDate,
+        inactiveDate: isActive
+          ? null
+          : statusChanged
+            ? serverTimestamp()
+            : existingUser?.inactiveDate || null,
+        membershipHistory,
         status: normalizedStatusValue,
         active: isActive,
         statusHistory: nextHistory,
@@ -469,14 +487,22 @@ export default function Users() {
       const historyEntries = Array.isArray(existingUser?.statusHistory)
         ? existingUser.statusHistory
         : [];
+      const now = new Date();
+      const membershipHistory = buildUpdatedMembershipHistory({
+        user: existingUser,
+        nextStatus: "Inactive",
+        joinDate: existingUser?.joinDate || now,
+        now,
+      });
       await updateDoc(doc(db, "users", id), {
         active: false,
         status: "Inactive",
         inactiveDate: serverTimestamp(),
         disconnectedAt: serverTimestamp(),
+        membershipHistory,
         statusHistory: [
           ...historyEntries,
-          { status: "Inactive", date: new Date().toISOString() },
+          { status: "Inactive", date: now.toISOString() },
         ],
       });
       toast.success("User deactivated; payment history kept");
@@ -507,15 +533,6 @@ export default function Users() {
     });
   };
 
-  const openAnnualReport = (user) => {
-    if (!user) return;
-    navigate("/reports", {
-      state: {
-        customerId: user.id,
-        customerName: user.name,
-      },
-    });
-  };
 
   const removeCategory = async (category) => {
     if (!category?.id) {
@@ -568,101 +585,16 @@ export default function Users() {
     <div className="page users-page">
       <section className="panel users-panel">
         {((showStandaloneMobileDetail || showDesktopDetail) && selectedUser) ? (
-          <div className="users-mobile-detail-screen" role="dialog" aria-modal="false">
-            <button
-              type="button"
-              className="users-mobile-back-btn"
-              onClick={closeUserDetails}
-            >
-              <FiArrowLeft /> {t("back", "Back")}
-            </button>
-
-            <div className="users-mobile-profile-card">
-              <div className="users-mobile-avatar" aria-hidden="true">
-                {String(selectedUser.name || "CU")
-                  .trim()
-                  .slice(0, 2)
-                  .toUpperCase()}
-              </div>
-              <div className="users-mobile-profile-copy">
-                <div className="users-mobile-profile-title">
-                  <h3>{selectedUser.name || "Unnamed customer"}</h3>
-                  <span
-                    className={`status user-inline-badge status-${getUserStatusValue(selectedUser).toLowerCase()}`}
-                  >
-                    {getUserStatusValue(selectedUser)}
-                  </span>
-                </div>
-                <div className="users-mobile-profile-meta">
-                  <span>
-                    <FiPhone /> {selectedUser.phone || "No phone on file"}
-                  </span>
-                  <span>
-                    <FiTag /> {getDisplayPackages(selectedUser)[0] || selectedUser.category || t("uncategorized", "Uncategorized")}
-                  </span>
-                </div>
-              </div>
-            </div>
-
-            <div className="users-mobile-summary-grid">
-              {detailProfileCards.map((item) => (
-                <div
-                  className="users-mobile-summary-card users-mobile-summary-card--monthly"
-                  key={item.label}
-                >
-                  <div className="users-mobile-summary-icon-wrap">
-                    <div className="users-mobile-summary-icon">{item.icon}</div>
-                  </div>
-                  <div className="users-mobile-summary-copy">
-                    <div className="users-mobile-summary-value">{item.value}</div>
-                    <div className="users-mobile-summary-label">{item.label}</div>
-                  </div>
-                </div>
-              ))}
-            </div>
-
-            <div className="users-mobile-action-row">
-              <button
-                type="button"
-                className="users-mobile-action users-mobile-action--primary"
-                onClick={() => setForm(selectedUser)}
-              >
-                <FiEdit2 /> {t("Edit")}
-              </button>
-              <button
-                type="button"
-                className="users-mobile-action users-mobile-action--ghost"
-                onClick={() => openAddPayment(selectedUser)}
-              >
-                <FiCreditCard /> {t("add_payment")}
-              </button>
-            </div>
-            <div className="users-mobile-action-row users-mobile-action-row--secondary">
-              <button
-                type="button"
-                className="users-mobile-action users-mobile-action--ghost"
-                onClick={() => openPaymentHistory(selectedUser)}
-              >
-                <FiCalendar /> {t("payment_history", "History")}
-              </button>
-              <button
-                type="button"
-                className="users-mobile-action users-mobile-action--ghost"
-                onClick={() => openAnnualReport(selectedUser)}
-              >
-                <FiDollarSign /> {t("annual_report", "Report")}
-              </button>
-            </div>
-            <div className="users-mobile-action-row">
-              <button
-                type="button"
-                className="users-mobile-action users-mobile-action--danger"
-                onClick={() => setDeleteUser(selectedUser)}
-              >
-                <FiTrash2 /> {t("Delete")}
-              </button>
-            </div>
-          </div>
+          <UserProfile
+            user={selectedUser}
+            payments={payments}
+            onBack={closeUserDetails}
+            onEdit={() => setForm(selectedUser)}
+            onAddPayment={() => openAddPayment(selectedUser)}
+            onPaymentHistory={() => openPaymentHistory(selectedUser)}
+            onDelete={() => setDeleteUser(selectedUser)}
+            currentDate={balanceDate}
+          />
         ) : (
           <>
             <div className="users-page-header">
@@ -707,11 +639,6 @@ export default function Users() {
               list={paginatedUsers}
               setForm={setForm}
               setDeleteUser={setDeleteUser}
-              onAddPayment={openAddPayment}
-              onViewHistory={openPaymentHistory}
-              onViewAnnualReport={openAnnualReport}
-              money={money}
-              formatDate={formatDate}
               currentPage={currentPage}
               setCurrentPage={setCurrentPage}
               totalPages={totalPages}
@@ -720,6 +647,8 @@ export default function Users() {
               endIndex={endIndex}
               selectedUserId={selectedUserId}
               onSelectUser={openUserDetails}
+              userBalanceById={userBalanceById}
+              balanceReady={!paymentsLoading}
             />
           </>
         )}

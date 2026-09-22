@@ -58,6 +58,7 @@ const createSms = (template, { name, bill, dueDate }) =>
 
 export default function MonthlySheet() {
   const location = useLocation();
+  const [isExportingPdf, setIsExportingPdf] = useState(false);
   const { user: signedInUser } = useAuth();
   const {
     t,
@@ -514,33 +515,39 @@ const getCustomerCategoryLabels = (user = {}) => {
   ].slice(0, 3);
 };
 
-  const handleExportPDF = () => {
-    exportMonthlySheetPdf({
-      rows: filteredRows,
+  const handleExportPDF = async () => {
+    if (isExportingPdf || !filteredRows.length) return;
 
-      month: monthNames[month - 1],
-
-      year,
-
-      summary: {
-        totalUsers: rows.length,
-        paidUsers: paid.length,
-        pendingUsers: rows.length - paid.length,
-        totalBill,
-        totalCollection: total,
-        due: totalDue,
-        carryForward: totalAdvance,
-        totalDue: formatBalanceDisplayValue({
+    setIsExportingPdf(true);
+    try {
+      await exportMonthlySheetPdf({
+        rows: filteredRows,
+        month: monthNames[month - 1],
+        year,
+        summary: {
+          totalUsers: rows.length,
+          paidUsers: paid.length,
+          pendingUsers: rows.length - paid.length,
+          totalBill,
+          totalCollection: total,
           due: totalDue,
           carryForward: totalAdvance,
-        }),
-      },
+          totalDue: formatBalanceDisplayValue({
+            due: totalDue,
+            carryForward: totalAdvance,
+          }),
+        },
+        companyName: "Bill Sheet",
+        theme: getStoredTheme(),
+      });
 
-      // We'll replace this with the company name from Settings later
-      companyName: "Bill Sheet",
-
-      theme: getStoredTheme(),
-    });
+      toast.success("Monthly PDF downloaded successfully.");
+    } catch (error) {
+      console.error("Monthly PDF generation failed:", error);
+      toast.error(error?.message || "Could not generate the monthly PDF.");
+    } finally {
+      setIsExportingPdf(false);
+    }
   };
 
   return (
@@ -586,9 +593,10 @@ const getCustomerCategoryLabels = (user = {}) => {
                   className="monthly-sheet-export-btn"
                   type="button"
                   onClick={handleExportPDF}
+                  disabled={isExportingPdf || !filteredRows.length}
                 >
                   <FiDownload />
-                  {t("export_pdf")}
+                  {isExportingPdf ? "Generating PDF..." : t("export_pdf")}
                 </button>
               </div>
 
@@ -688,9 +696,10 @@ const getCustomerCategoryLabels = (user = {}) => {
                 className="monthly-sheet-export-btn"
                 type="button"
                 onClick={handleExportPDF}
+                disabled={isExportingPdf || !filteredRows.length}
               >
                 <FiDownload />
-                {t("export_pdf")}
+                {isExportingPdf ? "Generating PDF..." : t("export_pdf")}
               </button>
 
               <div className="monthly-sheet-search-shell">

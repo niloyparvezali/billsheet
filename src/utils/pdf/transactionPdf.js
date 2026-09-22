@@ -1,12 +1,13 @@
-import { createPdfLayout } from "./pdfLayout";
+import { createPdfLayout, downloadPdfDocument } from "./pdfLayout";
 import { getStatusColor, pdfMoney, pdfBalance } from "./pdfHelpers";
-import { getDisplayBalanceValues, getDisplayPaymentStatus } from "../payments";
+import { getDisplayBalanceValues } from "../payments";
 
 export async function exportTransactionPdf({
   rows,
   companyName = "Bill Sheet",
   theme = "forest",
   year,
+  month,
 }) {
   const reportYear = Number(year) || new Date().getFullYear();
   const { pdf, colors, startY, drawSummary, drawTable, drawFooter } =
@@ -15,6 +16,7 @@ export async function exportTransactionPdf({
       companyName,
       theme,
       reportInfo: [
+        ...(month ? [{ label: "Month", value: month }] : []),
         {
           label: "Year",
           value: reportYear,
@@ -96,5 +98,6 @@ export async function exportTransactionPdf({
 
   drawFooter();
 
-  pdf.save(`Bill Sheet Transactions ${reportYear}.pdf`);
+  const filePeriod = month || String(reportYear);
+  downloadPdfDocument(pdf, `Bill Sheet Transactions ${filePeriod}.pdf`);
 }

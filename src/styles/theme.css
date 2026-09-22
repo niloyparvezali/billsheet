@@ -310,7 +310,6 @@ header p,
 .modal,
 .guide-item,
 .invite-user,
-.report-table-heading span,
 .sheet-empty-content > span{
   background: var(--surface);
   color: var(--text);
@@ -501,30 +500,6 @@ tbody tr:hover{
   color: var(--due-text);
 }
 
-/* ===========================
-   Reports
-=========================== */
-
-.report-kicker{
-  color: var(--primary);
-}
-
-.report-table-heading p{
-  color: var(--text-muted);
-}
-
-.report-table-heading span{
-  background: color-mix(in srgb, var(--primary) 8%, var(--surface) 92%);
-  color: var(--primary);
-}
-
-.report-due{
-  color: var(--warning);
-}
-
-.report-clear{
-  color: var(--success);
-}
 
 /* ===========================
    Invite

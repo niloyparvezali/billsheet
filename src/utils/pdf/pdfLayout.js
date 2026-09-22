@@ -1,5 +1,5 @@
-import jsPDF from "jspdf";
-import autoTable from "jspdf-autotable";
+import { jsPDF } from "jspdf";
+import { autoTable } from "jspdf-autotable";
 import { getPdfTheme } from "./pdfTheme";
 import { formatReportDate } from "./pdfHelpers";
 
@@ -26,6 +26,48 @@ async function loadLogoDataUrl() {
     console.warn("Unable to load Bill Sheet PDF logo:", error);
     return null;
   }
+}
+
+export function downloadPdfDocument(pdf, filename) {
+  if (!pdf || typeof pdf.output !== "function") {
+    throw new Error("PDF document was not created.");
+  }
+
+  const safeFilename =
+    String(filename || "BillSheet.pdf").replace(/[\\/:*?"<>|]+/g, "-").trim() ||
+    "BillSheet.pdf";
+
+  if (
+    typeof document === "undefined" ||
+    typeof URL === "undefined" ||
+    typeof URL.createObjectURL !== "function"
+  ) {
+    if (typeof pdf.save === "function") {
+      pdf.save(safeFilename);
+      return;
+    }
+    throw new Error("Browser download APIs are unavailable.");
+  }
+
+  const blob = pdf.output("blob");
+  if (!blob || typeof blob.size !== "number" || blob.size < 100) {
+    throw new Error("The generated PDF is empty or incomplete.");
+  }
+
+  const objectUrl = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.href = objectUrl;
+  link.download = safeFilename;
+  link.rel = "noopener";
+  link.style.display = "none";
+
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+
+  window.setTimeout(() => {
+    URL.revokeObjectURL(objectUrl);
+  }, 0);
 }
 
 export async function createPdfLayout({

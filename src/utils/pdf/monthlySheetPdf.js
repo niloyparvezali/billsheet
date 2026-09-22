@@ -1,4 +1,4 @@
-import { createPdfLayout } from "./pdfLayout";
+import { createPdfLayout, downloadPdfDocument } from "./pdfLayout";
 import {
   buildSummary,
   getStatusColor,
@@ -195,5 +195,5 @@ export async function exportMonthlySheetPdf({
 
   drawFooter();
 
-  pdf.save(`Billing Sheet - ${month} ${year}.pdf`);
+  downloadPdfDocument(pdf, `Billing Sheet - ${month} ${year}.pdf`);
 }

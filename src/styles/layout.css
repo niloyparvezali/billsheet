@@ -223,8 +223,7 @@ nav a.active{
   font-weight: 700;
 }
 
-.monthly-panel .panel-header h3,
-.report-table-heading h3{
+.monthly-panel .panel-header h3{
   color: var(--primary);
 }
 

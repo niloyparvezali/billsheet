@@ -10,6 +10,9 @@ const MobileUserRow = memo(function MobileUserRow({
   isSelected,
   onSelect,
   getUserStatusValue,
+  balanceSummary,
+  balanceReady,
+  formatMoney,
 }) {
   const statusValue = getUserStatusValue(user);
   const packages = getDisplayPackages(user);
@@ -43,6 +46,36 @@ const MobileUserRow = memo(function MobileUserRow({
           status={statusValue}
           className="user-inline-badge user-inline-badge--status"
         />
+        {balanceReady && Number.isFinite(Number(balanceSummary?.balance)) ? (
+          (() => {
+            const liveBalance = Number(balanceSummary.balance);
+            const tone =
+              liveBalance < 0 ? "due" : liveBalance > 0 ? "advance" : "settled";
+            return (
+              <div className={`users-mobile-item-balance tone-${tone}`}>
+                <span>Current balance</span>
+                <strong>
+                  {liveBalance < 0
+                    ? `-${formatMoney(Math.abs(liveBalance))}`
+                    : formatMoney(liveBalance)}
+                </strong>
+                {liveBalance < 0 ? (
+                  <small>Due</small>
+                ) : liveBalance > 0 ? (
+                  <small>Advance</small>
+                ) : null}
+              </div>
+            );
+          })()
+        ) : (
+          <div
+            className="users-mobile-item-balance users-mobile-item-balance--loading"
+            aria-label="Loading current balance"
+          >
+            <span>Current balance</span>
+            <strong>—</strong>
+          </div>
+        )}
       </div>
       <FiChevronRight className="users-mobile-item-chevron" />
     </button>
@@ -53,10 +86,6 @@ export default function UsersTable({
   list,
   setForm,
   setDeleteUser,
-  onAddPayment,
-  onViewHistory,
-  onViewAnnualReport,
-  formatDate,
   currentPage,
   setCurrentPage,
   totalPages,
@@ -65,6 +94,8 @@ export default function UsersTable({
   endIndex,
   onSelectUser,
   selectedUserId,
+  userBalanceById,
+  balanceReady = true,
 }) {
   const { t, formatMoney, formatNumber } = useLanguage();
 
@@ -163,6 +194,9 @@ export default function UsersTable({
               isSelected={selectedUserId === user.id}
               onSelect={onSelectUser}
               getUserStatusValue={getUserStatusValue}
+              balanceSummary={userBalanceById?.get(user.id)}
+              balanceReady={balanceReady}
+              formatMoney={formatMoney}
             />
           ))}
         </div>

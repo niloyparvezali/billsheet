@@ -7,7 +7,6 @@ import Login from "./pages/Login";
 import Dashboard from "./pages/Dashboard";
 import Users from "./pages/Users";
 import MonthlySheet from "./pages/MonthlySheet";
-import Reports from "./pages/Reports";
 import TransactionHistory from "./pages/TransactionHistory";
 import Settings from "./pages/Settings";
 
@@ -38,7 +37,6 @@ export default function App() {
         <Route path="/" element={<Dashboard />} />
         <Route path="/users" element={<Users />} />
         <Route path="/monthly-sheet" element={<MonthlySheet />} />
-        <Route path="/reports" element={<Reports />} />
         <Route path="/history" element={<TransactionHistory />} />
         <Route path="/settings" element={<Settings />} />
       </Route>
