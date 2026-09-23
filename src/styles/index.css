@@ -6,6 +6,7 @@
 @import "./settings.css";
 @import "./theme.css";
 @import "./responsive.css";
+@import "./premium.css";
 
 :root{
   /* Theme variables are defined centrally in theme.css. */

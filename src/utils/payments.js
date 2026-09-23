@@ -1408,6 +1408,8 @@ export const voidPaymentRecord = ({
   };
 };
 
+const TRANSACTION_TIME_ZONE = "Asia/Dhaka";
+
 export const createTransactionRowFromPayment = (
   payment,
   index = 0,
@@ -1434,13 +1436,19 @@ export const createTransactionRowFromPayment = (
   }
 
   const paymentDate =
-    payment?.paymentDateText ||
-    (dateTime ? dateTime.toISOString().split("T")[0] : "");
+    dateTime
+      ? dateTime.toLocaleDateString("en-CA", {
+          timeZone: TRANSACTION_TIME_ZONE,
+        })
+      : payment?.paymentDateText || "";
   const paymentTime =
-    payment?.paymentTime ||
-    (dateTime
-      ? dateTime.toLocaleTimeString([], { hour: "numeric", minute: "2-digit" })
-      : "");
+    dateTime
+      ? dateTime.toLocaleTimeString("en-US", {
+          hour: "numeric",
+          minute: "2-digit",
+          timeZone: TRANSACTION_TIME_ZONE,
+        })
+      : payment?.paymentTime || "";
   const bill = Number(
     payment?.monthlyBill || payment?.bill || payment?.billAmount || 0,
   );

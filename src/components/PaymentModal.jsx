@@ -26,6 +26,8 @@ import {
   TRANSACTION_TYPES,
 } from "../utils/transactions.js";
 
+const PAYMENT_TIME_ZONE = "Asia/Dhaka";
+
 export default function PaymentModal({ data, month, year, ownerId, close }) {
   const { t, formatMoney } = useLanguage();
   const [amount, setAmount] = useState("");
@@ -91,11 +93,14 @@ export default function PaymentModal({ data, month, year, ownerId, close }) {
       return;
     }
     const paymentTimestamp = new Date();
-    const paymentDateText = paymentTimestamp.toISOString().split("T")[0];
-    const paymentTimeText = paymentTimestamp
-      .toTimeString()
-      .split(" ")[0]
-      .slice(0, 5);
+    const paymentDateText = paymentTimestamp.toLocaleDateString("en-CA", {
+      timeZone: PAYMENT_TIME_ZONE,
+    });
+    const paymentTimeText = paymentTimestamp.toLocaleTimeString("en-US", {
+      hour: "numeric",
+      minute: "2-digit",
+      timeZone: PAYMENT_TIME_ZONE,
+    });
     const notes = addedDue > 0 ? `Additional due: ${addedDue}` : "";
     const previousPaid = Number(paymentSummary.totalPaid || 0);
     const previousBalance =

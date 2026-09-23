@@ -15,11 +15,21 @@ import {
   getPaymentMonthYear,
   matchesPaymentToUser,
 } from "../utils/payments";
+import { calculateOverallUserBalance } from "../utils/userHistory";
 
 export const TRANSACTIONS_PER_PAGE = 20;
+export const TRANSACTION_TIME_ZONE = "Asia/Dhaka";
 
-const getCurrentMonthValue = (date = new Date()) =>
-  `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}`;
+const getCurrentMonthValue = (date = new Date()) => {
+  const parts = new Intl.DateTimeFormat("en-CA", {
+    timeZone: TRANSACTION_TIME_ZONE,
+    year: "numeric",
+    month: "2-digit",
+  }).formatToParts(date);
+  const year = parts.find((part) => part.type === "year")?.value;
+  const month = parts.find((part) => part.type === "month")?.value;
+  return `${year}-${month}`;
+};
 
 const getMonthRange = (value) => {
   const [yearValue, monthValue] = String(value || "").split("-");
@@ -35,11 +45,17 @@ const getMonthRange = (value) => {
     return null;
   }
 
+  const padMonth = String(month).padStart(2, "0");
+  const nextYear = month === 12 ? year + 1 : year;
+  const nextMonth = month === 12 ? 1 : month + 1;
+
   return {
     year,
     month,
-    start: new Date(year, month - 1, 1, 0, 0, 0, 0),
-    end: new Date(year, month, 1, 0, 0, 0, 0),
+    start: new Date(`${year}-${padMonth}-01T00:00:00+06:00`),
+    end: new Date(
+      `${nextYear}-${String(nextMonth).padStart(2, "0")}-01T00:00:00+06:00`,
+    ),
   };
 };
 
@@ -130,6 +146,25 @@ const getTransactionBalance = (row = {}) => {
   );
 };
 
+export const formatTransactionTime = (date) =>
+  date
+    ? date.toLocaleTimeString("en-US", {
+        hour: "numeric",
+        minute: "2-digit",
+        timeZone: TRANSACTION_TIME_ZONE,
+      })
+    : "--";
+
+export const formatTransactionDate = (date) =>
+  date
+    ? date.toLocaleDateString("en-GB", {
+        day: "2-digit",
+        month: "short",
+        year: "numeric",
+        timeZone: TRANSACTION_TIME_ZONE,
+      })
+    : "--";
+
 const formatSignedMoney = (value, formatMoney) => {
   const numeric = Number(value || 0);
   if (!Number.isFinite(numeric) || numeric === 0) {
@@ -208,6 +243,10 @@ export default function TransactionHistory() {
   } = useOwnedCollection("payments", createdAtMonthQueryConstraints);
 
   const { data: users = [] } = useOwnedCollection("users");
+  const {
+    data: allPayments = [],
+    loading: allPaymentsLoading,
+  } = useOwnedCollection("payments");
 
   useEffect(() => {
     const syncCurrentMonth = () => {
@@ -351,6 +390,8 @@ export default function TransactionHistory() {
   }, [currentPageIndex, filteredPayments]);
 
   const currentRows = useMemo(() => {
+    const balanceCache = new Map();
+
     return pagePayments
       .map((payment, index) => {
         const user = resolvePaymentUser(payment);
@@ -376,10 +417,41 @@ export default function TransactionHistory() {
           index,
         );
 
-        const balance = getTransactionBalance(row);
+        const balanceIdentity = [
+          user?.id,
+          user?.userId,
+          user?.customerId,
+          payment?.userId,
+          payment?.customerId,
+        ]
+          .filter(Boolean)
+          .map(String)
+          .find(Boolean);
+
+        let liveBalance;
+        if (!allPaymentsLoading && user && balanceIdentity) {
+          if (!balanceCache.has(balanceIdentity)) {
+            const profileBalance = calculateOverallUserBalance(
+              user,
+              allPayments,
+              new Date(),
+            ).balance;
+            balanceCache.set(
+              balanceIdentity,
+              Math.round(Number(profileBalance || 0)),
+            );
+          }
+          liveBalance = balanceCache.get(balanceIdentity);
+        }
+
+        const balance =
+          liveBalance !== undefined
+            ? Math.round(Number(liveBalance))
+            : getTransactionBalance(row);
 
         return {
           ...row,
+          amount: Math.round(Number(payment?.amount ?? row?.amount ?? 0)),
           balance,
           customerName:
             user?.name ||
@@ -388,7 +460,7 @@ export default function TransactionHistory() {
             "Customer",
         };
       });
-  }, [pagePayments, users, usersByIdentity]);
+  }, [allPayments, allPaymentsLoading, pagePayments, users, usersByIdentity]);
 
   const monthSummary = useMemo(() => {
     const revenueTransactions = monthPayments.filter((payment) => {
@@ -579,7 +651,9 @@ export default function TransactionHistory() {
               <div className="transaction-ledger-body">
                 {currentRows.map((row) => {
                   const date = getTimestampDate(row);
-                  const balance = getTransactionBalance(row);
+                  const balance = Math.round(
+                    Number(row?.balance ?? getTransactionBalance(row) ?? 0),
+                  );
                   const balanceClass =
                     balance > 0
                       ? "is-advance"
@@ -596,32 +670,14 @@ export default function TransactionHistory() {
                         row.id ||
                         `${row.customerId}-${row.paymentDate}-${row.amount}`
                       }
-                      aria-label={`${date ? date.toLocaleDateString("en-GB", {
-                        day: "2-digit",
-                        month: "short",
-                        year: "numeric",
-                      }) : "--"} ${date ? date.toLocaleTimeString([], {
-                        hour: "2-digit",
-                        minute: "2-digit",
-                      }) : row.paymentTime || "--"} ${row.customerName}, ${formatMoney(row.amount)}, ${formatSignedMoney(balance, formatMoney)}`}
+                      aria-label={`${formatTransactionDate(date)} ${formatTransactionTime(date)} ${row.customerName}, ${formatMoney(row.amount)}, ${formatSignedMoney(balance, formatMoney)}`}
                     >
                       <time role="cell" className="ledger-cell ledger-date" dateTime={date ? date.toISOString() : undefined}>
-                        {date
-                          ? date.toLocaleDateString("en-GB", {
-                              day: "2-digit",
-                              month: "short",
-                              year: "numeric",
-                            })
-                          : "--"}
+                        {formatTransactionDate(date)}
                       </time>
 
                       <time role="cell" className="ledger-cell ledger-time" dateTime={date ? date.toISOString() : undefined}>
-                        {date
-                          ? date.toLocaleTimeString([], {
-                              hour: "2-digit",
-                              minute: "2-digit",
-                            })
-                          : row.paymentTime || "--"}
+                        {formatTransactionTime(date)}
                       </time>
 
                       <span role="cell" className="ledger-cell ledger-name" title={row.customerName}>
